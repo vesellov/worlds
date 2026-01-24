@@ -183,7 +183,7 @@ class ModelData(object):
         self.bones = {}
         self.animations = {}
 
-    def unpack_figure_data(self, figures_res_file_path, destination_dir, save_json=False):
+    def unpack_figure_data(self, figures_res_file_path, destination_dir, selected_parts=[], selected_animations=[], save_json=False):
         destination_sub_dir = os.path.join(destination_dir, self.template)
         if not os.path.isdir(destination_sub_dir):
             os.makedirs(destination_sub_dir)
@@ -198,10 +198,12 @@ class ModelData(object):
                 mod_file_name = res.unpack_res_element(figures_file, res_mod_element, dest_file_name=os.path.join(destination_sub_dir, self.template + '.mod'))
                 mod_filetree = res.unpack_mod_info(mod_file_name, destination_dir=destination_sub_dir)
                 for mod_element in mod_filetree:
+                    el = mod_element[0][:-4]
                     if mod_element[0].endswith('.fig'):
-                        fig_file_name = os.path.join(destination_sub_dir, mod_element[0])
-                        self.figures[mod_element[0][:-4]] = res.read_fig_info(fig_file_name)
-                        fig_count += 1
+                        if not selected_parts or el in selected_parts:
+                            fig_file_name = os.path.join(destination_sub_dir, mod_element[0])
+                            self.figures[mod_element[0][:-4]] = res.read_fig_info(fig_file_name)
+                            fig_count += 1
                     elif mod_element[0].endswith('.lnk'):
                         lnk_file_name = os.path.join(destination_sub_dir, mod_element[0])
                         lnk_list, lnk_tree, lnk_parents, _ = res.read_lnk_info(lnk_file_name)
@@ -222,15 +224,19 @@ class ModelData(object):
                         anm_element[0] += '.anm'
                     res.unpack_res(anm_file, anm_filetree, destination_dir=destination_sub_dir)
                     for anm_element in anm_filetree:
-                        one_anm_file_name = os.path.join(destination_sub_dir, anm_element[0])
-                        with open(one_anm_file_name, 'rb') as one_anm_file:
-                            one_anm_filetree = res.read_res_filetree(one_anm_file)
-                            self.animations[anm_element[0][:-4]] = {}
-                            for one_anm_element in one_anm_filetree:
-                                one_anm_dest_file_name = os.path.join(destination_sub_dir, anm_element[0][:-4], one_anm_element[0] + '.anm')
-                                res.unpack_res_element(one_anm_file, one_anm_element, dest_file_name=one_anm_dest_file_name)
-                                self.animations[anm_element[0][:-4]][one_anm_element[0]] = res.read_anm_info(one_anm_dest_file_name)
-                                anm_count += 1
+                        el = anm_element[0][:-4]
+                        if not selected_animations or el in selected_animations:
+                            one_anm_file_name = os.path.join(destination_sub_dir, anm_element[0])
+                            with open(one_anm_file_name, 'rb') as one_anm_file:
+                                one_anm_filetree = res.read_res_filetree(one_anm_file)
+                                self.animations[anm_element[0][:-4]] = {}
+                                for one_anm_element in one_anm_filetree:
+                                    el_part = one_anm_element[0]
+                                    if not selected_parts or el_part in selected_parts:
+                                        one_anm_dest_file_name = os.path.join(destination_sub_dir, anm_element[0][:-4], one_anm_element[0] + '.anm')
+                                        res.unpack_res_element(one_anm_file, one_anm_element, dest_file_name=one_anm_dest_file_name)
+                                        self.animations[anm_element[0][:-4]][one_anm_element[0]] = res.read_anm_info(one_anm_dest_file_name)
+                                        anm_count += 1
             res_bon_element = res_filetree_dict.get(self.template + '.bon')
             if res_bon_element:
                 bon_file_name = res.unpack_res_element(figures_file, res_bon_element, dest_file_name=os.path.join(destination_sub_dir, self.template + '.bon'))
@@ -270,10 +276,13 @@ class LandData(object):
         im = Image(elevation_file_name, keep_data=True)
         self.width = im.width
         self.height = im.height
-        _heights = []
+        _elevation = []
+        # for h in range(self.height):
+        #     _elevation.append(tuple(im.read_pixel(w, h)[0] for w in range(self.width)))
         for w in range(self.width):
-            _heights.append(tuple(im.read_pixel(w, h)[0] for h in range(self.height)))
-        self.elevation_map_data = tuple(_heights)
+            _elevation.append(tuple(im.read_pixel(w, h)[0] for h in range(self.height)))
+        self.elevation_map_data = tuple(_elevation)
+        return self.width, self.height
 
     def save_elevation_memmap(self, file_name_prefix, destination_dir):
         file_path = os.path.join(destination_dir, f'{file_name_prefix}.{self.width}.{self.height}.memmap')
@@ -283,7 +292,17 @@ class LandData(object):
         return file_path
 
     def get_elevation(self, w, h):
-        return self.elevation_map_data[w][h]
+        _w = w
+        if w < 0:
+            _w = -w 
+        elif w >= self.width:
+            _w = self.width - w
+        _h = h
+        if h < 0:
+            _h = -h
+        elif h >= self.height:
+            _h = self.height - h
+        return self.elevation_map_data[_w][_h]
 
 
 class SceneData(object):
@@ -362,7 +381,6 @@ class SceneData(object):
         if not u.animations_loaded:
             u.animations_loaded = list(m.animations.keys())
         related_meshes = {}
-        # first_animation_name = None
         if not selected_parts:
             selected_parts = ordered_parts_list
         for exclude in excluded_parts:
@@ -405,13 +423,10 @@ class SceneData(object):
                         for i in range(animation_info[5]):
                             morphing_frames[0].append(mth.ei2xyz_list(value[i]))
                     a.morphing_frames_input = morphing_frames
-                # if not first_animation_name:
-                #     first_animation_name = anim_name
                 a.frames = len(a.rotation_frames_input)
                 u.animations[anim_name].parts[part_name] = a
 
         u.calculate_animations()
-        # u.animation_playing = first_animation_name
         self.units[u.name] = u
         t2 = time.time()
         if _Debug:

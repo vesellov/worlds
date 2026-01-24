@@ -1,4 +1,5 @@
 import sys
+import math
 
 
 _Debug = True
@@ -16,12 +17,10 @@ from kivy.graphics import (
     RenderContext, Callback, BindTexture,
     ChangeState, PushState, PopState,
     PushMatrix, PopMatrix, Scale,
-    Color, Translate, Rotate, Mesh, UpdateNormalMatrix,
+    Color, Translate, Rotate, Mesh,
 )
 
-import dat
 import mth
-import res
 
 
 vertex_shader_src = """
@@ -79,10 +78,21 @@ def ignore_undertouch(func):
 
 class Renderer(Widget):
 
-    SCALE_FACTOR = 0.05
-    MAX_SCALE = 10.0
-    MIN_SCALE = 0.1
+    SCALE_FACTOR = 0.2
+    SCALE_INITIAL = 1.0
+    MAX_SCALE = 4.0
+    MIN_SCALE = 0.25
     ROTATE_SPEED = 1.
+    ROTATE_VERTICAL_MIN = 15
+    ROTATE_VERTICAL_MAX = 90
+    ROTATE_VERTICAL_INITIAL = 25
+    PLANET_RADIUS = 200.0
+    LAND_CELL_SCALE_FACTOR = 10.0
+    ELEVATION_FACTOR = PLANET_RADIUS / 8.0
+    LAND_AREA_SIZE_VISIBLE = 36
+    LAND_AREA_HALF_SIZE_VISIBLE = int(LAND_AREA_SIZE_VISIBLE / 2)
+    PLANET_LAND_SIZE = float(LAND_AREA_SIZE_VISIBLE * LAND_CELL_SCALE_FACTOR)
+    LAND_MOVE_SPEED = 0.5
 
     def __init__(self, app_root, scene, **kwargs):
         self.app_root = app_root
@@ -92,196 +102,268 @@ class Renderer(Widget):
         self.canvas.shader.vs = vertex_shader_src
         self.container = None
         self.container_land = None
+        self.container_land_tiles = None
         self.meshes_onstage = set()
+        self.global_translate = None
+        self.global_rotate_x = None
+        self.global_rotate_y = None
+        self.global_scale = None
+        self.global_land_translate_before = None
+        self.global_land_translate_after = None
+        self.global_land_rotate_x = None
+        self.global_land_rotate_y = None
+        self.global_land_rotate_z = None
+        self.land_area_left = 0
+        self.land_area_top = 0
+        self.land_tiles_visible = {}
         self.touches = []
         super(Renderer, self).__init__(**kwargs)
         with self.canvas:
-            self.cb = Callback(self.setup_gl_context)
+            self.cb = Callback(self.on_setup_gl_context)
             PushMatrix()
             self.setup_scene()
             PopMatrix()
-            self.cb = Callback(self.reset_gl_context)
+            self.cb = Callback(self.on_reset_gl_context)
         self.canvas['texture_id'] = 1
-        Clock.schedule_interval(self.update_glsl, 1 / 60)
-        Clock.schedule_interval(self.update_animations, 1 / 25)
-        self._keyboard = Window.request_keyboard(self._keyboard_closed, self)
-        self._keyboard.bind(on_key_down=self._on_keyboard_down)
-
-    def _keyboard_closed(self):
-        self._keyboard.unbind(on_key_down=self._on_keyboard_down)
-        self._keyboard = None
-
-    def _on_keyboard_down(self, keyboard, keycode, text, modifiers):
-        if keycode[1] == 'escape':
-            App.get_running_app().stop()
-        elif keycode[1] == 'z':
-            for u in self.scene.units.values():
-                if not u.onstage:
-                    continue
-                current_animation_ind = u.animations_loaded.index(u.animation_playing)
-                current_animation_ind += 1
-                if current_animation_ind >= len(u.animations_loaded):
-                    current_animation_ind = 0
-                u.animation_playing = u.animations_loaded[current_animation_ind]
-                u.animation_frame = 0
-                if _Debug:
-                    print(f'playing animation {u.animation_playing} for ({u.name})')
-                break
-        elif keycode[1] == 'x':
-            for u in self.scene.units.values():
-                if not u.onstage:
-                    continue
-                current_animation_ind = u.animations_loaded.index(u.animation_playing)
-                current_animation_ind -= 1
-                if current_animation_ind < 0:
-                    current_animation_ind = len(u.animations_loaded) - 1
-                u.animation_playing = u.animations_loaded[current_animation_ind]
-                u.animation_frame = 0
-                if _Debug:
-                    print(f'playing animation {u.animation_playing} for ({u.name})')
-                break
-        elif keycode[1] == 'c':
-            units_onstage = []
-            for unit in self.scene.units.values():
-                if unit.onstage:
-                    units_onstage.append(unit.name)
-            for name in units_onstage:
-                self.remove_unit(name)
-            self.app_root.test_id += 1
-            if self.app_root.test_id > 3:
-                self.app_root.test_id = 1
-            unit = self.app_root.prepare_test_unit(scene=self.scene, test=self.app_root.test_id)
-            if unit and not unit.onstage:
-                self.add_unit(name)
-        elif keycode[1] == 'v':
-            units_onstage = []
-            for unit in self.scene.units.values():
-                if unit.onstage:
-                    units_onstage.append(unit.name)
-            for name in units_onstage:
-                self.remove_unit(name)
-            self.app_root.test_id -= 1
-            if self.app_root.test_id == 0:
-                self.app_root.test_id = 3
-            unit = self.app_root.prepare_test_unit(scene=self.scene, test=self.app_root.test_id)
-            if unit and not unit.onstage:
-                self.add_unit(name)
-        return True
-
-    @ignore_undertouch
-    def on_touch_down(self, touch):
-        touch.grab(self)
-        self.touches.append(touch)
-        if 'button' in touch.profile and touch.button in ('scrollup', 'scrolldown'):
-            if touch.button == "scrolldown":
-                scale = self.SCALE_FACTOR
-            if touch.button == "scrollup":
-                scale = -self.SCALE_FACTOR
-            xyz = self.global_scale.xyz
-            scale = xyz[0] + scale
-            if scale < self.MAX_SCALE and scale > self.MIN_SCALE:
-                self.global_scale.xyz = (scale, scale, scale)
-
-    @ignore_undertouch
-    def on_touch_up(self, touch):
-        touch.ungrab(self)
-        if touch in self.touches:
-            self.touches.remove(touch)
+        self.keyboard_handler = Window.request_keyboard(self.on_keyboard_closed, self)
+        self.keyboard_handler.bind(on_key_down=self.on_keyboard_down)
+        Clock.schedule_interval(self.on_update_glsl, 1 / 60)
+        Clock.schedule_interval(self.on_update_animations, 1 / 25)
 
     def define_rotate_angle(self, touch):
         x_angle = (touch.dx / self.width) * 360.0 * self.ROTATE_SPEED
         y_angle = -1 * (touch.dy / self.height) * 360.0 * self.ROTATE_SPEED
         return x_angle, y_angle
 
-    @ignore_undertouch
-    def on_touch_move(self, touch):
-        if touch in self.touches and touch.grab_current == self:
-            if len(self.touches) == 1:
-                ax, ay = self.define_rotate_angle(touch)
-                self.global_rotate_y.angle -= ax
-                self.global_rotate_x.angle -= ay
+    def add_land_tile(self, w, h, w_t, h_t):
+        step = 1.0 / 8.0
 
-    def add_land(self):
-        window_w = 20
-        window_h = 64
-        window_width = 32
-        window_height = 32
-        window_center_w = window_w + int(window_width / 2)
-        window_center_h = window_h + int(window_height / 2)
-        planet_radius = 150.0
-        elevation_factor = planet_radius / 5.0
-        cells_scale_factor = 20
-        width = window_width
-        height = window_height
-        # width = self.land.width
-        # height = self.land.height
-        width_half = int(width / 2.0)
-        height_half = int(height / 2.0)
+        def _get_tile_texture_info(w_t, h_t, e_mid):
+            ind = [0, 1, 2, 1, 2, 3]
+            # water
+            bit_x = 7
+            bit_y = 4
+            tex = 'zone19000.png'
+            if e_mid > 0.001:
+                # sand
+                bit_x = 0
+                bit_y = 0
+                tex = 'zone19000.png'
+            if e_mid > 0.5:
+                # green grass
+                bit_x = 7
+                bit_y = 1
+                tex = 'zone71002.png'            
+            if e_mid > 0.75:
+                # red soil
+                bit_x = 5
+                bit_y = 5
+                tex = 'zone19000.png'            
+            if e_mid > 0.75:
+                # rocks
+                bit_x = 0
+                bit_y = 0
+                tex = 'zone71002.png'            
+            if e_mid > 0.9:
+                # snow
+                bit_x = 0
+                bit_y = 0
+                tex = 'bz10k000.png'
+            if (w_t, h_t) == (70, 63):
+                tex = 'textures/land/basegipat000.png'
+                bit_x = 0
+                bit_y = 6
+            if (w_t, h_t) == (70, 62):
+                tex = 'textures/land/basegipat000.png'
+                bit_x = 7
+                bit_y = 5
+
+            if (w_t, h_t) == (72, 63):
+                tex = 'textures/land/basegipat000.png'
+                bit_x = 6
+                bit_y = 0
+            if (w_t, h_t) == (72, 62):
+                tex = 'textures/land/basegipat007.png'
+                bit_x = 0
+                bit_y = 0
+            if (w_t, h_t) == (71, 63):
+                tex = 'textures/land/basegipat000.png'
+                bit_x = 6
+                bit_y = 0
+            if (w_t, h_t) == (73, 62):
+                tex = 'textures/land/basegipat000.png'
+                bit_x = 6
+                bit_y = 0
+            if (w_t, h_t) == (73, 63):
+                tex = 'textures/land/basegipat000.png'
+                bit_x = 6
+                bit_y = 0
+            if (w_t, h_t) == (71, 62):
+                tex = 'textures/land/basegipat005.png'
+                bit_x = 1
+                bit_y = 4
+            corr = 0.001
+            tc00 = (bit_x * step + corr, bit_y * step + corr)
+            tc01 = (bit_x * step + corr, (bit_y + 1) * step - corr)
+            tc10 = ((bit_x + 1) * step - corr, bit_y * step + corr)
+            tc11 = ((bit_x + 1) * step - corr, (bit_y+1) * step - corr)
+            return tex, ind, tc00, tc01, tc10, tc11
+
+        half_f = float(self.LAND_AREA_HALF_SIZE_VISIBLE)
         _get_elevation = self.scene.land.get_elevation
-        elevation_at_center = _get_elevation(window_center_w, window_center_h)
-        # planed_shift_y = - planet_radius - elevation_at_00 * elevation_factor - elevation_factor / 12 - 1.0
+        w_f = float(w)
+        h_f = float(h)
+        e00 = _get_elevation(w_t, h_t)
+        e01 = _get_elevation(w_t, h_t + 1)
+        e10 = _get_elevation(w_t + 1, h_t)
+        e11 = _get_elevation(w_t + 1, h_t + 1)
+        e_mid = (e00 + e01 + e10 + e11) / 4.0
+        w00 = w_f - half_f
+        h00 = h_f - half_f
+        w01 = w_f - half_f
+        h01 = h_f + 1.0 - half_f
+        w10 = w_f + 1.0 - half_f
+        h10 = h_f - half_f
+        w11 = w_f + 1.0 - half_f
+        h11 = h_f + 1.0 - half_f
+        v00 = mth.wh2xyz(w00, h00, self.PLANET_LAND_SIZE, self.PLANET_LAND_SIZE, radius=self.PLANET_RADIUS + e00 * self.ELEVATION_FACTOR)
+        v01 = mth.wh2xyz(w01, h01, self.PLANET_LAND_SIZE, self.PLANET_LAND_SIZE, radius=self.PLANET_RADIUS + e01 * self.ELEVATION_FACTOR)
+        v10 = mth.wh2xyz(w10, h10, self.PLANET_LAND_SIZE, self.PLANET_LAND_SIZE, radius=self.PLANET_RADIUS + e10 * self.ELEVATION_FACTOR)
+        v11 = mth.wh2xyz(w11, h11, self.PLANET_LAND_SIZE, self.PLANET_LAND_SIZE, radius=self.PLANET_RADIUS + e11 * self.ELEVATION_FACTOR)
+        tex_source, indices, tex_coord00, tex_coord01, tex_coord10, tex_coord11 = _get_tile_texture_info(w_t, h_t, e_mid)
+        vert = [
+            # v00[0], v00[1], v00[2], 1, 0, 0, 0.2 * (w / width_f), 0.2 * (h / height_f),
+            # v01[0], v01[1], v01[2], 1, 0, 0, 0.2 * (w / width_f) , 0.2 * (h + 1.0) / height_f,
+            # v10[0], v10[1], v10[2], 1, 0, 0, 0.2 * (w + 1.0) / width_f, 0.2 * (h / height_f),
+            # v11[0], v11[1], v11[2], 1, 0, 0, 0.2 * (w + 1.0) / width_f, 0.2 * (h + 1.0) / height_f,
+            # v00[0], v00[1], v00[2], 1, 0, 0, bit_x * step, bit_y * step,
+            # v01[0], v01[1], v01[2], 1, 0, 0, bit_x * step, (bit_y+1) * step,
+            # v10[0], v10[1], v10[2], 1, 0, 0, (bit_x+1) * step, bit_y * step,
+            # v11[0], v11[1], v11[2], 1, 0, 0, (bit_x+1) * step, (bit_y+1) * step,
+            v00[0], v00[1], v00[2], 1, 0, 0, tex_coord00[0], tex_coord00[1],
+            v01[0], v01[1], v01[2], 1, 0, 0, tex_coord01[0], tex_coord01[1],
+            v10[0], v10[1], v10[2], 1, 0, 0, tex_coord10[0], tex_coord10[1],
+            v11[0], v11[1], v11[2], 1, 0, 0, tex_coord11[0], tex_coord11[1],
+        ]
+        tile_group_name = f'land_{w_t}_{h_t}'
+        self.container_land_tiles.add(BindTexture(source=tex_source, index=1, group=tile_group_name))
+        self.container_land_tiles.add(Mesh(
+            vertices=vert,
+            indices=indices,
+            fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+            mode='triangles',
+            group=tile_group_name,
+        ))
+        self.land_tiles_visible[(w_t, h_t)] = (w, h)
+
+    def remove_land_tile(self, w_t, h_t):
+        tile_group_name = f'land_{w_t}_{h_t}'
+        self.container_land_tiles.remove_group(tile_group_name)
+        self.land_tiles_visible.pop((w_t, h_t))
+
+    def prepare_land(self, initial_area_center_w, initial_area_center_h):
+        self.global_land_rotate_x = Rotate(0, 1, 0, 0, group='land')
+        self.global_land_rotate_y = Rotate(0, 0, 1, 0, group='land')
+        self.global_land_rotate_z = Rotate(0, 0, 0, 1, group='land')
+        # window_width = self.LAND_AREA_SIZE_VISIBLE
+        # window_height = self.LAND_AREA_SIZE_VISIBLE
+        self.initial_area_center_w = initial_area_center_w
+        self.initial_area_center_h = initial_area_center_h
+        latitude_radians = math.radians(-self.global_land_rotate_x.angle)
+        longitude_radians = math.radians(90.0-self.global_land_rotate_z.angle)
+        planet_width = self.PLANET_LAND_SIZE
+        planet_height = self.PLANET_LAND_SIZE
+        w_f = mth.lat2w(latitude_radians, width=planet_width)
+        h_f = mth.lon2h(longitude_radians, height=planet_height)
+        w_i = math.ceil(w_f) - 1
+        h_i = math.ceil(h_f) - 1
+        w = w_i + self.initial_area_center_w
+        h = h_i + self.initial_area_center_h
+        self.land_area_left = w - self.LAND_AREA_HALF_SIZE_VISIBLE
+        self.land_area_top  = h - self.LAND_AREA_HALF_SIZE_VISIBLE
+        planet_radius = self.PLANET_RADIUS
+        elevation_factor = self.ELEVATION_FACTOR
+        _get_elevation = self.scene.land.get_elevation
+        elevation_at_center = _get_elevation(w, h)
         planed_shift_y = - planet_radius - elevation_at_center * elevation_factor
         planet_xyz = [0.0, planed_shift_y, 0.0]
-        w2f = float(width / 2)
-        h2f = float(height / 2)
-        width_f = float(width)
-        height_f = float(height)
-        planet_width = float(width * cells_scale_factor)
-        planet_height = float(height * cells_scale_factor)
+        self.global_land_translate_before = Translate(planet_xyz[0], planet_xyz[1], planet_xyz[2], group='land')
         self.container_land.add(PushMatrix(group='land'))
-        self.container_land.add(Translate(planet_xyz[0], planet_xyz[1], planet_xyz[2]))
-        # self.container_land.add(PushMatrix(group='land'))
-        for _w in range(0, window_width - 1):
-            for _h in range(0, window_height - 1):
-                w = _w
-                h = _h
-        # for _w in range(0, width - 1):
-        #     for _h in range(0, height - 1):
-                # w = _w
-                # h = _h
-                w_f = float(_w)
-                h_f = float(_h)
-                e00 = _get_elevation(window_w + w, window_h + h)
-                e01 = _get_elevation(window_w + w, window_h + h + 1)
-                e10 = _get_elevation(window_w + w + 1, window_h + h)
-                e11 = _get_elevation(window_w + w + 1, window_h + h + 1)
-                # e00 = self.land.get_elevation(w, h)
-                # e01 = self.land.get_elevation(w, h+1)
-                # e10 = self.land.get_elevation(w+1, h)
-                # e11 = self.land.get_elevation(w+1, h+1)
-                if 0 in (e00, e01, e10, e11):
-                    # TODO: pain water
-                    continue
-                w00 = w_f - w2f
-                h00 = h_f - h2f
-                w01 = w_f - w2f
-                h01 = h_f + 1.0 - h2f
-                w10 = w_f + 1.0 - w2f
-                h10 = h_f - h2f
-                w11 = w_f + 1.0 - w2f
-                h11 = h_f + 1.0 - h2f
-                v00 = mth.wh2xyz(w00, h00, planet_width, planet_height, radius=planet_radius+e00*elevation_factor)
-                v01 = mth.wh2xyz(w01, h01, planet_width, planet_height, radius=planet_radius+e01*elevation_factor)
-                v10 = mth.wh2xyz(w10, h10, planet_width, planet_height, radius=planet_radius+e10*elevation_factor)
-                v11 = mth.wh2xyz(w11, h11, planet_width, planet_height, radius=planet_radius+e11*elevation_factor)
-                vert = [
-                    v00[0], v00[1], v00[2], 1, 0, 0, w / width_f, h / height_f,
-                    v01[0], v01[1], v01[2], 1, 0, 0, w / width_f, (h + 1.0) / height_f,
-                    v10[0], v10[1], v10[2], 1, 0, 0, (w + 1.0) / width_f, h / height_f,
-                    v11[0], v11[1], v11[2], 1, 0, 0, (w + 1.0) / width_f, (h + 1.0) / height_f,
-                ]
-                ind = [0, 1, 2, 1, 2, 3]
-                self.container_land.add(BindTexture(source='land.png', index=1, group='land'))
-                self.container_land.add(Mesh(
-                    vertices=vert,
-                    indices=ind,
-                    fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
-                    mode='triangles',
-                    group='land',
-                ))
-        # self.container_land.add(PopMatrix(group='land'))
-        self.container_land.add(Translate(-planet_xyz[0], -planet_xyz[1], -planet_xyz[2]))
+        self.container_land.add(self.global_land_translate_before)
+        self.container_land.add(self.global_land_rotate_x)
+        self.container_land.add(self.global_land_rotate_y)
+        self.container_land.add(self.global_land_rotate_z)
+        self.container_land_tiles = InstructionGroup()
+        self.container_land.add(self.container_land_tiles)
+        self.global_land_translate_after = Translate(-planet_xyz[0], -planet_xyz[1], -planet_xyz[2], group='land')
+        self.container_land.add(self.global_land_translate_after)
         self.container_land.add(PopMatrix(group='land'))
+        if _Debug:
+            print(f'prepare land area at {w} {h}')
+
+    def update_land(self):
+        window_width = self.LAND_AREA_SIZE_VISIBLE
+        window_height = self.LAND_AREA_SIZE_VISIBLE
+        planet_radius = self.PLANET_RADIUS
+        elevation_factor = self.ELEVATION_FACTOR
+        latitude_radians = math.radians(-self.global_land_rotate_x.angle)
+        longitude_radians = math.radians(90.0-self.global_land_rotate_z.angle)
+        planet_width = float(self.LAND_AREA_SIZE_VISIBLE * self.LAND_CELL_SCALE_FACTOR)
+        planet_height = float(self.LAND_AREA_SIZE_VISIBLE * self.LAND_CELL_SCALE_FACTOR)
+        w_f = mth.lat2w(latitude_radians, width=planet_width)
+        h_f = mth.lon2h(longitude_radians, height=planet_height)
+        w_i = math.ceil(w_f) - 1
+        h_i = math.ceil(h_f) - 1
+        w = w_i + self.initial_area_center_w
+        h = h_i + self.initial_area_center_h
+        _get_elevation = self.scene.land.get_elevation
+        e00 = _get_elevation(w, h)
+        e01 = _get_elevation(w, h + 1)
+        e10 = _get_elevation(w + 1, h)
+        e11 = _get_elevation(w + 1, h + 1)
+        p00 = (float(w_i), float(h_i), e00)
+        p01 = (float(w_i), float(h_i) + 1.0, e01)
+        p10 = (float(w_i) + 1.0, float(h_i), e10)
+        p11 = (float(w_i) + 1.0, float(h_i) + 1.0, e11)
+        if mth.point_line_left_or_right(w_f, h_f, p01[0], p01[1], p10[0], p10[1]) == -1:
+            e = mth.get_z_in_triangle(w_f, h_f, p00, p01, p10)
+        else:
+            e = mth.get_z_in_triangle(w_f, h_f, p01, p10, p11)
+        planed_shift_y = - planet_radius - e * elevation_factor
+        self.global_land_translate_before.y = planed_shift_y
+        new_area_center_w = w
+        new_area_center_h = h
+        new_area_left = w - self.LAND_AREA_HALF_SIZE_VISIBLE
+        new_area_top = h - self.LAND_AREA_HALF_SIZE_VISIBLE
+        new_area_right = w + self.LAND_AREA_HALF_SIZE_VISIBLE
+        new_area_bottom = h + self.LAND_AREA_HALF_SIZE_VISIBLE
+        added = 0
+        removed = 0
+        if self.land_area_left != new_area_left or self.land_area_top != new_area_top or not self.land_tiles_visible:
+            w_delta = new_area_center_w - self.initial_area_center_w
+            h_delta = new_area_center_h - self.initial_area_center_h
+            for _w in range(0, window_width - 1):
+                for _h in range(0, window_height - 1):
+                    w_t = new_area_left + _w
+                    h_t = new_area_top + _h
+                    if (w_t, h_t) not in self.land_tiles_visible:
+                        self.add_land_tile(_w + w_delta, _h + h_delta, w_t, h_t)
+                        added += 1
+            to_remove = []
+            for k, v in self.land_tiles_visible.items():
+                w_t, h_t = k
+                _w, _h = v
+                if new_area_left - 2 <= w_t and w_t <= new_area_right + 2 and new_area_top - 2 <= h_t and h_t <= new_area_bottom + 2:
+                    continue
+                to_remove.append((w_t, h_t))
+            for w_t, h_t in to_remove:
+                self.remove_land_tile(w_t, h_t)
+                removed += 1
+        self.land_area_left = new_area_left
+        self.land_area_top = new_area_top
+        if added or removed:
+            if _Debug:
+                print(f'    updated land area at {w} {h}, added {added} and removed {removed} tiles, lat:{self.global_land_rotate_x.angle} lon:{self.global_land_rotate_z.angle}')
 
     def add_mesh(self, name):
         # NOT TO BE USED
@@ -372,72 +454,12 @@ class Renderer(Widget):
         if _Debug:
             print(f'removed mesh unit ({unit.name}) from scene')
 
-    def setup_gl_context(self, *args):
-        glEnable(GL_DEPTH_TEST)
-
-    def reset_gl_context(self, *args):
-        glDisable(GL_DEPTH_TEST)
-
-    def gl_error(self, text='', kill=True):
-        err = glGetError()
-        if not err:
-            return 
-        while err:
-            if _Debug:
-                print('## GL ## = ' + text + 'OPENGL Error Code = ' + str(err))
-            err = glGetError()
-        if kill == True:
-            sys.exit(0)
-
-    def update_glsl(self, delta):
-        asp = self.width / float(self.height)
-        self.gl_error('step 1')
-        self.canvas['texture_id'] = 1
-        self.canvas['projection_mat'] = Matrix().view_clip(-asp, asp, -1, 1, 1, 100, 1)
-        self.canvas['modelview_mat'] = Matrix().look_at(0, 0, -5, 0, 0, 0, 0, 1, 0)
-        self.canvas['diffuse_light'] = (1.0, 1.0, 1.0)
-        self.canvas['ambient_light'] = (0.1, 0.1, 0.1)
-        self.gl_error('step 2')
-
-    def update_animations(self, delta):
-        # TODO: maintain separate list of active animations for all units
-        # then it is not required to loop all units
-        for unit in self.scene.units.values():
-            if not unit.onstage:
-                continue
-            if not unit.animation_playing:
-                continue
-            a = unit.animations[unit.animation_playing]
-            root_part_name = unit.parts[0]
-            root_part_animation = a.parts.get(root_part_name)
-            if unit.animation_frame >= root_part_animation.frames:
-                if _Debug:
-                    print(f'restarting unit ({unit.name}) animation {unit.animation_playing} after frame {unit.animation_frame}')
-                unit.animation_frame = 0
-            f = unit.animation_frame
-            for part_name in unit.parts:
-                if part_name not in a.parts:
-                    continue
-                part_animation = a.parts.get(part_name)
-                if not part_animation:
-                    continue
-                q = part_animation.rotation_frames[f]
-                t = part_animation.translation_frames[f]
-                mesh = unit.meshes[part_name]
-                translate_mat = Matrix()
-                translate_mat.translate(t[0], t[1], t[2])
-                mesh.part_translate.matrix = translate_mat
-                rotate_mat = Matrix()
-                rotate_mat.set(array=mth.quaternion_to_matrix(q[0], q[1], q[2], q[3]))
-                mesh.part_rotate.matrix = rotate_mat.inverse()
-            unit.animation_frame += 1
-
     def setup_scene(self):
         PushMatrix()
-        self.global_translate = Translate(0, 0, 0)
-        self.global_rotate_x = Rotate(0, 1, 0, 0)
+        self.global_translate = Translate(0, -1, 0)
+        self.global_rotate_x = Rotate(-self.ROTATE_VERTICAL_INITIAL, 1, 0, 0)
         self.global_rotate_y = Rotate(0, 0, 1, 0)
-        self.global_scale = Scale(0.5)
+        self.global_scale = Scale(self.SCALE_INITIAL)
         sz = 1
         PushState()
         ChangeState(line_color=(0.5, 0.5, 0.5, 1.))
@@ -483,3 +505,183 @@ class Renderer(Widget):
         self.container_land = InstructionGroup()
         self.container = InstructionGroup()
         PopMatrix()
+
+    def on_keyboard_closed(self):
+        self.keyboard_handler.unbind(on_key_down=self.on_keyboard_down)
+        self.keyboard_handler = None
+
+    def on_keyboard_down(self, keyboard, keycode, text, modifiers):
+        if keycode[1] == 'escape':
+            App.get_running_app().stop()
+        elif keycode[1] == 'z':
+            for u in self.scene.units.values():
+                if not u.onstage:
+                    continue
+                current_animation_ind = u.animations_loaded.index(u.animation_playing)
+                current_animation_ind += 1
+                if current_animation_ind >= len(u.animations_loaded):
+                    current_animation_ind = 0
+                u.animation_playing = u.animations_loaded[current_animation_ind]
+                u.animation_frame = 0
+                if _Debug:
+                    print(f'playing animation {u.animation_playing} for ({u.name})')
+                break
+        elif keycode[1] == 'x':
+            for u in self.scene.units.values():
+                if not u.onstage:
+                    continue
+                current_animation_ind = u.animations_loaded.index(u.animation_playing)
+                current_animation_ind -= 1
+                if current_animation_ind < 0:
+                    current_animation_ind = len(u.animations_loaded) - 1
+                u.animation_playing = u.animations_loaded[current_animation_ind]
+                u.animation_frame = 0
+                if _Debug:
+                    print(f'playing animation {u.animation_playing} for ({u.name})')
+                break
+        elif keycode[1] == 'c':
+            units_onstage = []
+            for unit in self.scene.units.values():
+                if unit.onstage:
+                    units_onstage.append(unit.name)
+            for name in units_onstage:
+                self.remove_unit(name)
+            self.app_root.test_id += 1
+            if self.app_root.test_id > 3:
+                self.app_root.test_id = 1
+            unit = self.app_root.prepare_test_unit(scene=self.scene, test=self.app_root.test_id)
+            if unit and not unit.onstage:
+                self.add_unit(name)
+        elif keycode[1] == 'v':
+            units_onstage = []
+            for unit in self.scene.units.values():
+                if unit.onstage:
+                    units_onstage.append(unit.name)
+            for name in units_onstage:
+                self.remove_unit(name)
+            self.app_root.test_id -= 1
+            if self.app_root.test_id == 0:
+                self.app_root.test_id = 3
+            unit = self.app_root.prepare_test_unit(scene=self.scene, test=self.app_root.test_id)
+            if unit and not unit.onstage:
+                self.add_unit(name)
+        elif keycode[1] == 'd':
+            new_global_land_rotate_z_angle = self.global_land_rotate_z.angle - self.LAND_MOVE_SPEED
+            if new_global_land_rotate_z_angle < -180.0:
+                new_global_land_rotate_z_angle += 360.0
+            self.global_land_rotate_z.angle = new_global_land_rotate_z_angle
+            self.update_land()
+        elif keycode[1] == 'a':
+            new_global_land_rotate_z_angle = self.global_land_rotate_z.angle + self.LAND_MOVE_SPEED
+            if new_global_land_rotate_z_angle > 180.0:
+                new_global_land_rotate_z_angle -= 360.0
+            self.global_land_rotate_z.angle = new_global_land_rotate_z_angle
+            self.update_land()
+        elif keycode[1] == 'w':
+            new_global_land_rotate_x_angle = self.global_land_rotate_x.angle - self.LAND_MOVE_SPEED
+            if new_global_land_rotate_x_angle < -180.0:
+                new_global_land_rotate_x_angle += 360.0
+            self.global_land_rotate_x.angle = new_global_land_rotate_x_angle
+            self.update_land()
+        elif keycode[1] == 's':
+            new_global_land_rotate_x_angle = self.global_land_rotate_x.angle + self.LAND_MOVE_SPEED
+            if new_global_land_rotate_x_angle > 180.0:
+                new_global_land_rotate_x_angle -= 360.0
+            self.global_land_rotate_x.angle = new_global_land_rotate_x_angle
+            self.update_land()
+        return True
+
+    @ignore_undertouch
+    def on_touch_down(self, touch):
+        touch.grab(self)
+        self.touches.append(touch)
+        if 'button' in touch.profile and touch.button in ('scrollup', 'scrolldown'):
+            if touch.button == "scrolldown":
+                scale = 1.0 + self.SCALE_FACTOR
+            if touch.button == "scrollup":
+                scale = 1.0 - self.SCALE_FACTOR
+            xyz = self.global_scale.xyz
+            scale = xyz[0] * scale
+            if scale < self.MAX_SCALE and scale > self.MIN_SCALE:
+                self.global_scale.xyz = (scale, scale, scale)
+                if _Debug:
+                    print(f'new scale is {scale}')
+
+    @ignore_undertouch
+    def on_touch_up(self, touch):
+        touch.ungrab(self)
+        if touch in self.touches:
+            self.touches.remove(touch)
+
+    @ignore_undertouch
+    def on_touch_move(self, touch):
+        if touch in self.touches and touch.grab_current == self:
+            if len(self.touches) == 1:
+                ax, ay = self.define_rotate_angle(touch)
+                new_global_rotate_x_angle = self.global_rotate_x.angle - ay
+                if new_global_rotate_x_angle > -self.ROTATE_VERTICAL_MIN:
+                    new_global_rotate_x_angle = -self.ROTATE_VERTICAL_MIN
+                if new_global_rotate_x_angle < -self.ROTATE_VERTICAL_MAX:
+                    new_global_rotate_x_angle = -self.ROTATE_VERTICAL_MAX
+                self.global_rotate_y.angle -= ax
+                self.global_rotate_x.angle = new_global_rotate_x_angle
+
+    def on_setup_gl_context(self, *args):
+        glEnable(GL_DEPTH_TEST)
+
+    def on_reset_gl_context(self, *args):
+        glDisable(GL_DEPTH_TEST)
+
+    def on_gl_error(self, text='', kill=True):
+        err = glGetError()
+        if not err:
+            return 
+        while err:
+            if _Debug:
+                print('## GL ## = ' + text + 'OPENGL Error Code = ' + str(err))
+            err = glGetError()
+        if kill == True:
+            sys.exit(0)
+
+    def on_update_glsl(self, delta):
+        asp = self.width / float(self.height)
+        self.on_gl_error('step 1')
+        self.canvas['texture_id'] = 1
+        self.canvas['projection_mat'] = Matrix().view_clip(-asp, asp, -1, 1, 1, 100, 1)
+        self.canvas['modelview_mat'] = Matrix().look_at(0, 0, -5, 0, 0, 0, 0, 1, 0)
+        self.canvas['diffuse_light'] = (1.0, 1.0, 1.0)
+        self.canvas['ambient_light'] = (0.1, 0.1, 0.1)
+        self.on_gl_error('step 2')
+
+    def on_update_animations(self, delta):
+        # TODO: maintain separate list of active animations for all units
+        # then it is not required to loop all units
+        for unit in self.scene.units.values():
+            if not unit.onstage:
+                continue
+            if not unit.animation_playing:
+                continue
+            a = unit.animations[unit.animation_playing]
+            root_part_name = unit.parts[0]
+            root_part_animation = a.parts.get(root_part_name)
+            if unit.animation_frame >= root_part_animation.frames:
+                # if _Debug:
+                #     print(f'restarting unit ({unit.name}) animation {unit.animation_playing} after frame {unit.animation_frame}')
+                unit.animation_frame = 0
+            f = unit.animation_frame
+            for part_name in unit.parts:
+                if part_name not in a.parts:
+                    continue
+                part_animation = a.parts.get(part_name)
+                if not part_animation:
+                    continue
+                q = part_animation.rotation_frames[f]
+                t = part_animation.translation_frames[f]
+                mesh = unit.meshes[part_name]
+                translate_mat = Matrix()
+                translate_mat.translate(t[0], t[1], t[2])
+                mesh.part_translate.matrix = translate_mat
+                rotate_mat = Matrix()
+                rotate_mat.set(array=mth.quaternion_to_matrix(q[0], q[1], q[2], q[3]))
+                mesh.part_rotate.matrix = rotate_mat.inverse()
+            unit.animation_frame += 1

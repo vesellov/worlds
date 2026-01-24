@@ -318,6 +318,50 @@ def latlon2xyz(latitude_radians, longitude_radians, radius=1.0):
 
 def wh2xyz(w, h, width, height, radius=1.0):
     # w, h, width, height is expected to be all float
+    # latitude_radians = 2.0 * math.pi * w / width
+    # longitude_radians = math.pi / 2.0 + 2.0 * math.pi * h / height
+    return latlon2xyz(w2lat(w, width), h2lon(h, height), radius=radius)
+
+
+def w2lat(w, width):
     latitude_radians = 2.0 * math.pi * w / width
+    return latitude_radians
+
+
+def h2lon(h, height):
     longitude_radians = math.pi / 2.0 + 2.0 * math.pi * h / height
-    return latlon2xyz(latitude_radians, longitude_radians, radius=radius)
+    return longitude_radians
+
+
+def lat2w(latitude_radians, width):
+    return (latitude_radians * width) / (2.0 * math.pi) 
+
+
+def lon2h(longitude_radians, height):
+    return ((longitude_radians - math.pi / 2.0) * height) / (2.0 * math.pi)
+
+
+def point_line_left_or_right(xp, yp, xa, ya, xb, yb):
+    v_x = xb - xa
+    v_y = yb - ya
+    w_x = xp - xa
+    w_y = yp - ya
+    cross_product = v_x * w_y - v_y * w_x
+    if cross_product > 0:
+        return -1
+    elif cross_product < 0:
+        return 1
+    return 0
+
+
+def get_z_in_triangle(x, y, p1, p2, p3):
+    x1, y1, z1 = p1
+    x2, y2, z2 = p2
+    x3, y3, z3 = p3
+    A = y1 * (z2 - z3) + y2 * (z3 - z1) + y3 * (z1 - z2)
+    B = z1 * (x2 - x3) + z2 * (x3 - x1) + z3 * (x1 - x2)
+    C = x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)
+    D = -(x1 * (y2 * z3 - y3 * z2) + x2 * (y3 * z1 - y1 * z3) + x3 * (y1 * z2 - y2 * z1))
+    if C == 0:
+        return (z1 + z2 + z3) / 3.0
+    return -(A * x + B * y + D) / C
