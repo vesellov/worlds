@@ -1,7 +1,6 @@
 # Project
 figures.res
 models/
-*.png
 *.memmap
 
 

@@ -597,6 +597,7 @@ def read_tile_types(corner_size=None):
         if tile_type not in tile_average_colors:
             tile_average_colors[tile_type] = {}
         tile_average_colors[tile_type][tile_variant] = average_color(tile_file_path)
+        # print((tile_type, tile_average_colors[tile_type][tile_variant]))
         if tile_type not in tile_types_images:
             tile_types_images[tile_type] = {}
         tile_types_images[tile_type][tile_variant] = {}
@@ -1414,6 +1415,8 @@ def move_tiles_by_shape(tiles_dir, dest_dir, min_score, remove_original=False):
 
 
 def move_tiles_by_shape_by_four_corners(tiles_dir, dest_dir, min_score, corner_size=None, selected_tile_types=None, remove_original=False):
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir)
     diff_color_factor = 200.0
     if corner_size is None:
         corner_size = CORNER_SIZE
@@ -1424,6 +1427,7 @@ def move_tiles_by_shape_by_four_corners(tiles_dir, dest_dir, min_score, corner_s
         tile_file_path = os.path.join(tiles_dir, tile_file_name)
         try:
             tile_image = Image.open(tile_file_path)
+            tile_image.load()
         except:
             continue
         tile_average_color = average_color(tile_file_path)
@@ -1504,9 +1508,7 @@ def move_tiles_by_shape_by_four_corners(tiles_dir, dest_dir, min_score, corner_s
             print(f'        {tile_id}    tl:{tl}({tl_score}) tr:{tr}({tr_score}) bl:{bl}({bl_score}) br:{br}({br_score})')
             continue
         # shape_dest_dir_path = os.path.join(dest_dir, shape)
-        # if not os.path.exists(shape_dest_dir_path):
-        #     os.makedirs(shape_dest_dir_path)
-        shape_dest_file_path = os.path.join(dest_dir, f'{sample1}_{sample2}_{shape}_{tile_id}_.png')
+        shape_dest_file_path = os.path.join(dest_dir, f'{sample1}_{sample2}_{shape}_{tile_id}.png')
         # shape_dest_file_path = os.path.join(shape_dest_dir_path, f'{tile_id}_{sample1}_{sample2}.png')
         if remove_original:
             os.rename(tile_file_path, shape_dest_file_path)
@@ -1515,50 +1517,148 @@ def move_tiles_by_shape_by_four_corners(tiles_dir, dest_dir, min_score, corner_s
         print(f'{tile_id}    {shape}    {sample1} {sample2}    t:{t} b:{b} l:{l} r:{r}     tl:{tl}({tl_score}) tr:{tr}({tr_score}) bl:{bl}({bl_score}) br:{br}({br_score})')
 
 
-def merge_tiles(src_dir, group_dir, dest_dir, ready_dir):
+def move_tiles_by_shape_by_four_corners_with_three_types(tiles_dir, dest_dir, min_score, corner_size=None, selected_tile_types=None, remove_original=False):
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir)
+    diff_color_factor = 200.0
+    if corner_size is None:
+        corner_size = CORNER_SIZE
+    for tile_file_name in sorted(os.listdir(tiles_dir)):
+        if not tile_file_name.endswith('.png'):
+            continue
+        tile_id = tile_file_name.replace('.png','')
+        tile_file_path = os.path.join(tiles_dir, tile_file_name)
+        try:
+            tile_image = Image.open(tile_file_path)
+            tile_image.load()
+        except:
+            continue
+        tile_average_color = average_color(tile_file_path)
+        tile_corners_best = {}
+        for tile_corner in ['top_left', 'top_right', 'bottom_right', 'bottom_left']:
+            tile_corner_image = get_corner_image(tile_image, tile_corner, size=corner_size)
+            best_score = None
+            best_sample = None
+            best_sample_corner = None
+            best_sample_rotation = None
+            for tile_rotation in [0, 90, 180, 270, -2, -1]:
+                tile_corner_image_rotated = get_rotated_image(tile_corner_image, tile_rotation)
+                for sample in tile_types.keys():
+                    if selected_tile_types and sample not in selected_tile_types:
+                        continue
+                    for tile_variant in tile_types_variants[sample]:
+                        for sample_corner in ['top_left', 'top_right', 'bottom_right', 'bottom_left']:
+                            for sample_rotation in [0, 90, 180, 270, -2, -1]:
+                                sample_corner_image = tile_types_corners[sample][tile_variant][sample_rotation][sample_corner]
+                                diff_color = color_distance(tile_types_corners_average_color[sample][tile_variant][sample_rotation][sample_corner], tile_average_color)
+                                # diff_score = images_diff_score_in_memory(tile_corner_image_rotated, sample_corner_image)
+                                score = images_diff_score_in_memory(tile_corner_image_rotated, sample_corner_image)
+                                diff_score = round(score * (1.0 - (diff_color / diff_color_factor)), 4)
+                                if best_score is None or diff_score > best_score:
+                                    best_score = diff_score
+                                    best_sample = sample
+                                    best_sample_corner = sample_corner
+                                    best_sample_rotation = sample_rotation
+            tile_corners_best[tile_corner] = (best_sample, best_score, best_sample_corner, best_sample_rotation)
+        tl = tile_corners_best['top_left'][0]
+        tr = tile_corners_best['top_right'][0]
+        bl = tile_corners_best['bottom_left'][0]
+        br = tile_corners_best['bottom_right'][0]
+        tl_score = round(tile_corners_best['top_left'][1], 3)
+        tr_score = round(tile_corners_best['top_right'][1], 3)
+        bl_score = round(tile_corners_best['bottom_left'][1], 3)
+        br_score = round(tile_corners_best['bottom_right'][1], 3)
+        if tl_score < min_score:
+            tl = None
+        if tr_score < min_score:
+            tr = None
+        if bl_score < min_score:
+            bl = None
+        if br_score < min_score:
+            br = None
+        if not tl or not tr or not bl or not br:
+            print(f'        {tile_id}    tl:{tl}({tl_score}) tr:{tr}({tr_score}) bl:{bl}({bl_score}) br:{br}({br_score})')
+            continue
+        t = None
+        b = None
+        l = None
+        r = None
+        tlbr = None
+        trbl = None
+        if tl == tr:
+            t = tl
+        if bl == br:
+            b = bl
+        if tl == bl:
+            l = tl
+        if tr == br:
+            r = tr
+        if tl == br:
+            tlbr = tl
+        if tr == bl:
+            trbl = tr
+        shape = None
+        sample1 = None
+        sample2 = None
+        sample3 = None
+        if t and not b and not l and not r:
+            shape = 'top_top'
+            sample1 = t
+            sample2 = bl
+            sample3 = br
+        elif b and not t and not l and not r:
+            shape = 'bottom_bottom'
+            sample1 = b
+            sample2 = tr
+            sample3 = tl
+        elif l and not t and not b and not r:
+            shape = 'left_left'
+            sample1 = l
+            sample2 = tr
+            sample3 = br
+        elif r and not t and not b and not l:
+            shape = 'right_right'
+            sample1 = r
+            sample2 = tl
+            sample3 = bl
+        elif tlbr and not trbl and not t and not b and not l and not r:
+            shape = 'topleft_bottomright'
+            sample1 = tlbr
+            sample2 = tr
+            sample3 = bl
+        elif trbl and not tlbr and not t and not b and not l and not r:
+            shape = 'topright_bottomleft'
+            sample1 = trbl
+            sample2 = tl
+            sample3 = br
+        if not shape:
+            print(f'        {tile_id}    tl:{tl}({tl_score}) tr:{tr}({tr_score}) bl:{bl}({bl_score}) br:{br}({br_score})')
+            continue
+        # shape_dest_dir_path = os.path.join(dest_dir, shape)
+        shape_dest_file_path = os.path.join(dest_dir, f'{sample1}_{sample2}_{sample3}_{shape}_{tile_id}.png')
+        # shape_dest_file_path = os.path.join(shape_dest_dir_path, f'{tile_id}_{sample1}_{sample2}.png')
+        if remove_original:
+            os.rename(tile_file_path, shape_dest_file_path)
+        else:
+            tile_image.save(shape_dest_file_path)
+        print(f'{tile_id}    {shape}    {sample1} {sample2} {sample3}   tl:{tl}({tl_score}) tr:{tr}({tr_score}) bl:{bl}({bl_score}) br:{br}({br_score})')
+
+
+def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False, save_merged_tiles=True):
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
     registry = {}
-    graph = json.loads(open('graph.json', 'rt').read())
-    # for shape in ['top_left', 'top_right', 'bottom_left', 'bottom_right', 'top_bottom', 'left_right']:
-    #     tile_side = {'top_left':'top_left', 'top_right':'top_right', 'bottom_left':'bottom_left', 'bottom_right':'bottom_right', 'top_bottom':'top', 'left_right':'left'}[shape]
-    #     if not os.path.isdir(os.path.join(src_dir, shape)):
-    #         continue
-    #     lst = sorted(os.listdir(os.path.join(src_dir, shape)))
-    #     for tile_file_name in lst:
-    #         if not tile_file_name.endswith('.png'):
-    #             continue
-    #         tile_name = tile_file_name.replace('.png','')
-    #         tile_file_path = os.path.join(src_dir, shape, tile_file_name)
-    #         tile_image = Image.open(tile_file_path)
-    #         parts = tile_name.split('_')
-    #         if len(parts) != 3:
-    #             continue
-    #         tile_id, tile_sample2, tile_sample1 = parts
-    #         if tile_sample1 not in registry:
-    #             registry[tile_sample1] = {}
-    #         if tile_sample2 not in registry[tile_sample1]:
-    #             registry[tile_sample1][tile_sample2] = {}
-    #         if tile_side not in registry[tile_sample1][tile_sample2]:
-    #             registry[tile_sample1][tile_sample2][tile_side] = []
-    #         registry[tile_sample1][tile_sample2][tile_side].append((tile_image, tile_id, tile_file_path))
-    #         if tile_sample1 not in graph:
-    #             graph[tile_sample1] = {}
-    #         if tile_sample2 not in graph[tile_sample1]:
-    #             graph[tile_sample1][tile_sample2] = []
-    #         if tile_sample2 not in graph:
-    #             graph[tile_sample2] = {}
-    #         if tile_sample1 not in graph[tile_sample2]:
-    #             graph[tile_sample2][tile_sample1] = []
-
-    # for shape in ['top_left', 'top_right', 'bottom_left', 'bottom_right', 'top_bottom', 'left_right']:
+    graph = {}
     lst = sorted(os.listdir(src_dir))
+    pairs = set()
+    triples = set()
     for tile_file_name in lst:
         if not tile_file_name.endswith('.png'):
             continue
-        tile_name = tile_file_name.replace('.png','')
+        tile_name = tile_file_name.replace('.png','').rstrip('_')
         tile_file_path = os.path.join(src_dir, tile_file_name)
         tile_image = Image.open(tile_file_path)
+        tile_image.load()
         parts = tile_name.split('_')
         if len(parts) != 5:
             continue
@@ -1590,158 +1690,438 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir):
                                 tile_image, tile_id, tile_file_path = registry[tile_sample2][tile_sample1][side][0]
                                 tile_image_flipped = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM) if side == 'top' else tile_image.transpose(Transpose.FLIP_LEFT_RIGHT)
                                 registry[tile_sample1][tile_sample2][side] = [(tile_image_flipped, tile_id, tile_file_path)]
-    for tile_sample1 in registry.keys():
-        for tile_sample2 in registry[tile_sample1].keys():
+    for tile_sample1 in sorted(registry.keys()):
+        for tile_sample2 in sorted(registry[tile_sample1].keys()):
+            for tile_sample3 in sorted(registry.keys()):
+                triples.add(tuple(sorted([tile_sample1, tile_sample2, tile_sample3])))
             fragments = registry[tile_sample1][tile_sample2]
             shortest_stack = min([len(fragments[side]) for side in fragments.keys()])
-            for i in range(shortest_stack):
+            longest_stack = max([len(fragments[side]) for side in fragments.keys()])
+            stack_difference = longest_stack - shortest_stack
+            # for i in range(shortest_stack):
+            for j in range(longest_stack):
                 im = Image.new("RGB", (TILE_SIZE * 3, TILE_SIZE * 3), "black")
-                im.paste(tile_types_images[tile_sample1]['a'][0], (TILE_SIZE, TILE_SIZE))
-                tiles_ids = []
-                top_tile_file_path = None
-                top_right_tile_file_path = None
-                for side in ['top_left', 'top_right', 'bottom_left', 'bottom_right', 'top', 'left', 'bottom', 'right']:
-                    tile_image = None
-                    tile_id = None
-                    if side in fragments:
-                        tile_image, tile_id, tile_file_path = fragments[side][i]
-                    else:
+                if tile_sample1 not in tile_types_variants:
+                    raise Exception(f'combination {tile_sample1}_{tile_sample2} not found in tile types variants')
+                # for tile_variant in tile_types_variants[tile_sample1]:
+                for tile_variant in ['a', ]:
+                    im.paste(tile_types_images[tile_sample1][tile_variant][0], (TILE_SIZE, TILE_SIZE))
+                    tiles_ids = []
+                    top_image = None
+                    top_right_image = None
+                    top_tile_file_path = None
+                    top_right_tile_file_path = None
+                    for side in ['top_left', 'top_right', 'bottom_left', 'bottom_right', 'top', 'left', 'bottom', 'right']:
+                        tile_image = None
+                        tile_id = None
+                        if side in fragments:
+                            k = j if j < len(fragments[side]) else len(fragments[side]) - 1
+                            tile_image, tile_id, tile_file_path = fragments[side][k]
+                        else:
+                            if side == 'top':
+                                if 'bottom' in fragments:
+                                    i = j if j < len(fragments['bottom']) else len(fragments['bottom']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['bottom'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'left' in fragments:
+                                    i = j if j < len(fragments['left']) else len(fragments['left']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['left'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'right' in fragments:
+                                    i = j if j < len(fragments['right']) else len(fragments['right']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['right'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                            elif side == 'bottom':
+                                if 'top' in fragments:
+                                    i = j if j < len(fragments['top']) else len(fragments['top']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['top'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'left' in fragments:
+                                    i = j if j < len(fragments['left']) else len(fragments['left']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['left'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'right' in fragments:
+                                    i = j if j < len(fragments['right']) else len(fragments['right']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['right'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                            elif side == 'left':
+                                if 'right' in fragments:
+                                    i = j if j < len(fragments['right']) else len(fragments['right']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['right'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_LEFT_RIGHT)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'bottom' in fragments:
+                                    i = j if j < len(fragments['bottom']) else len(fragments['bottom']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['bottom'][i]
+                                    tile_image = tile_image.transpose(Transpose.ROTATE_270)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'top' in fragments:
+                                    i = j if j < len(fragments['top']) else len(fragments['top']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['top'][i]
+                                    tile_image = tile_image.transpose(Transpose.ROTATE_90)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                            elif side == 'right':
+                                if 'left' in fragments:
+                                    i = j if j < len(fragments['left']) else len(fragments['left']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['left'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_LEFT_RIGHT)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'bottom' in fragments:
+                                    i = j if j < len(fragments['bottom']) else len(fragments['bottom']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['bottom'][i]
+                                    tile_image = tile_image.transpose(Transpose.ROTATE_90)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'top' in fragments:
+                                    i = j if j < len(fragments['top']) else len(fragments['top']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['top'][i]
+                                    tile_image = tile_image.transpose(Transpose.ROTATE_270)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                            elif side == 'top_left':
+                                if 'bottom_right' in fragments:
+                                    i = j if j < len(fragments['bottom_right']) else len(fragments['bottom_right']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['bottom_right'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'top_right' in fragments:
+                                    i = j if j < len(fragments['top_right']) else len(fragments['top_right']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['top_right'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_LEFT_RIGHT)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'bottom_left' in fragments:
+                                    i = j if j < len(fragments['bottom_left']) else len(fragments['bottom_left']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['bottom_left'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                            elif side == 'top_right':
+                                if 'bottom_left' in fragments:
+                                    i = j if j < len(fragments['bottom_left']) else len(fragments['bottom_left']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['bottom_left'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'top_left' in fragments:
+                                    i = j if j < len(fragments['top_left']) else len(fragments['top_left']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['top_left'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_LEFT_RIGHT)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'bottom_right' in fragments:
+                                    i = j if j < len(fragments['bottom_right']) else len(fragments['bottom_right']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['bottom_right'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                            elif side == 'bottom_left':
+                                if 'top_right' in fragments:
+                                    i = j if j < len(fragments['top_right']) else len(fragments['top_right']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['top_right'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'top_left' in fragments:
+                                    i = j if j < len(fragments['top_left']) else len(fragments['top_left']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['top_left'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'bottom_right' in fragments:
+                                    i = j if j < len(fragments['bottom_right']) else len(fragments['bottom_right']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['bottom_right'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_LEFT_RIGHT)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                            elif side == 'bottom_right':
+                                if 'top_left' in fragments:
+                                    i = j if j < len(fragments['top_left']) else len(fragments['top_left']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['top_left'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'top_right' in fragments:
+                                    i = j if j < len(fragments['top_right']) else len(fragments['top_right']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['top_right'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                                elif 'bottom_left' in fragments:
+                                    i = j if j < len(fragments['bottom_left']) else len(fragments['bottom_left']) - 1
+                                    tile_image, tile_id, tile_file_path = fragments['bottom_left'][i]
+                                    tile_image = tile_image.transpose(Transpose.FLIP_LEFT_RIGHT)
+                                    if side not in registry[tile_sample1][tile_sample2]:
+                                        registry[tile_sample1][tile_sample2][side] = [(tile_image, tile_id, tile_file_path)]
+                        if not tile_image:
+                            continue
+                        if tile_id not in tiles_ids:
+                            tiles_ids.append(tile_id)
                         if side == 'top':
-                            if 'bottom' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['bottom'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM)
-                            elif 'left' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['left'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
-                            elif 'right' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['right'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
+                            pos = (TILE_SIZE, 0)
                         elif side == 'bottom':
-                            if 'top' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['top'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM)
-                            elif 'left' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['left'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
-                            elif 'right' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['right'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
+                            pos = (TILE_SIZE, TILE_SIZE * 2)
                         elif side == 'left':
-                            if 'right' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['right'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_LEFT_RIGHT)
-                            elif 'bottom' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['bottom'][i]
-                                tile_image = tile_image.transpose(Transpose.ROTATE_270)
-                            elif 'top' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['top'][i]
-                                tile_image = tile_image.transpose(Transpose.ROTATE_90)
+                            pos = (0, TILE_SIZE)
                         elif side == 'right':
-                            if 'left' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['left'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_LEFT_RIGHT)
-                            elif 'bottom' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['bottom'][i]
-                                tile_image = tile_image.transpose(Transpose.ROTATE_90)
-                            elif 'top' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['top'][i]
-                                tile_image = tile_image.transpose(Transpose.ROTATE_270)
+                            pos = (TILE_SIZE * 2, TILE_SIZE)
                         elif side == 'top_left':
-                            if 'bottom_right' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['bottom_right'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
-                            elif 'top_right' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['top_right'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_LEFT_RIGHT)
-                            elif 'bottom_left' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['bottom_left'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM)
+                            pos = (0, 0)
                         elif side == 'top_right':
-                            if 'bottom_left' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['bottom_left'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
-                            elif 'top_left' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['top_left'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_LEFT_RIGHT)
-                            elif 'bottom_right' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['bottom_right'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM)
+                            pos = (TILE_SIZE * 2, 0)
                         elif side == 'bottom_left':
-                            if 'top_right' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['top_right'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
-                            elif 'top_left' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['top_left'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM)
-                            elif 'bottom_right' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['bottom_right'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_LEFT_RIGHT)
+                            pos = (0, TILE_SIZE * 2)
                         elif side == 'bottom_right':
-                            if 'top_left' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['top_left'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
-                            elif 'top_right' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['top_right'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM)
-                            elif 'bottom_left' in fragments:
-                                tile_image, tile_id, tile_file_path = fragments['bottom_left'][i]
-                                tile_image = tile_image.transpose(Transpose.FLIP_LEFT_RIGHT)
-                    if not tile_image:
-                        continue
-                    if tile_id not in tiles_ids:
-                        tiles_ids.append(tile_id)
-                    if side == 'top':
-                        pos = (TILE_SIZE, 0)
-                    elif side == 'bottom':
-                        pos = (TILE_SIZE, TILE_SIZE * 2)
-                    elif side == 'left':
-                        pos = (0, TILE_SIZE)
-                    elif side == 'right':
-                        pos = (TILE_SIZE * 2, TILE_SIZE)
-                    elif side == 'top_left':
-                        pos = (0, 0)
-                    elif side == 'top_right':
-                        pos = (TILE_SIZE * 2, 0)
-                    elif side == 'bottom_left':
-                        pos = (0, TILE_SIZE * 2)
-                    elif side == 'bottom_right':
-                        pos = (TILE_SIZE * 2, TILE_SIZE * 2)
-                    im.paste(tile_image, pos)
-                    if side == 'top':
-                        top_tile_file_path = tile_file_path
-                    elif side == 'top_right':
-                        top_right_tile_file_path = tile_file_path
-                tiles_ids = '_'.join(tiles_ids)
-                merged_tile_name = f'{tile_sample1}_{tile_sample2}_{i}_{tiles_ids}.png'
+                            pos = (TILE_SIZE * 2, TILE_SIZE * 2)
+                        im.paste(tile_image, pos)
+                        if side == 'top':
+                            top_tile_file_path = tile_file_path
+                            top_image = tile_image
+                        elif side == 'top_right':
+                            top_right_tile_file_path = tile_file_path
+                            top_right_image = tile_image
+                    tiles_ids = '_'.join(tiles_ids)
+                    merged_tile_name = f'{tile_sample1}_{tile_sample2}_{j}_{tiles_ids}.png'
+                    merged_tile_file_path = os.path.join(dest_dir, merged_tile_name)
+                    if save_merged_tiles:
+                        im.save(merged_tile_file_path)
+                        print(f'    saved merged fragment to {merged_tile_name}, more possible fragments: {stack_difference}')
+                    if top_tile_file_path and top_right_tile_file_path:
+                        graph[tile_sample1][tile_sample2].append({'top': top_image, 'top_right': top_right_image})
+                        pairs.add((tile_sample1, tile_sample2))
+    catalog = {}
+    counter = 0
+    if save_ready_tiles:
+        for tile_sample in tile_types.keys():
+            for tile_variant in tile_types_variants[tile_sample]:
+                key = tile_sample
+                if key not in catalog:
+                    catalog[key] = []
+                counter += 1
+                tile_image = tile_types_images[tile_sample][tile_variant][0]
+                ready_tile_name = f'{counter:05d}.png'
+                tile_image.save(os.path.join(ready_dir, ready_tile_name))
+                catalog[key].append(counter)
+        for tile_sample1 in graph.keys():
+            for tile_sample2 in graph[tile_sample1].keys():
+                for i in range(len(graph[tile_sample1][tile_sample2])):
+                    key = f'{tile_sample1}_{tile_sample2}'
+                    if key not in catalog:
+                        catalog[key] = {
+                            's': [],
+                            'c': [],
+                        }
+                    counter += 1
+                    top_image = graph[tile_sample1][tile_sample2][i]['top']
+                    ready_top_tile_name = f'{counter:05d}.png'
+                    top_image.save(os.path.join(ready_dir, ready_top_tile_name))
+                    catalog[key]['s'].append(counter)
+                    counter += 1
+                    top_right_image = graph[tile_sample1][tile_sample2][i]['top_right']
+                    ready_top_right_tile_name = f'{counter:05d}.png'
+                    top_right_image.save(os.path.join(ready_dir, ready_top_right_tile_name))
+                    catalog[key]['c'].append(counter)
+        open('catalog.json', 'w').write(json.dumps(catalog, indent=2))
+    for pair in pairs:
+        pair2 = (pair[1], pair[0])
+        if pair2 not in pairs:
+            print(f'Warning: missing pair {pair2} for {pair}')
+    registry3types = {}
+    missing = set()
+    quadruples = set()
+    lst = sorted(os.listdir(src_dir))
+    for tile_file_name in lst:
+        if not tile_file_name.endswith('.png'):
+            continue
+        tile_name = tile_file_name.replace('.png','').rstrip('_')
+        tile_file_path = os.path.join(src_dir, tile_file_name)
+        tile_image = Image.open(tile_file_path)
+        tile_image.load()
+        parts = tile_name.split('_')
+        if len(parts) != 6:
+            continue
+        tile_sample1 = None
+        tile_sample2 = None
+        tile_sample3 = None
+        tile_sample1, tile_sample2, tile_sample3, tile_side1, tile_side2, tile_id = parts
+        tile_side = f'{tile_side1}_{tile_side2}'
+        if tile_side not in ['top_top', 'bottom_bottom', 'left_left', 'right_right', 'topleft_bottomright', 'topright_bottomleft']:
+            continue
+        two_samples = f'{tile_sample2}_{tile_sample3}'
+        if tile_sample1 not in registry3types:
+            registry3types[tile_sample1] = {}
+        if two_samples not in registry3types[tile_sample1]:
+            registry3types[tile_sample1][two_samples] = []
+        registry3types[tile_sample1][two_samples].append((tile_side, tile_image, tile_id, tile_file_path))
+    count = 0
+    ready = {}
+    for tile_sample1 in sorted(registry3types.keys()):
+        for two_samples in sorted(registry3types[tile_sample1].keys()):
+            tile_sample2, tile_sample3 = two_samples.split('_')
+            if tile_sample1 not in tile_types_variants:
+                raise Exception(f'combination {tile_sample1} not found in tile types variants')
+            if tile_sample2 not in tile_types_variants:
+                raise Exception(f'combination {tile_sample2} not found in tile types variants')
+            if tile_sample3 not in tile_types_variants:
+                raise Exception(f'combination {tile_sample3} not found in tile types variants')
+            if tile_sample1 not in registry:
+                continue
+            if tile_sample2 not in registry:
+                continue
+            if tile_sample3 not in registry:
+                continue
+            if tile_sample2 not in registry[tile_sample1]:
+                missing.add(tuple(sorted((tile_sample1, tile_sample2))))
+                # print(f'Warning: missing registry entry for {tile_sample1} {tile_sample2} pair, skipping merging for {tile_sample1}_{two_samples}')
+                continue
+            if tile_sample3 not in registry[tile_sample1]:
+                missing.add(tuple(sorted((tile_sample1, tile_sample3))))
+                # print(f'Warning: missing registry entry for {tile_sample1} {tile_sample3} pair, skipping merging for {tile_sample1}_{two_samples}')
+                continue
+            if tile_sample3 not in registry[tile_sample2]:
+                missing.add(tuple(sorted((tile_sample2, tile_sample3))))
+                # print(f'Warning: missing registry entry for {tile_sample2} {tile_sample3} pair, skipping merging for {tile_sample1}_{two_samples}')
+                continue
+            fragments = registry3types[tile_sample1][two_samples]
+            for tile_side, tile_image, tile_id, tile_file_path in fragments:
+                im = Image.new("RGB", (TILE_SIZE * 3, TILE_SIZE * 3), "black")
+                im.paste(tile_image, (TILE_SIZE, TILE_SIZE))
+                tile_variant = 'a'
+                ready_image1 = None
+                ready_image2 = None
+                q1 = None
+                q2 = None
+                try:
+                    if tile_side == 'top_top':
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (0, 0))
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (TILE_SIZE, 0))
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (TILE_SIZE * 2, 0))
+                        im.paste(tile_types_images[tile_sample2][tile_variant][0], (0, TILE_SIZE * 2))
+                        im.paste(tile_types_images[tile_sample3][tile_variant][0], (TILE_SIZE * 2, TILE_SIZE * 2))
+                        im.paste(registry[tile_sample1][tile_sample2]['bottom'][0][0], (0, TILE_SIZE))
+                        im.paste(registry[tile_sample1][tile_sample3]['bottom'][0][0], (TILE_SIZE * 2, TILE_SIZE))
+                        im.paste(registry[tile_sample2][tile_sample3]['right'][0][0], (TILE_SIZE, TILE_SIZE * 2))
+                        ready_image1 = tile_image
+                        ready_image2 = tile_image.transpose(Transpose.FLIP_LEFT_RIGHT)
+                        q1 = (tile_sample1, tile_sample1, tile_sample2, tile_sample3)
+                        q2 = (tile_sample1, tile_sample1, tile_sample3, tile_sample2)
+                    elif tile_side == 'bottom_bottom':
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (0, TILE_SIZE * 2))
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (TILE_SIZE, TILE_SIZE * 2))
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (TILE_SIZE * 2, TILE_SIZE * 2))
+                        im.paste(tile_types_images[tile_sample2][tile_variant][0], (TILE_SIZE * 2, 0))
+                        im.paste(tile_types_images[tile_sample3][tile_variant][0], (0, 0))
+                        im.paste(registry[tile_sample1][tile_sample2]['top'][0][0], (TILE_SIZE * 2, TILE_SIZE))
+                        im.paste(registry[tile_sample1][tile_sample3]['top'][0][0], (0, TILE_SIZE))
+                        im.paste(registry[tile_sample2][tile_sample3]['left'][0][0], (TILE_SIZE, 0))
+                        ready_image1 = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM).transpose(Transpose.FLIP_LEFT_RIGHT)
+                        ready_image2 = tile_image.transpose(Transpose.FLIP_TOP_BOTTOM)
+                        q1 = (tile_sample1, tile_sample1, tile_sample2, tile_sample3)
+                        q2 = (tile_sample1, tile_sample1, tile_sample3, tile_sample2)
+                    elif tile_side == 'left_left':
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (0, 0))
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (0, TILE_SIZE))
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (0, TILE_SIZE * 2))
+                        im.paste(tile_types_images[tile_sample2][tile_variant][0], (TILE_SIZE * 2, 0))
+                        im.paste(tile_types_images[tile_sample3][tile_variant][0], (TILE_SIZE * 2, TILE_SIZE * 2))
+                        im.paste(registry[tile_sample1][tile_sample2]['right'][0][0], (TILE_SIZE, 0))
+                        im.paste(registry[tile_sample1][tile_sample3]['right'][0][0], (TILE_SIZE, TILE_SIZE * 2))
+                        im.paste(registry[tile_sample2][tile_sample3]['bottom'][0][0], (TILE_SIZE * 2, TILE_SIZE))
+                        ready_image1 = tile_image.transpose(Transpose.ROTATE_90)
+                        ready_image2 = tile_image.transpose(Transpose.ROTATE_90).transpose(Transpose.FLIP_LEFT_RIGHT)
+                        q1 = (tile_sample1, tile_sample1, tile_sample2, tile_sample3)
+                        q2 = (tile_sample1, tile_sample1, tile_sample3, tile_sample2)
+                    elif tile_side == 'right_right':
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (TILE_SIZE * 2, 0))
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (TILE_SIZE * 2, TILE_SIZE))
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (TILE_SIZE * 2, TILE_SIZE * 2))
+                        im.paste(tile_types_images[tile_sample2][tile_variant][0], (0, 0))
+                        im.paste(tile_types_images[tile_sample3][tile_variant][0], (0, TILE_SIZE * 2))
+                        im.paste(registry[tile_sample1][tile_sample2]['left'][0][0], (TILE_SIZE, 0))
+                        im.paste(registry[tile_sample1][tile_sample3]['left'][0][0], (TILE_SIZE, TILE_SIZE * 2))
+                        im.paste(registry[tile_sample2][tile_sample3]['bottom'][0][0], (0, TILE_SIZE))
+                        ready_image1 = tile_image.transpose(Transpose.ROTATE_270)
+                        ready_image2 = tile_image.transpose(Transpose.ROTATE_270).transpose(Transpose.FLIP_LEFT_RIGHT)
+                        q1 = (tile_sample1, tile_sample1, tile_sample2, tile_sample3)
+                        q2 = (tile_sample1, tile_sample1, tile_sample3, tile_sample2)
+                    elif tile_side == 'topleft_bottomright':
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (0, 0))
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (TILE_SIZE * 2, TILE_SIZE * 2))
+                        im.paste(tile_types_images[tile_sample2][tile_variant][0], (TILE_SIZE * 2, 0))
+                        im.paste(tile_types_images[tile_sample3][tile_variant][0], (0, TILE_SIZE * 2))
+                        im.paste(registry[tile_sample1][tile_sample2]['right'][0][0], (TILE_SIZE, 0))
+                        im.paste(registry[tile_sample1][tile_sample3]['left'][0][0], (TILE_SIZE, TILE_SIZE * 2))
+                        im.paste(registry[tile_sample1][tile_sample2]['top'][0][0], (TILE_SIZE * 2, TILE_SIZE))
+                        im.paste(registry[tile_sample1][tile_sample3]['bottom'][0][0], (0, TILE_SIZE))
+                        ready_image1 = tile_image
+                        ready_image2 = tile_image.transpose(Transpose.FLIP_LEFT_RIGHT).transpose(Transpose.FLIP_TOP_BOTTOM)
+                        q1 = (tile_sample1, tile_sample2, tile_sample1, tile_sample3)
+                        q2 = (tile_sample1, tile_sample3, tile_sample1, tile_sample2)
+                    elif tile_side == 'topright_bottomleft':
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (TILE_SIZE * 2, 0))
+                        im.paste(tile_types_images[tile_sample1][tile_variant][0], (0, TILE_SIZE * 2))
+                        im.paste(tile_types_images[tile_sample2][tile_variant][0], (0, 0))
+                        im.paste(tile_types_images[tile_sample3][tile_variant][0], (TILE_SIZE * 2, TILE_SIZE * 2))
+                        im.paste(registry[tile_sample1][tile_sample2]['left'][0][0], (TILE_SIZE, 0))
+                        im.paste(registry[tile_sample1][tile_sample3]['right'][0][0], (TILE_SIZE, TILE_SIZE * 2))
+                        im.paste(registry[tile_sample1][tile_sample2]['top'][0][0], (0, TILE_SIZE))
+                        im.paste(registry[tile_sample1][tile_sample3]['bottom'][0][0], (TILE_SIZE * 2, TILE_SIZE))
+                        ready_image1 = tile_image.transpose(Transpose.ROTATE_270)
+                        ready_image2 = tile_image.transpose(Transpose.ROTATE_270).transpose(Transpose.FLIP_LEFT_RIGHT).transpose(Transpose.FLIP_TOP_BOTTOM)
+                        q1 = (tile_sample1, tile_sample2, tile_sample1, tile_sample3)
+                        q2 = (tile_sample1, tile_sample3, tile_sample1, tile_sample2)
+
+                except:
+                    print(f'Error merging tile_sample1={tile_sample1} tile_sample2={tile_sample2} tile_sample3={tile_sample3} for tile {tile_id} with side {tile_side}')
+                    raise
+                quadruples.add(q1)
+                quadruples.add(q2)
+                merged_tile_name = f'{q1[0]}_{q1[1]}_{q1[2]}_{q1[3]}_{tile_id}.png'
                 merged_tile_file_path = os.path.join(dest_dir, merged_tile_name)
-                im.save(merged_tile_file_path)
-                if top_tile_file_path and top_right_tile_file_path:
-                    graph[tile_sample1][tile_sample2].append({'top': top_tile_file_path, 'top_right': top_right_tile_file_path})
+                if save_merged_tiles:
+                    im.save(merged_tile_file_path)
+                if q1 not in ready:
+                    ready[q1] = []
+                if q2 not in ready:
+                    ready[q2] = []
+                ready[q1].append(ready_image1)
+                ready[q2].append(ready_image2)
+                count += 1
                 print(f'    saved merged fragment to {merged_tile_name}')
-    for tile_sample1 in graph.keys():
-        for tile_sample2 in graph[tile_sample1].keys():
-            for connection in graph[tile_sample1][tile_sample2]:
-                top_tile_file_path = connection['top']
-                top_right_tile_file_path = connection['top_right']
-                i = 0
-                while True:
-                    ready_top_tile_name = f'{tile_sample1}_{tile_sample2}_{i}_t.png'
-                    if not os.path.exists(os.path.join(ready_dir, ready_top_tile_name)):
-                        break
-                    i += 1
-                if os.path.exists(top_tile_file_path):
-                    shutil.copy(top_tile_file_path, os.path.join(ready_dir, ready_top_tile_name))
-                    print(f'Copied top tile {tile_sample1} {tile_sample2} to {ready_top_tile_name}')
-                i = 0
-                while True:
-                    ready_top_right_tile_name = f'{tile_sample1}_{tile_sample2}_{i}_tr.png'
-                    if not os.path.exists(os.path.join(ready_dir, ready_top_right_tile_name)):
-                        break
-                    i += 1
-                if os.path.exists(top_right_tile_file_path):
-                    shutil.copy(top_right_tile_file_path, os.path.join(ready_dir, ready_top_right_tile_name))
-                    print(f'Copied top right tile {tile_sample1} {tile_sample2} to {ready_top_right_tile_name}')
-    open('graph.json', 'wt').write(json.dumps(graph, indent=2))
+    print(f'processed {count} 3-types tiles, {len(missing)} missing pairs')
+    print(f'merged {len(quadruples)} quadruples:')
+    for q in sorted(quadruples):
+        print(f'        {q},')
+    if save_ready_tiles:
+        for q in ready.keys():
+            tile_sample1, tile_sample2, tile_sample3, tile_sample4 = q
+            key = f'{tile_sample1}_{tile_sample2}_{tile_sample3}_{tile_sample4}'
+            if key not in catalog:
+                catalog[key] = []
+            for ready_image in ready[q]:
+                # ready_image = ready[q]
+                counter += 1
+                ready_tile_name = f'{counter:05d}.png'
+                ready_image.save(os.path.join(ready_dir, ready_tile_name))
+                catalog[key].append(counter)
+        open('catalog.json', 'w').write(json.dumps(catalog, indent=2))
 
 
 def build_index(src_dir, dest_dir):
@@ -1750,7 +2130,7 @@ def build_index(src_dir, dest_dir):
     total_tiles = 0
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
-    for file_name in os.listdir(src_dir):
+    for file_name in sorted(os.listdir(src_dir)):
         if not file_name.endswith('.png'):
             print(f'Skipping {file_name}, not a .png file')
             continue
@@ -1760,12 +2140,13 @@ def build_index(src_dir, dest_dir):
         map_image_variant = int(img_name[-3:])
         file_path = os.path.join(src_dir, file_name)
         source_image = Image.open(file_path)
+        source_image.load()
         if source_image.width != 512 or source_image.height != 512:
             print(f'Skipping {file_path}, wrong dimensions: {source_image.width}x{source_image.height}')
             continue
         count = 0
-        for w in range(8):
-            for h in range(8):
+        for h in range(8):
+            for w in range(8):
                 tile_texture, tile_hash = image_tile(source_image, w, h)
                 if tile_hash in index_by_hash:
                     continue
@@ -1806,6 +2187,9 @@ def main():
     elif stage == 'stage3':
         read_tile_types(corner_size=int(sys.argv[5]))
         move_tiles_by_shape_by_four_corners(sys.argv[2], sys.argv[3], float(sys.argv[4]), int(sys.argv[5]), sys.argv[6].split(','))
+    elif stage == 'stage4':
+        read_tile_types(corner_size=int(sys.argv[5]))
+        move_tiles_by_shape_by_four_corners_with_three_types(sys.argv[2], sys.argv[3], float(sys.argv[4]), int(sys.argv[5]), sys.argv[6].split(','))
     # elif stage == 'stage3a':
     #     move_tiles_by_shape(sys.argv[2], sys.argv[3], float(sys.argv[4]))
     # elif stage == 'stage4':
@@ -1822,7 +2206,10 @@ def main():
     #     move_tiles_within_group_by_second_corner_similarity(sys.argv[2], sys.argv[3], float(sys.argv[4]), sys.argv[5], sys.argv[6].split(','))
     elif stage == 'stage8':
         read_tile_types()
-        merge_tiles(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
+        merge_tiles(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], save_ready_tiles=False)
+    elif stage == 'stage9':
+        read_tile_types()
+        merge_tiles(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], save_ready_tiles=True)
 
 
 if __name__ == '__main__':
@@ -1831,13 +2218,13 @@ if __name__ == '__main__':
         print('python3 tiles.py stage1 <source folder with .png files of the land tile> <tiles folder>')
         print('python3 tiles.py stage2 <tiles folder> <grouped tiles folder> <similarity score threshold> [selected tile types]')
         print('python3 tiles.py stage3 <tiles folder> <shape tiles folder> <similarity score threshold> <corner size> <selected tile types>')
-
+        print('python3 tiles.py stage4 <tiles folder> <shape tiles folder> <similarity score threshold> <corner size> <selected tile types>')
         # print('python3 tiles.py stage3a <tiles folder> <shape tiles folder> <similarity score threshold>')
         # print('python3 tiles.py stage4 <tiles folder> <grouped tiles folder> <similarity score threshold> <selected side> <selected tile types>')
         # print('python3 tiles.py stage5 <tiles folder> <grouped tiles folder> <similarity score threshold> <selected corner> <selected tile types>')
         # print('python3 tiles.py stage6 <grouped tiles folder> <destination folder> <similarity score threshold> <selected side> <selected tile types>')
         # print('python3 tiles.py stage7 <grouped tiles folder> <destination folder> <similarity score threshold> <selected corner> <selected tile types>')
-
         print('python3 tiles.py stage8 <source folder> <grouped tiles folder> <destination folder> <ready tiles folder>')
+        print('python3 tiles.py stage9 <source folder> <grouped tiles folder> <destination folder> <ready tiles folder>')
         sys.exit(-1)
     main()
