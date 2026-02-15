@@ -2,3 +2,7 @@ Kivy
 numpy
 pillow
 PyYAML
+opencv-python
+imagehash
+scipy
+scikit-image

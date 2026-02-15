@@ -1989,15 +1989,15 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                 continue
             if tile_sample2 not in registry[tile_sample1]:
                 missing.add(tuple(sorted((tile_sample1, tile_sample2))))
-                # print(f'Warning: missing registry entry for {tile_sample1} {tile_sample2} pair, skipping merging for {tile_sample1}_{two_samples}')
+                # print(f'Warning: missing registry entry for {tile_sample1} {tile_sample2} pair, skipping merging for {tile_sample1}_{tile_sample2}_{tile_sample3}')
                 continue
             if tile_sample3 not in registry[tile_sample1]:
                 missing.add(tuple(sorted((tile_sample1, tile_sample3))))
-                # print(f'Warning: missing registry entry for {tile_sample1} {tile_sample3} pair, skipping merging for {tile_sample1}_{two_samples}')
+                # print(f'Warning: missing registry entry for {tile_sample1} {tile_sample3} pair, skipping merging for {tile_sample1}_{tile_sample2}_{tile_sample3}')
                 continue
             if tile_sample3 not in registry[tile_sample2]:
                 missing.add(tuple(sorted((tile_sample2, tile_sample3))))
-                # print(f'Warning: missing registry entry for {tile_sample2} {tile_sample3} pair, skipping merging for {tile_sample1}_{two_samples}')
+                # print(f'Warning: missing registry entry for {tile_sample2} {tile_sample3} pair, skipping merging for {tile_sample1}_{tile_sample2}_{tile_sample3}')
                 continue
             fragments = registry3types[tile_sample1][two_samples]
             for tile_side, tile_image, tile_id, tile_file_path in fragments:
@@ -2105,7 +2105,8 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                 ready[q2].append(ready_image2)
                 count += 1
                 print(f'    saved merged fragment to {merged_tile_name}')
-    print(f'processed {count} 3-types tiles, {len(missing)} missing pairs')
+    print(f'processed {count} 3-types tiles')
+    print(f'missing {len(missing)} pairs for merging: {list(sorted(missing))}')
     print(f'merged {len(quadruples)} quadruples:')
     for q in sorted(quadruples):
         print(f'        {q},')
