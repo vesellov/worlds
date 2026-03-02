@@ -2044,8 +2044,8 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                         im.paste(registry[tile_sample1][tile_sample2]['right'][0][0], (TILE_SIZE, 0))
                         im.paste(registry[tile_sample1][tile_sample3]['right'][0][0], (TILE_SIZE, TILE_SIZE * 2))
                         im.paste(registry[tile_sample2][tile_sample3]['bottom'][0][0], (TILE_SIZE * 2, TILE_SIZE))
-                        ready_image1 = tile_image.transpose(Transpose.ROTATE_90)
-                        ready_image2 = tile_image.transpose(Transpose.ROTATE_90).transpose(Transpose.FLIP_LEFT_RIGHT)
+                        ready_image1 = tile_image.transpose(Transpose.ROTATE_270)
+                        ready_image2 = tile_image.transpose(Transpose.ROTATE_270).transpose(Transpose.FLIP_LEFT_RIGHT)
                         q1 = (tile_sample1, tile_sample1, tile_sample2, tile_sample3)
                         q2 = (tile_sample1, tile_sample1, tile_sample3, tile_sample2)
                     elif tile_side == 'right_right':
@@ -2057,8 +2057,8 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                         im.paste(registry[tile_sample1][tile_sample2]['left'][0][0], (TILE_SIZE, 0))
                         im.paste(registry[tile_sample1][tile_sample3]['left'][0][0], (TILE_SIZE, TILE_SIZE * 2))
                         im.paste(registry[tile_sample2][tile_sample3]['bottom'][0][0], (0, TILE_SIZE))
-                        ready_image1 = tile_image.transpose(Transpose.ROTATE_270)
-                        ready_image2 = tile_image.transpose(Transpose.ROTATE_270).transpose(Transpose.FLIP_LEFT_RIGHT)
+                        ready_image1 = tile_image.transpose(Transpose.ROTATE_90)
+                        ready_image2 = tile_image.transpose(Transpose.ROTATE_90).transpose(Transpose.FLIP_LEFT_RIGHT)
                         q1 = (tile_sample1, tile_sample1, tile_sample2, tile_sample3)
                         q2 = (tile_sample1, tile_sample1, tile_sample3, tile_sample2)
                     elif tile_side == 'topleft_bottomright':
@@ -2107,9 +2107,9 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                 print(f'    saved merged fragment to {merged_tile_name}')
     print(f'processed {count} 3-types tiles')
     print(f'missing {len(missing)} pairs for merging: {list(sorted(missing))}')
-    print(f'merged {len(quadruples)} quadruples:')
-    for q in sorted(quadruples):
-        print(f'        {q},')
+    print(f'merged {len(quadruples)} quadruples')
+    # for q in sorted(quadruples):
+    #     print(f'        {q},')
     if save_ready_tiles:
         for q in ready.keys():
             tile_sample1, tile_sample2, tile_sample3, tile_sample4 = q

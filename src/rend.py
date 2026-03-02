@@ -92,6 +92,7 @@ class Renderer(Widget):
     LAND_AREA_SIZE_VISIBLE = 36
     LAND_AREA_HALF_SIZE_VISIBLE = int(LAND_AREA_SIZE_VISIBLE / 2)
     PLANET_LAND_SIZE = float(LAND_AREA_SIZE_VISIBLE * LAND_CELL_SCALE_FACTOR)
+    PLANET_LAND_SIZE_INT = int(PLANET_LAND_SIZE)
     LAND_MOVE_SPEED = 0.5
 
     def __init__(self, app_root, scene, **kwargs):
@@ -110,6 +111,10 @@ class Renderer(Widget):
         self.global_scale = None
         self.global_land_translate_before = None
         self.global_land_translate_after = None
+        self.area_center_w = None
+        self.area_center_h = None
+        self.initial_area_center_w = None
+        self.initial_area_center_h = None
         self.global_land_rotate_x = None
         self.global_land_rotate_y = None
         self.global_land_rotate_z = None
@@ -136,88 +141,16 @@ class Renderer(Widget):
         return x_angle, y_angle
 
     def add_land_tile(self, w, h, w_t, h_t):
-        step = 1.0 / 8.0
-
-        def _get_tile_texture_info(w_t, h_t, e_mid):
-            ind = [0, 1, 2, 1, 2, 3]
-            # water
-            bit_x = 7
-            bit_y = 4
-            tex = 'zone19000.png'
-            if e_mid > 0.001:
-                # sand
-                bit_x = 0
-                bit_y = 0
-                tex = 'zone19000.png'
-            if e_mid > 0.5:
-                # green grass
-                bit_x = 7
-                bit_y = 1
-                tex = 'zone71002.png'            
-            if e_mid > 0.75:
-                # red soil
-                bit_x = 5
-                bit_y = 5
-                tex = 'zone19000.png'            
-            if e_mid > 0.75:
-                # rocks
-                bit_x = 0
-                bit_y = 0
-                tex = 'zone71002.png'            
-            if e_mid > 0.9:
-                # snow
-                bit_x = 0
-                bit_y = 0
-                tex = 'bz10k000.png'
-            if (w_t, h_t) == (70, 63):
-                tex = 'textures/land/basegipat000.png'
-                bit_x = 0
-                bit_y = 6
-            if (w_t, h_t) == (70, 62):
-                tex = 'textures/land/basegipat000.png'
-                bit_x = 7
-                bit_y = 5
-
-            if (w_t, h_t) == (72, 63):
-                tex = 'textures/land/basegipat000.png'
-                bit_x = 6
-                bit_y = 0
-            if (w_t, h_t) == (72, 62):
-                tex = 'textures/land/basegipat007.png'
-                bit_x = 0
-                bit_y = 0
-            if (w_t, h_t) == (71, 63):
-                tex = 'textures/land/basegipat000.png'
-                bit_x = 6
-                bit_y = 0
-            if (w_t, h_t) == (73, 62):
-                tex = 'textures/land/basegipat000.png'
-                bit_x = 6
-                bit_y = 0
-            if (w_t, h_t) == (73, 63):
-                tex = 'textures/land/basegipat000.png'
-                bit_x = 6
-                bit_y = 0
-            if (w_t, h_t) == (71, 62):
-                tex = 'textures/land/basegipat005.png'
-                bit_x = 1
-                bit_y = 4
-            corr = 0.001
-            tc00 = (bit_x * step + corr, bit_y * step + corr)
-            tc01 = (bit_x * step + corr, (bit_y + 1) * step - corr)
-            tc10 = ((bit_x + 1) * step - corr, bit_y * step + corr)
-            tc11 = ((bit_x + 1) * step - corr, (bit_y+1) * step - corr)
-            return tex, ind, tc00, tc01, tc10, tc11
-
         half_f = float(self.LAND_AREA_HALF_SIZE_VISIBLE)
         _get_elevation = self.scene.land.get_elevation
+        _get_texture = self.scene.land.get_texture
         w_f = float(w)
         h_f = float(h)
         e00 = _get_elevation(w_t, h_t)
         e01 = _get_elevation(w_t, h_t + 1)
         e10 = _get_elevation(w_t + 1, h_t)
         e11 = _get_elevation(w_t + 1, h_t + 1)
-        e_mid = (e00 + e01 + e10 + e11) / 4.0
+        # e_mid = (e00 + e01 + e10 + e11) / 4.0
         w00 = w_f - half_f
         h00 = h_f - half_f
         w01 = w_f - half_f
@@ -230,16 +163,28 @@ class Renderer(Widget):
         v01 = mth.wh2xyz(w01, h01, self.PLANET_LAND_SIZE, self.PLANET_LAND_SIZE, radius=self.PLANET_RADIUS + e01 * self.ELEVATION_FACTOR)
         v10 = mth.wh2xyz(w10, h10, self.PLANET_LAND_SIZE, self.PLANET_LAND_SIZE, radius=self.PLANET_RADIUS + e10 * self.ELEVATION_FACTOR)
         v11 = mth.wh2xyz(w11, h11, self.PLANET_LAND_SIZE, self.PLANET_LAND_SIZE, radius=self.PLANET_RADIUS + e11 * self.ELEVATION_FACTOR)
-        tex_source, indices, tex_coord00, tex_coord01, tex_coord10, tex_coord11 = _get_tile_texture_info(w_t, h_t, e_mid)
+        tex_source, rotate = _get_texture(w_t, h_t)
+        if rotate == 0:
+            tex_coord00 = (0.0, 0.0)
+            tex_coord01 = (0.0, 1.0)
+            tex_coord10 = (1.0, 0.0)
+            tex_coord11 = (1.0, 1.0)
+        elif rotate == 270:
+            tex_coord00 = (0.0, 1.0)
+            tex_coord01 = (1.0, 1.0)
+            tex_coord10 = (0.0, 0.0)
+            tex_coord11 = (1.0, 0.0)
+        elif rotate == 180:
+            tex_coord00 = (1.0, 1.0)
+            tex_coord01 = (1.0, 0.0)
+            tex_coord10 = (0.0, 1.0)
+            tex_coord11 = (0.0, 0.0)
+        elif rotate == 90:
+            tex_coord00 = (1.0, 0.0)
+            tex_coord01 = (0.0, 0.0)
+            tex_coord10 = (1.0, 1.0)
+            tex_coord11 = (0.0, 1.0)
         vert = [
-            # v00[0], v00[1], v00[2], 1, 0, 0, 0.2 * (w / width_f), 0.2 * (h / height_f),
-            # v01[0], v01[1], v01[2], 1, 0, 0, 0.2 * (w / width_f) , 0.2 * (h + 1.0) / height_f,
-            # v10[0], v10[1], v10[2], 1, 0, 0, 0.2 * (w + 1.0) / width_f, 0.2 * (h / height_f),
-            # v11[0], v11[1], v11[2], 1, 0, 0, 0.2 * (w + 1.0) / width_f, 0.2 * (h + 1.0) / height_f,
-            # v00[0], v00[1], v00[2], 1, 0, 0, bit_x * step, bit_y * step,
-            # v01[0], v01[1], v01[2], 1, 0, 0, bit_x * step, (bit_y+1) * step,
-            # v10[0], v10[1], v10[2], 1, 0, 0, (bit_x+1) * step, bit_y * step,
-            # v11[0], v11[1], v11[2], 1, 0, 0, (bit_x+1) * step, (bit_y+1) * step,
             v00[0], v00[1], v00[2], 1, 0, 0, tex_coord00[0], tex_coord00[1],
             v01[0], v01[1], v01[2], 1, 0, 0, tex_coord01[0], tex_coord01[1],
             v10[0], v10[1], v10[2], 1, 0, 0, tex_coord10[0], tex_coord10[1],
@@ -249,7 +194,7 @@ class Renderer(Widget):
         self.container_land_tiles.add(BindTexture(source=tex_source, index=1, group=tile_group_name))
         self.container_land_tiles.add(Mesh(
             vertices=vert,
-            indices=indices,
+            indices=[0, 1, 2, 1, 2, 3],
             fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
             mode='triangles',
             group=tile_group_name,
@@ -262,17 +207,21 @@ class Renderer(Widget):
         self.land_tiles_visible.pop((w_t, h_t))
 
     def prepare_land(self, initial_area_center_w, initial_area_center_h):
+        planet_width = self.PLANET_LAND_SIZE
+        planet_height = self.PLANET_LAND_SIZE
         self.global_land_rotate_x = Rotate(0, 1, 0, 0, group='land')
         self.global_land_rotate_y = Rotate(0, 0, 1, 0, group='land')
         self.global_land_rotate_z = Rotate(0, 0, 0, 1, group='land')
-        # window_width = self.LAND_AREA_SIZE_VISIBLE
-        # window_height = self.LAND_AREA_SIZE_VISIBLE
         self.initial_area_center_w = initial_area_center_w
         self.initial_area_center_h = initial_area_center_h
+        self.area_center_w = initial_area_center_w
+        self.area_center_h = initial_area_center_h
+        planet_area_center_w = round(self.area_center_w % self.PLANET_LAND_SIZE, 5)
+        planet_area_center_h = round(self.area_center_h % self.PLANET_LAND_SIZE, 5)
+        self.global_land_rotate_x.angle = mth.w2lat_degrees(planet_area_center_w, planet_width)
+        self.global_land_rotate_z.angle = mth.h2lon_degrees(planet_area_center_h, planet_height)
         latitude_radians = math.radians(-self.global_land_rotate_x.angle)
         longitude_radians = math.radians(90.0-self.global_land_rotate_z.angle)
-        planet_width = self.PLANET_LAND_SIZE
-        planet_height = self.PLANET_LAND_SIZE
         w_f = mth.lat2w(latitude_radians, width=planet_width)
         h_f = mth.lon2h(longitude_radians, height=planet_height)
         w_i = math.ceil(w_f) - 1
@@ -308,8 +257,8 @@ class Renderer(Widget):
         elevation_factor = self.ELEVATION_FACTOR
         latitude_radians = math.radians(-self.global_land_rotate_x.angle)
         longitude_radians = math.radians(90.0-self.global_land_rotate_z.angle)
-        planet_width = float(self.LAND_AREA_SIZE_VISIBLE * self.LAND_CELL_SCALE_FACTOR)
-        planet_height = float(self.LAND_AREA_SIZE_VISIBLE * self.LAND_CELL_SCALE_FACTOR)
+        planet_width = self.PLANET_LAND_SIZE
+        planet_height = self.PLANET_LAND_SIZE
         w_f = mth.lat2w(latitude_radians, width=planet_width)
         h_f = mth.lon2h(longitude_radians, height=planet_height)
         w_i = math.ceil(w_f) - 1
@@ -331,6 +280,9 @@ class Renderer(Widget):
             e = mth.get_z_in_triangle(w_f, h_f, p01, p10, p11)
         planed_shift_y = - planet_radius - e * elevation_factor
         self.global_land_translate_before.y = planed_shift_y
+        if _Debug:
+            xyz = mth.wh2xyz(w_f, h_f, self.PLANET_LAND_SIZE, self.PLANET_LAND_SIZE, radius=self.PLANET_RADIUS + e * self.ELEVATION_FACTOR)
+            print(f'  map at {self.area_center_w},{self.area_center_h} lat:{round(latitude_radians, 4)} lon:{round(longitude_radians, 4)} w,h:{round(w_f, 3)},{round(h_f, 3)} xyz:{xyz}')
         new_area_center_w = w
         new_area_center_h = h
         new_area_left = w - self.LAND_AREA_HALF_SIZE_VISIBLE
@@ -361,9 +313,9 @@ class Renderer(Widget):
                 removed += 1
         self.land_area_left = new_area_left
         self.land_area_top = new_area_top
-        if added or removed:
-            if _Debug:
-                print(f'    updated land area at {w} {h}, added {added} and removed {removed} tiles, lat:{self.global_land_rotate_x.angle} lon:{self.global_land_rotate_z.angle}')
+        # if added or removed:
+        #     if _Debug:
+        #         print(f'    updated land area at {w} {h}, added {added} and removed {removed} tiles, lat:{self.global_land_rotate_x.angle} lon:{self.global_land_rotate_z.angle}')
 
     def add_mesh(self, name):
         # NOT TO BE USED
@@ -566,28 +518,48 @@ class Renderer(Widget):
             if unit and not unit.onstage:
                 self.add_unit(name)
         elif keycode[1] == 'd':
-            new_global_land_rotate_z_angle = self.global_land_rotate_z.angle - self.LAND_MOVE_SPEED
-            if new_global_land_rotate_z_angle < -180.0:
-                new_global_land_rotate_z_angle += 360.0
-            self.global_land_rotate_z.angle = new_global_land_rotate_z_angle
+            self.area_center_h = self.area_center_h + self.LAND_MOVE_SPEED
+            if self.area_center_h >= self.scene.land.height:
+                self.area_center_h = self.area_center_h - self.scene.land.height
+            planet_area_center_h = round(self.area_center_h % self.PLANET_LAND_SIZE, 5)
+            self.global_land_rotate_z.angle = mth.w2lat_degrees(planet_area_center_h, self.PLANET_LAND_SIZE)
+            # new_global_land_rotate_z_angle = self.global_land_rotate_z.angle - self.LAND_MOVE_SPEED
+            # if new_global_land_rotate_z_angle < -180.0:
+            #     new_global_land_rotate_z_angle += 360.0
+            # self.global_land_rotate_z.angle = new_global_land_rotate_z_angle
             self.update_land()
         elif keycode[1] == 'a':
-            new_global_land_rotate_z_angle = self.global_land_rotate_z.angle + self.LAND_MOVE_SPEED
-            if new_global_land_rotate_z_angle > 180.0:
-                new_global_land_rotate_z_angle -= 360.0
-            self.global_land_rotate_z.angle = new_global_land_rotate_z_angle
-            self.update_land()
-        elif keycode[1] == 'w':
-            new_global_land_rotate_x_angle = self.global_land_rotate_x.angle - self.LAND_MOVE_SPEED
-            if new_global_land_rotate_x_angle < -180.0:
-                new_global_land_rotate_x_angle += 360.0
-            self.global_land_rotate_x.angle = new_global_land_rotate_x_angle
+            self.area_center_h = self.area_center_h - self.LAND_MOVE_SPEED
+            if self.area_center_h < 0:
+                self.area_center_h = self.area_center_h + self.scene.land.height
+            planet_area_center_h = round(self.area_center_h % self.PLANET_LAND_SIZE, 5)
+            self.global_land_rotate_z.angle = mth.w2lat_degrees(planet_area_center_h, self.PLANET_LAND_SIZE)
+            # new_global_land_rotate_z_angle = self.global_land_rotate_z.angle + self.LAND_MOVE_SPEED
+            # if new_global_land_rotate_z_angle > 180.0:
+            #     new_global_land_rotate_z_angle -= 360.0
+            # self.global_land_rotate_z.angle = new_global_land_rotate_z_angle
             self.update_land()
         elif keycode[1] == 's':
-            new_global_land_rotate_x_angle = self.global_land_rotate_x.angle + self.LAND_MOVE_SPEED
-            if new_global_land_rotate_x_angle > 180.0:
-                new_global_land_rotate_x_angle -= 360.0
-            self.global_land_rotate_x.angle = new_global_land_rotate_x_angle
+            self.area_center_w = self.area_center_w + self.LAND_MOVE_SPEED
+            if self.area_center_w >= self.scene.land.width:
+                self.area_center_w = self.area_center_w - self.scene.land.width
+            planet_area_center_w = round(self.area_center_w % self.PLANET_LAND_SIZE, 5)
+            self.global_land_rotate_x.angle = mth.w2lat_degrees(planet_area_center_w, self.PLANET_LAND_SIZE)
+            # new_global_land_rotate_x_angle = self.global_land_rotate_x.angle - self.LAND_MOVE_SPEED
+            # if new_global_land_rotate_x_angle < -180.0:
+            #     new_global_land_rotate_x_angle += 360.0
+            # self.global_land_rotate_x.angle = new_global_land_rotate_x_angle
+            self.update_land()
+        elif keycode[1] == 'w':
+            self.area_center_w = self.area_center_w - self.LAND_MOVE_SPEED
+            if self.area_center_w < 0:
+                self.area_center_w = self.area_center_w + self.scene.land.width
+            planet_area_center_w = round(self.area_center_w % self.PLANET_LAND_SIZE, 5)
+            self.global_land_rotate_x.angle = mth.h2lon_degrees(planet_area_center_w, self.PLANET_LAND_SIZE)
+            # new_global_land_rotate_x_angle = self.global_land_rotate_x.angle + self.LAND_MOVE_SPEED
+            # if new_global_land_rotate_x_angle > 180.0:
+            #     new_global_land_rotate_x_angle -= 360.0
+            # self.global_land_rotate_x.angle = new_global_land_rotate_x_angle
             self.update_land()
         return True
 

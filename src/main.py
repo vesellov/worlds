@@ -102,8 +102,10 @@ class AppRoot(App):
 
     def build(self):
         land = dat.LandData()
-        land.load_elevation_file(elevation_file_name='elevation_island.png')
-        land.save_elevation_memmap('elevation_island', destination_dir='.')
+        land.load_heightmap_file(heightmap_file_name='island4_heightmap.png', sea_level=0.22)
+        land.load_tilemap_file(tilemap_file_name='island4_encoded.png')
+        land.load_cache_tiles_textures(textures_dir_path='textures/land')
+        # land.save_elevation_memmap('island4_heightmap', destination_dir='.')
         scene = dat.SceneData(land=land)
         renderer = rend.Renderer(app_root=self, scene=scene)
         self.test_id = 3

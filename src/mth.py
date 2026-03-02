@@ -176,95 +176,95 @@ def rotationMatrixToQuaternion(R:np.ndarray) -> np.ndarray:
     return np.array([q0, q1, q2, q3])
 
 
-def eulerAnglesToQuaternion(eulerAngles:np.ndarray|list)->np.ndarray:
-    """
-    Convert an Euler angle to a quaternion.
+# def eulerAnglesToQuaternion(eulerAngles:np.ndarray|list)->np.ndarray:
+#     """
+#     Convert an Euler angle to a quaternion.
+#
+#     We have used the following definition of Euler angles.
+#
+#     - Tait-Bryan variant of Euler Angles
+#     - Yaw-pitch-roll rotation order (ZYX convention), rotating around the z, y and x axes respectively
+#     - Intrinsic rotation (the axes move with each rotation)
+#     - Active (otherwise known as alibi) rotation (the point is rotated, not the coordinate system)
+#     - Right-handed coordinate system with right-handed rotations
+#
+#     Parameters
+#     ----------
+#     eulerAngles : 
+#         [3x1] np.ndarray  
+#         [roll, pitch, yaw] angles in radians 
+#
+#     Returns
+#     -------
+#         [4x1] np.ndarray
+#         quaternion defining a given orientation
+#     """
+#     if isinstance(eulerAngles, list) and len(eulerAngles)==3:
+#         eulerAngles = np.array(eulerAngles) 
+#     elif isinstance(eulerAngles, np.ndarray) and eulerAngles.size==3:
+#         pass
+#     else:
+#         raise TypeError("The eulerAngles must be given as [3x1] np.ndarray vector or a python list of 3 elements")
+#
+#     roll = eulerAngles[0]
+#     pitch = eulerAngles[1]
+#     yaw = eulerAngles[2]
+#
+#     q0 = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+#     q1 = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+#     q2 = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
+#     q3 = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
+#
+#     return np.r_[q0, q1, q2, q3]
 
-    We have used the following definition of Euler angles.
 
-    - Tait-Bryan variant of Euler Angles
-    - Yaw-pitch-roll rotation order (ZYX convention), rotating around the z, y and x axes respectively
-    - Intrinsic rotation (the axes move with each rotation)
-    - Active (otherwise known as alibi) rotation (the point is rotated, not the coordinate system)
-    - Right-handed coordinate system with right-handed rotations
-
-    Parameters
-    ----------
-    eulerAngles : 
-        [3x1] np.ndarray  
-        [roll, pitch, yaw] angles in radians 
-    
-    Returns
-    -------
-        [4x1] np.ndarray
-        quaternion defining a given orientation
-    """
-    if isinstance(eulerAngles, list) and len(eulerAngles)==3:
-        eulerAngles = np.array(eulerAngles) 
-    elif isinstance(eulerAngles, np.ndarray) and eulerAngles.size==3:
-        pass
-    else:
-        raise TypeError("The eulerAngles must be given as [3x1] np.ndarray vector or a python list of 3 elements")
-
-    roll = eulerAngles[0]
-    pitch = eulerAngles[1]
-    yaw = eulerAngles[2]
-
-    q0 = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
-    q1 = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
-    q2 = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
-    q3 = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
-
-    return np.r_[q0, q1, q2, q3]
-
-
-def quaternionToEulerAngles(q:np.ndarray|list)->np.ndarray:
-    """
-    Convert a quaternion into euler angles [roll, pitch, yaw]
-    - roll is rotation around x in radians (CCW)
-    - pitch is rotation around y in radians (CCW)
-    - yaw is rotation around z in radians (CCW)
-
-    Parameters
-    ----------
-    q : [4x1] np.ndarray
-        quaternion defining a given orientation
-  
-    Returns
-    -------
-        [3x1] np.ndarray  
-        [roll, pitch, yaw] angles in radians 
-    """
-    if isinstance(q, list) and len(q)==4:
-        q = np.array(q) 
-    elif isinstance(q, np.ndarray) and q.size==4:
-        pass
-    else:
-        raise TypeError("The quaternion must be given as [4x1] np.ndarray vector or a python list of 4 elements")
-
-    q0 = q[0]
-    q1 = q[1]
-    q2 = q[2]
-    q3 = q[3]
-
-    t2 = 2.0*(q0*q2 - q1*q3)
-    t2 = 1.0 if t2 > 1.0 else t2
-    t2 = -1.0 if t2 < -1.0 else t2
-
-    if t2 == 1:
-        pitch = np.arcsin(t2)
-        roll = 0
-        yaw = -np.arctan2(q0, q1)
-    elif t2 == -1:
-        pitch = np.arcsin(t2)
-        roll = 0
-        yaw = +np.arctan2(q0, q1)
-    else:
-        pitch = np.arcsin(t2)
-        roll = np.arctan2(2.0*(q0*q1 + q2*q3), q0*q0 - q1*q1 - q2*q2 + q3*q3)
-        yaw = np.arctan2(2.0*(q0*q3 + q1*q2), q0*q0 + q1*q1 - q2*q2 - q3*q3)
-
-    return np.r_[roll, pitch, yaw]
+# def quaternionToEulerAngles(q:np.ndarray|list)->np.ndarray:
+#     """
+#     Convert a quaternion into euler angles [roll, pitch, yaw]
+#     - roll is rotation around x in radians (CCW)
+#     - pitch is rotation around y in radians (CCW)
+#     - yaw is rotation around z in radians (CCW)
+#
+#     Parameters
+#     ----------
+#     q : [4x1] np.ndarray
+#         quaternion defining a given orientation
+#
+#     Returns
+#     -------
+#         [3x1] np.ndarray  
+#         [roll, pitch, yaw] angles in radians 
+#     """
+#     if isinstance(q, list) and len(q)==4:
+#         q = np.array(q) 
+#     elif isinstance(q, np.ndarray) and q.size==4:
+#         pass
+#     else:
+#         raise TypeError("The quaternion must be given as [4x1] np.ndarray vector or a python list of 4 elements")
+#
+#     q0 = q[0]
+#     q1 = q[1]
+#     q2 = q[2]
+#     q3 = q[3]
+#
+#     t2 = 2.0*(q0*q2 - q1*q3)
+#     t2 = 1.0 if t2 > 1.0 else t2
+#     t2 = -1.0 if t2 < -1.0 else t2
+#
+#     if t2 == 1:
+#         pitch = np.arcsin(t2)
+#         roll = 0
+#         yaw = -np.arctan2(q0, q1)
+#     elif t2 == -1:
+#         pitch = np.arcsin(t2)
+#         roll = 0
+#         yaw = +np.arctan2(q0, q1)
+#     else:
+#         pitch = np.arcsin(t2)
+#         roll = np.arctan2(2.0*(q0*q1 + q2*q3), q0*q0 - q1*q1 - q2*q2 + q3*q3)
+#         yaw = np.arctan2(2.0*(q0*q3 + q1*q2), q0*q0 + q1*q1 - q2*q2 - q3*q3)
+#
+#     return np.r_[roll, pitch, yaw]
 
 
 def quaternion_multiply(q1, q2):
@@ -317,10 +317,17 @@ def latlon2xyz(latitude_radians, longitude_radians, radius=1.0):
 
 
 def wh2xyz(w, h, width, height, radius=1.0):
-    # w, h, width, height is expected to be all float
-    # latitude_radians = 2.0 * math.pi * w / width
-    # longitude_radians = math.pi / 2.0 + 2.0 * math.pi * h / height
     return latlon2xyz(w2lat(w, width), h2lon(h, height), radius=radius)
+
+
+def w2lat_degrees(w, width):
+    latitude_degrees = - ( 2.0 * 180.0 * w ) / float(width)
+    return latitude_degrees
+
+
+def h2lon_degrees(h, height):
+    longitude_degrees = - ( 2.0 * 180.0 * h ) / float(height)
+    return longitude_degrees
 
 
 def w2lat(w, width):

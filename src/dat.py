@@ -4,6 +4,8 @@ import time
 import numpy as np
 
 from kivy.core.image import Image
+from kivy.cache import Cache
+from kivy.resources import resource_find
 
 import res
 import mth
@@ -269,20 +271,61 @@ class LandData(object):
     def __init__(self):
         self.width = None
         self.height = None
-        self.elevation_map_data = None
-        self.tiles_texture_map = {}
+        self.elevation_map_data = {}
+        self.tiles_map_data = {}
+        self.tiles_textures_dir_path = None
 
-    def load_elevation_file(self, elevation_file_name):
-        im = Image(elevation_file_name, keep_data=True)
+    def load_tilemap_file(self, tilemap_file_name):
+        im = Image(tilemap_file_name, keep_data=True)
+        if self.width is not None and self.width != im.width:
+            raise ValueError(f'land width mismatch: expected {self.width}, got {im.width}')
+        if self.height is not None and self.height != im.height:
+            raise ValueError(f'land height mismatch: expected {self.height}, got {im.height}')
+        data = im.image._data[0]
+        size = 3 if data.fmt in ('rgb', 'bgr') else 4
+        for x in range(self.width):
+            for y in range(self.height):
+                index = y * data.width * size + x * size
+                raw = bytearray(data.data[index:index + size])
+                color = [int(c) for c in raw]
+                bgr_flag = False
+                if data.fmt == 'argb':
+                    color.reverse()  # bgra
+                    bgr_flag = True
+                elif data.fmt == 'abgr':
+                    color.reverse()  # rgba
+                # conversion for BGR->RGB, BGRA->RGBA format
+                if bgr_flag or data.fmt in ('bgr', 'bgra'):
+                    color[0], color[2] = color[2], color[0]
+                catalog_id = color[0] + color[1] * 256
+                rotate = color[2] * 90
+                self.tiles_map_data[(x, y)] = (catalog_id, rotate)
+        return self.width, self.height
+
+    def load_heightmap_file(self, heightmap_file_name, sea_level=0.0):
+        im = Image(heightmap_file_name, keep_data=True)
         self.width = im.width
         self.height = im.height
-        _elevation = []
-        # for h in range(self.height):
-        #     _elevation.append(tuple(im.read_pixel(w, h)[0] for w in range(self.width)))
-        for w in range(self.width):
-            _elevation.append(tuple(im.read_pixel(w, h)[0] for h in range(self.height)))
-        self.elevation_map_data = tuple(_elevation)
+        for x in range(self.width):
+            for y in range(self.height):
+                e = float(im.read_pixel(x, y)[0])
+                if e < sea_level:
+                    e = sea_level
+                self.elevation_map_data[(x, y)] = e
         return self.width, self.height
+
+    def load_cache_tiles_textures(self, textures_dir_path):
+        self.tiles_textures_dir_path = textures_dir_path
+        for file_name in os.listdir(self.tiles_textures_dir_path):
+            if not file_name.endswith('.png'):
+                continue
+            file_path = os.path.join(self.tiles_textures_dir_path, file_name)
+            file_path_source = resource_find(file_path)
+            if file_path_source:
+                _tex = Cache.get('kv.texture', file_path)
+                if not _tex:
+                    _tex = Image(file_path_source).texture
+                    Cache.append('kv.texture', file_path, _tex)
 
     def save_elevation_memmap(self, file_name_prefix, destination_dir):
         file_path = os.path.join(destination_dir, f'{file_name_prefix}.{self.width}.{self.height}.memmap')
@@ -293,16 +336,47 @@ class LandData(object):
 
     def get_elevation(self, w, h):
         _w = w
-        if w < 0:
-            _w = -w 
-        elif w >= self.width:
-            _w = self.width - w
         _h = h
+        # if w < 0:
+        #     _w = -w 
+        # elif w >= self.width:
+        #     _w = self.width - w
+        # if h < 0:
+        #     _h = -h
+        # elif h >= self.height:
+        #     _h = self.height - h
+        if w < 0:
+            _w = w + self.width
+        if w >= self.width:
+            _w = w - self.width
         if h < 0:
-            _h = -h
-        elif h >= self.height:
-            _h = self.height - h
-        return self.elevation_map_data[_w][_h]
+            _h = h + self.height
+        if h >= self.height:
+            _h = h - self.height
+        return self.elevation_map_data[(_w, _h)]
+
+    def get_texture(self, w, h):
+        _w = w
+        _h = h
+        # if w < 0:
+        #     _w = -w 
+        # elif w >= self.width:
+        #     _w = self.width - w
+        # if h < 0:
+        #     _h = -h
+        # elif h >= self.height:
+        #     _h = self.height - h
+        if w < 0:
+            _w = w + self.width
+        if w >= self.width:
+            _w = w - self.width
+        if h < 0:
+            _h = h + self.height
+        if h >= self.height:
+            _h = h - self.height
+        catalog_id, rotate = self.tiles_map_data[(_w, _h)]
+        texture_file_path = os.path.join(self.tiles_textures_dir_path, f'{catalog_id:05d}.png')
+        return texture_file_path, rotate
 
 
 class SceneData(object):
