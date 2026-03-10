@@ -1,6 +1,8 @@
 import math
 import numpy as np
 
+from scipy.spatial.transform import Rotation
+
 
 def vec3sum(v1, v2):
     return [v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]]
@@ -309,43 +311,113 @@ def trilinear(val, coefs=[0, 0, 0]):
 
 
 def latlon2xyz(latitude_radians, longitude_radians, radius=1.0):
-    """Converts latitude and longitude (degrees) to 3D Cartesian (x, y, z) on a sphere."""
+    """Converts latitude and longitude (radians) to 3D Cartesian (x, y, z) on a sphere."""
     x = radius * math.cos(latitude_radians) * math.cos(longitude_radians)
     y = radius * math.cos(latitude_radians) * math.sin(longitude_radians)
     z = radius * math.sin(latitude_radians)
     return x, y, z
 
 
+def latlon2xyz_tor(longitude_radians, latitude_radians, radius=1.0, torus_radius=0.5):
+    """Converts latitude and longitude (radians) to 3D Cartesian (x, y, z) on a torus."""
+    x = (radius + torus_radius * math.cos(latitude_radians)) * math.cos(longitude_radians)
+    y = (radius + torus_radius * math.cos(latitude_radians)) * math.sin(longitude_radians)
+    z = torus_radius * math.sin(latitude_radians)
+    return x, y, z
+
+# def latlon2xyz_degrees(latitude_degrees, longitude_degrees, radius=1.0):
+#     """Normalize and convert latitude and longitude (degrees) to 3D Cartesian (x, y, z) on a sphere."""
+#     lon_deg = (longitude_degrees) % 360.0
+#     lat_deg = max(-90.0, min(90.0, latitude_degrees))
+#     # lon_deg = (longitude_degrees + 180.0) % 360.0 - 180
+#     # lat_deg = max(-90.0, min(90.0, latitude_degrees))
+#     lat = math.radians( - lat_deg)
+#     lon = math.radians(90.0 - lon_deg)
+#     x = radius * math.cos(lat) * math.cos(lon)
+#     y = radius * math.cos(lat) * math.sin(lon)
+#     z = radius * math.sin(lat)    
+#     return x, y, z
+
+
+def wh2xyz_scipy(w, h, width, height, radius=1.0):
+    # vector, angle1_degrees, angle2_degrees, axes='xz'
+    x_angle_radians = 2.0 * math.pi * w / width
+    z_angle_radians = 2.0 * math.pi * h / height
+    xz_rotations = Rotation.from_euler('xz', [x_angle_radians, z_angle_radians], degrees=False)
+    # quat_rotations = Rotation.from_quat(xz_rotations)
+    matrix_rotations = Rotation.from_matrix(xz_rotations.as_matrix())
+    vector = np.array([0.0, radius, 0.0])
+    r = matrix_rotations.apply(vector)
+    return r[0], r[1], r[2]
+
+
+DEBUG_PRINT = False
+
 def wh2xyz(w, h, width, height, radius=1.0):
-    return latlon2xyz(w2lat(w, width), h2lon(h, height), radius=radius)
+    # global DEBUG_PRINT
+    lat = w2lat(w, width)
+    lon = h2lon(h, height)
+    # if DEBUG_PRINT:
+    #     DEBUG_PRINT = False
+    #     print(f"        w={w}, h={h}, width={width}, height={height} => lat={lat * 180.0 / math.pi}, lon={lon * 180.0 / math.pi}")
+    return latlon2xyz(lat, lon, radius=radius)
+    # latitude_degrees = ( 2.0 * 180.0 * w ) / float(width)
+    # longitude_degrees = 90.0 + ( 2.0 * 180.0 * h ) / float(height)
+    # return latlon2xyz_degrees(latitude_degrees, longitude_degrees, radius=radius)
+
+
+def wh2xyz_tor(w, h, width, height, radius=1.0, torus_radius=0.5):
+    lat = w2lat(w, width)
+    lon = h2lon(h, height)
+    return latlon2xyz_tor(lat, lon, radius=radius, torus_radius=torus_radius)
+
+
+def lat_globe2camera(degrees):
+    return degrees
+
+
+def lon_globe2camera(degrees):
+    return degrees
+
+
+def lat_camera2globe(degrees):
+    return degrees
+
+
+def lon_camera2globe(degrees):
+    return degrees
 
 
 def w2lat_degrees(w, width):
-    latitude_degrees = - ( 2.0 * 180.0 * w ) / float(width)
-    return latitude_degrees
+    return ( 2.0 * 180.0 * ( w % width ) ) / float(width)
 
 
 def h2lon_degrees(h, height):
-    longitude_degrees = - ( 2.0 * 180.0 * h ) / float(height)
-    return longitude_degrees
+    return ( 2.0 * 180.0 * ( h % height ) ) / float(height)
 
 
 def w2lat(w, width):
-    latitude_radians = 2.0 * math.pi * w / width
-    return latitude_radians
+    return ( 2.0 * math.pi * ( w % width ) ) / float(width)
 
 
 def h2lon(h, height):
-    longitude_radians = math.pi / 2.0 + 2.0 * math.pi * h / height
-    return longitude_radians
+    return ( 2.0 * math.pi * ( h % height ) ) / float(height)
+
+
+def lat2w_degrees(latitude, width):
+    return ( latitude * width ) / ( 2.0 * 180.0 ) 
+
+
+def lon2h_degrees(longitude, height):
+    return ( longitude * height ) / ( 2.0 * 180.0 )
 
 
 def lat2w(latitude_radians, width):
-    return (latitude_radians * width) / (2.0 * math.pi) 
+    return ( latitude_radians * width ) / ( 2.0 * math.pi ) 
 
 
 def lon2h(longitude_radians, height):
-    return ((longitude_radians - math.pi / 2.0) * height) / (2.0 * math.pi)
+    return ( longitude_radians * height ) / ( 2.0 * math.pi )
 
 
 def point_line_left_or_right(xp, yp, xa, ya, xb, yb):

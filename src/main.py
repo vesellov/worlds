@@ -102,7 +102,7 @@ class AppRoot(App):
 
     def build(self):
         land = dat.LandData()
-        land.load_heightmap_file(heightmap_file_name='island4_heightmap.png', sea_level=0.22)
+        land.load_heightmap_file(heightmap_file_name='island4_heightmap.png', sea_level=0.29)
         land.load_tilemap_file(tilemap_file_name='island4_encoded.png')
         land.load_cache_tiles_textures(textures_dir_path='textures/land')
         # land.save_elevation_memmap('island4_heightmap', destination_dir='.')
@@ -113,8 +113,8 @@ class AppRoot(App):
         if unit:
             unit.animation_playing = unit.animations_loaded[0]
             renderer.add_unit(unit.name)
-        renderer.prepare_land(int(land.width / 2), int(land.height / 2))
-        renderer.update_land()
+        renderer.prepare_land(442, 609, land.width, land.height) # int(land.width / 2), int(land.height / 2),
+        # renderer.update_land()
         return renderer
 
 
