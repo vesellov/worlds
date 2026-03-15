@@ -4,8 +4,146 @@ import json
 import pprint
 import random
 
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 import numpy as np
+
+min_x = 0
+min_y = 0
+input_width = 0
+input_height = 0
+width = 0
+height = 0
+max_elevation = 0
+
+
+INPUT_WATER_LEVEL = 20      # 0 is the water level in the input heightmap, 100 is the input max height
+BEACH_COAST_LINE_HEIGHT_MAX = 16  # 0 is the water level after heightmap translation, 255 is max height
+
+
+def xy2draw(x, y):
+    global min_x, min_y, input_width, input_height, width, height
+    return float(x - min_x) * float(width) / float(input_width), float(y - min_y) * float(height) / float(input_height)
+
+
+def read_full_json_file(file_path):
+    raw = open(file_path, 'rt').read()
+    return json.loads(raw)
+
+
+def detect_bounds(data):
+    vertices = data['pack']['vertices']
+    min_x = min(v['p'][0] for v in vertices)
+    max_x = max(v['p'][0] for v in vertices)
+    min_y = min(v['p'][1] for v in vertices)
+    max_y = max(v['p'][1] for v in vertices)
+    return min_x, max_x, min_y, max_y
+
+
+def detect_elevation_bounds(data):
+    cells = data['pack']['cells']
+    min_elevation = min(c['h'] for c in cells)
+    max_elevation = max(c['h'] for c in cells)
+    return min_elevation, max_elevation
+
+
+def render_biomes(data, draw):
+    cells = data['pack']['cells']
+    vertices = data['pack']['vertices']
+    biomes_colors = data['biomesData']['color']
+    count = 0
+    for cell in cells:
+        points = []
+        hex_color = biomes_colors[cell['biome']].lstrip('#')
+        for v_i in cell['v']:
+            v = vertices[v_i]
+            x, y = v['p']
+            coord = xy2draw(x, y)
+            points.append(coord)
+        draw.polygon(points, fill=tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4)))
+        count += 1
+    return count
+
+
+def render_routes(data, draw):
+    count = 0
+    for route in data['pack']['routes']:
+        points = []
+        for p in route['points']:
+            x, y, _ = p
+            points.append(xy2draw(x, y))
+        if route['group'] == 'trails':
+            c = (192, 192, 192)
+        elif route['group'] == 'searoutes':
+            c = (64, 64, 192)
+        elif route['group'] == 'roads':
+            c = (192, 128, 64)
+        draw.line(points, fill=c, width=1)
+        count += 1
+    return count
+
+
+def render_rivers(data, draw):
+    cells = data['pack']['cells']
+    count = 0
+    for route in data['pack']['rivers']:
+        points = []
+        for c_i in route['cells']:
+            if c_i < 0:
+                continue
+            c = cells[c_i]
+            x, y = c['p']
+            points.append(xy2draw(x, y))
+        draw.line(points, fill=(64, 64, 255), width=4)
+        count += 1
+    return count
+
+
+def render_heightmap(data, draw, max_elevation, water_level):
+    cells = data['pack']['cells']
+    vertices = data['pack']['vertices']
+    diff = float(max_elevation - water_level)
+    for cell in cells:
+        points = []
+        h = cell['h']
+        if h < water_level:
+            h = water_level
+        for v_i in cell['v']:
+            v = vertices[v_i]
+            x, y = v['p']
+            points.append(xy2draw(x, y))
+        e = int((h - water_level) * 255.0 / diff)
+        draw.polygon(points, fill=(e, e, e))
+
+
+def read_json_file(json_file_path, output_width, output_height):
+    global min_x, min_y, input_width, input_height, width, height, max_elevation
+    width = int(output_width)
+    height = int(output_height)
+    data = read_full_json_file(json_file_path)
+    min_x, max_x, min_y, max_y = detect_bounds(data)
+    input_width = max_x - min_x
+    input_height = max_y - min_y
+    print(f"Bounds are x=({min_x}:{max_x}) y=({min_y}:{max_y}) width={input_width} height={input_height}")
+    min_elevation, max_elevation = detect_elevation_bounds(data)
+    print(f"Elevations are from {min_elevation} to {max_elevation}")
+    biomes_colors = data['biomesData']['color']
+    water_color = biomes_colors[0].lstrip('#')
+    print(f'Output size is {width}:{height}, water color is #{water_color}')
+    biome_image = Image.new("RGB", (width, height), tuple(int(water_color[i:i+2], 16) for i in (0, 2, 4)))
+    biome_draw = ImageDraw.Draw(biome_image)
+    heightmap_image = Image.new("RGB", (width, height), "black")
+    heightmap_draw = ImageDraw.Draw(heightmap_image)
+    biomes_count = render_biomes(data, biome_draw)
+    print(f'Rendered {biomes_count} biomes')
+    # routes_count = render_routes(data, biome_draw)
+    # print(f'Rendered {routes_count} routes')
+    # rivers_count = render_rivers(data, biome_draw)
+    # print(f'Rendered {rivers_count} rivers')
+    render_heightmap(data, heightmap_draw, max_elevation, water_level=INPUT_WATER_LEVEL)
+    heightmap_image = heightmap_image.filter(ImageFilter.GaussianBlur(radius=1))
+    biome_image.save('biome.png')
+    heightmap_image.save('heightmap.png')
+    return biome_image, heightmap_image, biomes_colors
 
 
 def color_distance(c1, c2):
@@ -14,28 +152,29 @@ def color_distance(c1, c2):
 
 def main():
     catalog = json.loads(open('catalog.json', 'rt').read())
-    heightmap_image = Image.open(sys.argv[1])
-    biome_image = Image.open(sys.argv[2])
+
+    singles = set()
+    pairs = set()
+    triplets = set()
+    for k in catalog.keys():
+        parts = k.split('_')
+        t = tuple(sorted(list(set(parts))))
+        if len(t) == 1:
+            singles.add(t)
+        elif len(t) == 2:
+            pairs.add(t)
+        elif len(t) == 3:
+            triplets.add(t)
+        else:
+            raise Exception(f"Unexpected parts count in {t}")
+
+    biome_image, heightmap_image, biomes_colors = read_json_file(sys.argv[1], sys.argv[2], sys.argv[3])
+
     if heightmap_image.size != biome_image.size:
         raise Exception("Height map and biome map sizes do not match")
 
     print(f"Map size: {heightmap_image.size}")
-
-    # registry = dict(
-    #     cliff = dict(height=None, min_height=0.05, max_height=1.0, min_elevation=0.1, max_elevation=1.0, tiles=['cliff2']),
-    #     dirt = dict(height=None, min_height=0.01, max_height=1.0, min_elevation=0, max_elevation=0.05, tiles=['dirt2', 'dirt1']),
-    #     # dust = dict(min_height=1, max_height=65535, min_elevation=0, max_elevation=100, tiles=),
-    #     grass = dict(height=0.5, min_height=0.001, max_height=1.0, min_elevation=0, max_elevation=0.1, tiles=['grass1', 'grass2', 'grass3']),
-    #     # lava = dict(min_height=0, max_height=0, min_elevation=0, max_elevation=0, tiles=['lava1', 'lava2']),
-    #     # mud = dict(min_height=1, max_height=65535, min_elevation=0, max_elevation=10, tiles=['mud1', 'mud2', 'mud3', 'mud4']),
-    #     rock = dict(height=None, min_height=0.01, max_height=1.0, min_elevation=0, max_elevation=0.1, tiles=['rock2']),
-    #     sand = dict(height=0.1, min_height=0, max_height=0.5, min_elevation=0, max_elevation=0.1, tiles=['dirt6', 'sand4', 'sand2']),
-    #     # snow = dict(min_height=10, max_height=65535, min_elevation=0, max_elevation=65535),
-    #     soil = dict(height=None, min_height=0.01, max_height=1.0, min_elevation=0, max_elevation=0.1, tiles=['soil5']),
-    #     stone = dict(height=None, min_height=0.01, max_height=1.0, min_elevation=0, max_elevation=0.1, tiles=['stone1']),
-    #     # tile = dict(min_height=1, max_height=65535, min_elevation=0, max_elevation=10),
-    #     water = dict(height=0, min_height=0, max_height=0, min_elevation=0, max_elevation=0, tiles=['water5']),
-    # )
+    # see: https://github.com/vesellov/worlds/blob/main/catalog.json
     avarage_colors = {
         'cliff1': (124, 123, 110),
         'cliff10': (42, 57, 81),
@@ -100,288 +239,329 @@ def main():
         'water7': (56, 72, 99),
         'water8': (5, 36, 57),
     }
-    biome_tiles = {
-        'ocean': 'water5',
-        'coast': 'dirt6',
-        'beach': 'sand2',
-        'grassland': 'grass2',
-        'temperate_deciduous_forest': 'grass2',
-        'temperate_rainforest': 'grass2',
-        'tropical_seasonal_forest': 'grass2',
-        'tropical_rainforest': 'grass2',
-        'wetland': 'grass2',
-        'savanna': 'dirt2',
-        'hot_desert': 'sand4',
-        'cold_desert': 'dirt1',
-        'taiga': 'soil5',
-        'tundra': 'dirt2',
-        'glacier': 'cliff2',
+    # see: https://github.com/Azgaar/Fantasy-Map-Generator/blob/master/src/modules/biomes.ts#L12
+    biomes_types = {
+        "466eab": "Marine",
+        "fbe79f": "Hot desert",
+        "b5b887": "Cold desert",
+        "d2d082": "Savanna",
+        "c8d68f": "Grassland",
+        "b6d95d": "Tropical seasonal forest",
+        "29bc56": "Temperate deciduous forest",
+        "7dcb35": "Tropical rainforest",
+        "409c43": "Temperate rainforest",
+        "4b6b32": "Taiga",
+        "96784b": "Tundra",
+        "d5e7eb": "Glacier",
+        "0b9131": "Wetland",
     }
-    biomes = {
-        (128, 155, 198): 'ocean',
-        (182, 217, 93): 'tropical_seasonal_forest',
-        (210, 208, 130): 'savanna',
-        (41, 188, 86): 'temperate_deciduous_forest',
-        (251, 231, 159): 'hot_desert',
-        (64, 156, 67): 'temperate_rainforest',
-        (125, 203, 53): 'tropical_rainforest',
-        (200, 214, 143): 'grassland',
-        (11, 145, 49): 'wetland',
-        (181, 184, 135): 'cold_desert',
-        (75, 107, 50): 'taiga',
-        (150, 120, 75): 'tundra',
-        (213, 231, 235): 'glacier',
+    biomes_types = {tuple(int(k[i:i+2], 16) for i in (0, 2, 4)):v for k, v in biomes_types.items()}
+    biomes_mapping = {
+        'Marine': 'water5',
+        'Hot desert': 'sand2',
+        'Cold desert': 'dirt1',
+        'Savanna': 'dirt2',
+        'Grassland': 'soil3',
+        'Tropical seasonal forest': 'grass3',
+        'Temperate deciduous forest': 'grass2',
+        'Tropical rainforest': 'grass1',
+        'Temperate rainforest': 'soil4',
+        'Taiga': 'dirt4',
+        'Tundra': 'soil1',
+        'Glacier': 'snow3',
+        'Wetland': 'soil5',
     }
-    min_height = None
-    max_height = None
-    heights = set()
-    for x in range(heightmap_image.width):
-        for y in range(heightmap_image.height):
-            height_pixel = tuple(heightmap_image.getpixel((x, y)))
-            height = int(height_pixel[0])
-            if height not in heights:
-                heights.add(height)
-            if min_height is None or height < min_height:
-                min_height = height
-            if max_height is None or height > max_height:
-                max_height = height
-    print(f"Min height: {min_height}, Max height: {max_height}, Total unique heights: {len(heights)}")
+    inner_outer_transform_before_borders_list = [
+        ('soil3', 'dirt2', None),
+        ('soil5', 'grass2', None),
+        ('soil4', 'dirt2', None),
+        ('dirt1', 'dirt2', None),
+        ('dirt4', 'dirt2', None),
+        ('snow3', 'dirt2', None),
+        ('snow3', 'dirt4', None),
+        ('water5', 'sand4', None),
+        ('soil1', 'dirt2', None),
+    ]
+    biomes_map = {}
+    tiles_map = {}
+    coast_line = set()
 
-    land = {}
     for x in range(biome_image.width):
         for y in range(biome_image.height):
             biome_pixel = biome_image.getpixel((x, y))
             biome_color = (int(biome_pixel[0]), int(biome_pixel[1]), int(biome_pixel[2]))
             best_color_dist = None
             best_biome = None
-            for c in biomes.keys():
+            for c in biomes_types.keys():
                 diff_dist = color_distance(biome_color, c)
                 if best_color_dist is None or diff_dist < best_color_dist:
                     best_color_dist = diff_dist
-                    best_biome = biomes[c]
-            if x not in land:
-                land[x] = {}
-            land[x][y] = best_biome
+                    best_biome = biomes_types[c]
+            biomes_map[(x, y)] = best_biome
+            tiles_map[(x, y)] = biomes_mapping[best_biome]
 
-    # for biome in [
-    #     # 'grassland',
-    #     # 'temperate_deciduous_forest',
-    #     # 'temperate_rainforest',
-    #     # 'tropical_seasonal_forest',
-    #     # 'tropical_rainforest',
-    #     # 'wetland',
-    #     'savanna',
-    #     'hot_desert',
-    #     'cold_desert',
-    #     'taiga',
-    #     'tundra',
-    #     'glacier',
-    # ]:
-    #     biome_line = set()
-    #     for y in range(1, biome_image.height-1):
-    #         for x in range(1, biome_image.width-1):
-    #             center = land[x][y]
-    #             if center != biome:
-    #                 continue
-    #             neighbors = [
-    #                 (y-1, x-1),
-    #                 (y-1, x),
-    #                 (y-1, x+1),
-    #                 (y,   x-1),
-    #                 (y,   x+1),
-    #                 (y+1, x-1),
-    #                 (y+1, x),
-    #                 (y+1, x+1),
-    #             ]
-    #             for yn, xn in neighbors:
-    #                 neighbor = land[xn][yn]
-    #                 if neighbor != center:
-    #                     if (x, y) not in biome_line:
-    #                         biome_line.add((x, y))
-    #     for x, y in biome_line:
-    #         land[x][y] = 'glacier'
-    #     print(f"Biome {biome} borders total length: {len(biome_line)}")
-
-    coast_line = set()
-    for x in range(1, biome_image.width-1):
-        for y in range(1, biome_image.height-1):
-            center = biome_tiles[land[x][y]]
-            if center != 'water5':
-                continue
-            neighbors = [
-                biome_tiles[land[x-1][y-1]],
-                biome_tiles[land[x-1][y]],
-                biome_tiles[land[x-1][y+1]],
-                biome_tiles[land[x][y-1]],
-                biome_tiles[land[x][y+1]],
-                biome_tiles[land[x+1][y-1]],
-                biome_tiles[land[x+1][y]],
-                biome_tiles[land[x+1][y+1]],
-            ]
-            for neighbor in neighbors:
-                if neighbor != center:
-                    if (x, y) not in coast_line:
-                        coast_line.add((x, y))
-    for x, y in coast_line:
-        land[x][y] = 'coast'
-    print(f"Coast line length: {len(coast_line)}")
-
-    beach_area = set()
-    coast_max_height = 64
-    progress = 1
-    while progress:
-        progress = 0
+    for inner, outer, transform in inner_outer_transform_before_borders_list:
+        replacing_list = set()
+        transform_list = set()
         for x in range(1, biome_image.width-1):
             for y in range(1, biome_image.height-1):
-                tile = biome_tiles[land[x][y]]
-                if tile == 'water5':
-                    continue
-                height = int(tuple(heightmap_image.getpixel((x, y)))[0])
-                if height > coast_max_height:
-                    continue
-                for dx, dy in [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]:
-                    xn = x + dx
-                    yn = y + dy
-                    if (xn, yn) in coast_line or (xn, yn) in beach_area:
-                        if (x, y) not in coast_line and (x, y) not in beach_area:
-                            beach_area.add((x, y))
-                            progress += 1
-                            break
-    for x in range(1, biome_image.width-1):
-        for y in range(1, biome_image.height-1):
-            if land[x][y] != 'coast':
-                continue
-            neighbors = [
-                (x-1, y-1),
-                (x-1, y),
-                (x-1, y+1),
-                (x,   y-1),
-                (x,   y+1),
-                (x+1, y-1),
-                (x+1, y),
-                (x+1, y+1),
-            ]
-            for xn, yn in neighbors:
-                neighbor_tile = biome_tiles[land[xn][yn]]
-                if neighbor_tile == 'water5':
-                    continue
-                if (xn, yn) in beach_area:
-                    continue
-                if (xn, yn) in coast_line:
-                    continue
-                beach_area.add((xn, yn))
-    for x, y in beach_area:
-        land[x][y] = 'beach'
-    print(f"Beach area pixels total: {len(beach_area)}")
+                center = tiles_map[(x, y)]
+                if center == inner:
+                    for xn, yn in [
+                        (x-1, y-1),
+                        (x-1, y),
+                        (x-1, y+1),
+                        (x,   y-1),
+                        (x,   y+1),
+                        (x+1, y-1),
+                        (x+1, y),
+                        (x+1, y+1),
+                    ]:
+                        neighbor = tiles_map[(xn, yn)]
+                        if transform is not None:
+                            if neighbor == outer and tiles_map[(x, y)] != transform:
+                                transform_list.add((x, y))
+                                break
+                        else:
+                            if neighbor != center and tiles_map[(x, y)] != outer:
+                                replacing_list.add((x, y))
+                                break
+        if transform is not None:
+            for x, y in transform_list:
+                tiles_map[(x, y)] = transform
+            if transform_list:
+                print(f"Transformed border line conditionally between {inner} and {outer} with {transform} length: {len(transform_list)}")
+        else:
+            for x, y in replacing_list:
+                tiles_map[(x, y)] = outer
+            if replacing_list:
+                print(f"Placed border line between {inner} and {outer} with {outer} length: {len(replacing_list)}")
 
-    progress = 1
-    attempts = 0
-    while progress:
-        attempts += 1
-        if attempts > 10:
-            break
-        progress = 0
+    if False:
         for x in range(1, biome_image.width-1):
             for y in range(1, biome_image.height-1):
-                center = biome_tiles[land[x][y]]
-                neighbors_counts = {center: 1}
-                neighbors_tiles = {(0, 0): center}
-                neighbors_lands = {(0, 0): land[x][y]}
-                neighbors_lands_counts = {land[x][y]: 1}
-                for xd, yd in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]:
-                    xn = x + xd
-                    yn = y + yd
-                    neighbor = biome_tiles[land[xn][yn]]
-                    if neighbor not in neighbors_counts:
-                        neighbors_counts[neighbor] = 0
-                    neighbors_counts[neighbor] += 1
-                    neighbors_tiles[(xd, yd)] = neighbor
-                    neighbors_lands[(xd, yd)] = land[xn][yn]
-                    if land[xn][yn] not in neighbors_lands_counts:
-                        neighbors_lands_counts[land[xn][yn]] = 0
-                    neighbors_lands_counts[land[xn][yn]] += 1
-                if len(neighbors_counts) < 4:
+                center = tiles_map[(x, y)]
+                if center != 'water5':
                     continue
-                neighbors_sorted = sorted(neighbors_lands_counts.keys(), key=lambda n: neighbors_lands_counts[n], reverse=True)
-                land1 = neighbors_sorted[0]
-                if land1 != land[x][y]:
-                    land[x][y] = land1
-                    progress += 1
-        print(f"Smoothing 4-adjacent neighbors, attempt #{attempts} with {progress} changes")
+                for neighbor in [
+                    tiles_map[(x-1, y-1)],
+                    tiles_map[(x-1, y)],
+                    tiles_map[(x-1, y+1)],
+                    tiles_map[(x, y-1)],
+                    tiles_map[(x, y+1)],
+                    tiles_map[(x+1, y-1)],
+                    tiles_map[(x+1, y)],
+                    tiles_map[(x+1, y+1)],                
+                ]:
+                    if neighbor != center:
+                        if (x, y) not in coast_line:
+                            coast_line.add((x, y))
+        for x, y in coast_line:
+            tiles_map[(x, y)] = 'sand4'
+        print(f"Coast line length: {len(coast_line)}")
 
-    coast_line = set()
-    for x in range(1, biome_image.width-1):
-        for y in range(1, biome_image.height-1):
-            center = biome_tiles[land[x][y]]
-            if center != 'water5':
-                continue
-            neighbors = [
-                biome_tiles[land[x-1][y-1]],
-                biome_tiles[land[x-1][y]],
-                biome_tiles[land[x-1][y+1]],
-                biome_tiles[land[x][y-1]],
-                biome_tiles[land[x][y+1]],
-                biome_tiles[land[x+1][y-1]],
-                biome_tiles[land[x+1][y]],
-                biome_tiles[land[x+1][y+1]],
-            ]
-            for neighbor in neighbors:
-                if neighbor != center:
-                    if (x, y) not in coast_line:
-                        coast_line.add((x, y))
-    for x, y in coast_line:
-        land[x][y] = 'coast'
-    print(f"Coast line length: {len(coast_line)}")
+    if False:
+        # diff = float(max_elevation - INPUT_WATER_LEVEL)
+        coast_max_height = BEACH_COAST_LINE_HEIGHT_MAX
+        print(f"Coast line max height: {coast_max_height} (for coast line input height {coast_max_height})")
+        beach_area = set()
+        cycles = 3
+        progress = 1
+        while progress and cycles:
+            cycles -= 1
+            progress = 0
+            for x in range(1, biome_image.width-1):
+                for y in range(1, biome_image.height-1):
+                    tile = tiles_map[(x, y)]
+                    if tile == 'water5':
+                        continue
+                    height = int(tuple(heightmap_image.getpixel((x, y)))[0])
+                    if height > coast_max_height:
+                        continue
+                    for dx, dy in [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]:
+                        xn = x + dx
+                        yn = y + dy
+                        if (xn, yn) in coast_line or (xn, yn) in beach_area:
+                            if (x, y) not in coast_line and (x, y) not in beach_area:
+                                beach_area.add((x, y))
+                                progress += 1
+                                break
+            print(f"Detecting beach area, progress: {progress} pixels added")
+    
+        for x in range(1, biome_image.width-1):
+            for y in range(1, biome_image.height-1):
+                if (x, y) not in coast_line:
+                    continue
+                for xn, yn in [
+                    (x-1, y-1),
+                    (x-1, y),
+                    (x-1, y+1),
+                    (x,   y-1),
+                    (x,   y+1),
+                    (x+1, y-1),
+                    (x+1, y),
+                    (x+1, y+1),
+                ]:
+                    neighbor_tile = tiles_map[(xn, yn)]
+                    if neighbor_tile == 'water5':
+                        continue
+                    if (xn, yn) in beach_area:
+                        continue
+                    if (xn, yn) in coast_line:
+                        continue
+                    beach_area.add((xn, yn))
+        for x, y in beach_area:
+            tiles_map[(x, y)] = 'sand4'
+        print(f"Beach area pixels total: {len(beach_area)}")
 
+    if False:
+        progress = 1
+        attempts = 0
+        while progress:
+            attempts += 1
+            if attempts > 10:
+                break
+            progress = 0
+            for x in range(1, biome_image.width-1):
+                for y in range(1, biome_image.height-1):
+                    center = tiles_map[(x, y)]
+                    neighbors_counts = {center: 1}
+                    neighbors_tiles = {(0, 0): center}
+                    for xd, yd in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]:
+                        xn = x + xd
+                        yn = y + yd
+                        neighbor = tiles_map[(xn, yn)]
+                        if neighbor not in neighbors_counts:
+                            neighbors_counts[neighbor] = 0
+                        neighbors_counts[neighbor] += 1
+                        neighbors_tiles[(xd, yd)] = neighbor
+                    if len(neighbors_counts) < 4:
+                        continue
+                    neighbors_sorted = sorted(neighbors_counts.keys(), key=lambda n: neighbors_counts[n], reverse=True)
+                    tile1 = neighbors_sorted[0]
+                    if tile1 != center:
+                        tiles_map[(x, y)] = tile1
+                        progress += 1
+            print(f"Smoothing 4-adjacent neighbors, attempt #{attempts} with {progress} changes")
+
+    if False:
+        coast_line.clear()
+        for x in range(1, biome_image.width-1):
+            for y in range(1, biome_image.height-1):
+                center = tiles_map[(x, y)]
+                if center != 'water5':
+                    continue
+                for neighbor in [
+                    tiles_map[(x-1, y-1)],
+                    tiles_map[(x-1, y)],
+                    tiles_map[(x-1, y+1)],
+                    tiles_map[(x, y-1)],
+                    tiles_map[(x, y+1)],
+                    tiles_map[(x+1, y-1)],
+                    tiles_map[(x+1, y)],
+                    tiles_map[(x+1, y+1)],                
+                ]:
+                    if neighbor != center:
+                        if (x, y) not in coast_line:
+                            coast_line.add((x, y))
+        for x, y in coast_line:
+            tiles_map[(x, y)] = 'sand4'
+        print(f"Coast line length in second round: {len(coast_line)}")
+
+    cycles = 3
     progress = 1
     attempts = 0
-    while progress:
+    while progress and cycles:
         attempts += 1
-        if attempts > 10:
-            break
+        cycles -= 1
         progress = 0
+
+        changes = 0
         for x in range(0, biome_image.width-1):
             for y in range(0, biome_image.height-1):
                 neighbors_counts = {}
                 neighbors_tiles = {}
-                neighbors_lands = {}
-                neighbors_lands_counts = {}
                 for xd, yd in [(0, 0), (0, 1), (1, 0), (1, 1)]:
                     xn = x + xd
                     yn = y + yd
-                    neighbor = biome_tiles[land[xn][yn]]
+                    neighbor = tiles_map[(xn, yn)]
                     if neighbor not in neighbors_counts:
                         neighbors_counts[neighbor] = 0
                     neighbors_counts[neighbor] += 1
                     neighbors_tiles[(xd, yd)] = neighbor
-                    neighbors_lands[(xd, yd)] = land[xn][yn]
-                    if land[xn][yn] not in neighbors_lands_counts:
-                        neighbors_lands_counts[land[xn][yn]] = 0
-                    neighbors_lands_counts[land[xn][yn]] += 1
                 if len(neighbors_counts) != 2:
                     continue
                 diag1 = set([neighbors_tiles[(0, 0)], neighbors_tiles[(1, 1)]])
                 diag2 = set([neighbors_tiles[(1, 0)], neighbors_tiles[(0, 1)]])
                 if len(diag1) == 1 and len(diag2) == 1:
-                    land[x+1][y+1] = land[x+1][y]
+                    t00 = tiles_map[(x, y)]
+                    t10 = tiles_map[(x+1, y)]
+                    change = None
+                    for c1, c2 in [
+                        ('snow3', 'dirt4'),
+                        ('dirt4', 'dirt2'),
+                    ]:
+                        if c1 == t00 and c2 == t10:
+                            change = 1
+                        elif c2 == t00 and c1 == t10:
+                            change = 2
+                    if change is not None:
+                        if change == 1:
+                            tiles_map[(x, y)] = tiles_map[(x+1, y)]
+                        else:
+                            tiles_map[(x+1, y)] = tiles_map[(x, y)]
+                    else:
+                        if tiles_map[(x, y)] in ['sand4', 'dirt2', 'grass2']:
+                            tiles_map[(x+1, y)] = tiles_map[(x, y)]
+                        else:
+                            tiles_map[(x, y)] = tiles_map[(x+1, y)]
+                    changes += 1 
                     progress += 1
-        print(f"Smoothing 2-adjacent diagonal neighbors, attempt #{attempts} with {progress} changes")
+        print(f"Smoothing 2-adjacent diagonal neighbors with {changes} changes")
+
+        for inner, outer, transform in [
+            ('soil4', 'grass2', 'dirt2'),
+            ('dirt4', 'grass2', 'dirt2'),
+            ('snow3', 'dirt2', 'dirt4'),
+        ]:
+            transform_list = set()
+            for x in range(1, biome_image.width-1):
+                for y in range(1, biome_image.height-1):
+                    center = tiles_map[(x, y)]
+                    if center == inner:
+                        for xn, yn in [
+                            (x-1, y-1),
+                            (x-1, y),
+                            (x-1, y+1),
+                            (x,   y-1),
+                            (x,   y+1),
+                            (x+1, y-1),
+                            (x+1, y),
+                            (x+1, y+1),
+                        ]:
+                            neighbor = tiles_map[(xn, yn)]
+                            if neighbor == outer and center != transform:
+                                transform_list.add((x, y))
+                                break
+            for x, y in transform_list:
+                tiles_map[(x, y)] = transform
+                progress += 1
+            print(f"Transform border line conditionally between {inner} and {outer} with {transform} length: {len(transform_list)}")
 
     stats = {}
     tiles_image = Image.new("RGB", biome_image.size, "black")
     for x in range(biome_image.width):
         for y in range(biome_image.height):
-            tile = biome_tiles[land[x][y]]
+            tile = tiles_map[(x, y)]
             tiles_image.putpixel((x, y), avarage_colors[tile])
             stats[tile] = stats.get(tile, 0) + 1
-    tiles_image.save(sys.argv[3])
+    tiles_image.save(sys.argv[4])
 
-    missing_links = set()
+    missing_links = {}
     for x in range(1, biome_image.width-1):
         for y in range(1, biome_image.height-1):
-            center_biome = land[x][y]
-            center = biome_tiles[center_biome]
-            neighbors = [
+            center = tiles_map[(x, y)]
+            for xn, yn in [
                 (x-1, y-1),
                 (x-1, y),
                 (x-1, y+1),
@@ -390,17 +570,18 @@ def main():
                 (x+1, y-1),
                 (x+1, y),
                 (x+1, y+1),
-            ]
-            for xn, yn in neighbors:
-                neighbor = biome_tiles[land[xn][yn]]
+            ]:
+                neighbor = tiles_map[(xn, yn)]
                 if neighbor != center:
                     pair = tuple(sorted([center, neighbor]))
                     k = f"{pair[0]}_{pair[1]}"
                     if k not in catalog:
-                        missing_links.add(pair)
+                        if pair not in missing_links:
+                            missing_links[pair] = (x, y)
+
     if missing_links:
         print(f"Missing links between tiles:")
-        print('  ' + ('\n  '.join([f'{a} - {b}' for a, b in missing_links])))
+        print('  ' + ('\n  '.join([f'{pair[0]} - {pair[1]} at {coord[0]}:{coord[1]}' for pair, coord in missing_links.items()])))
         raise Exception("Missing links detected")
 
     for x in range(0, biome_image.width-1):
@@ -410,7 +591,7 @@ def main():
             for xd, yd in [(0, 0), (1, 0), (1, 1), (0, 1)]:
                 xn = x + xd
                 yn = y + yd
-                neighbor = biome_tiles[land[xn][yn]]
+                neighbor = tiles_map[(xn, yn)]
                 if neighbor not in neighbors_counts:
                     neighbors_counts[neighbor] = 0
                 neighbors_counts[neighbor] += 1
@@ -421,7 +602,7 @@ def main():
                 diag1 = set([neighbors_tiles[(0, 0)], neighbors_tiles[(1, 1)]])
                 diag2 = set([neighbors_tiles[(1, 0)], neighbors_tiles[(0, 1)]])
                 if len(diag1) == 1 and len(diag2) == 1:
-                    raise Exception(f"Found neighboring tiles with 2 different types in diagonal at ({x}, {y})")
+                    raise Exception(f"Found neighboring tiles with 2 different types in diagonal at ({x}, {y}): {list(neighbors_counts.keys())}")
 
     fragment_x = 595
     fragment_y = 672
@@ -435,7 +616,7 @@ def main():
             for xi, yi in [(0, 0), (1, 0), (1, 1), (0, 1)]:
                 xn = xb + xi
                 yn = yb + yi
-                square[(xi, yi)] = biome_tiles[land[xn][yn]]
+                square[(xi, yi)] = tiles_map[(xn, yn)]
             samples_all = list(set(square.values()))
             samples_sorted = list(sorted(list(set(square.values())), reverse=True))
             counts = {}
@@ -667,7 +848,7 @@ def main():
             catalog_id, rotate = tiles[(x, y)] if (x, y) in tiles else (None, None)
             if catalog_id is not None:
                 encoded_image.putpixel((x, y), (catalog_id % 256, catalog_id // 256, rotate // 90))
-    encoded_image.save(sys.argv[4])
+    encoded_image.save(sys.argv[5])
 
     fragment_image = Image.new("RGB", (fragment_width * 64, fragment_height * 64), "black")
     for x in range(fragment_x, fragment_x + fragment_width):
@@ -676,7 +857,7 @@ def main():
             if catalog_id is not None:
                 catalog_image = Image.open(os.path.join('textures', 'land', f'{catalog_id:05d}.png'))
                 fragment_image.paste(catalog_image.rotate(rotate), ((x - fragment_x) * 64, (y - fragment_y) * 64))
-    fragment_image.save(sys.argv[5])
+    fragment_image.save(sys.argv[6])
 
     different_biomes = list(stats.keys())
     different_biomes.sort(key=lambda i: stats[i], reverse=True)

@@ -1,301 +1,265 @@
 {
-  "cliff3": [
+  "grass1": [
     1,
     2
   ],
-  "dust1": [
+  "cliff3": [
     3,
     4
   ],
-  "dirt5": [
-    5
-  ],
-  "tile2": [
+  "dust1": [
+    5,
     6
   ],
-  "grass1": [
+  "dirt5": [
     7
   ],
-  "water3": [
+  "tile2": [
     8
   ],
-  "stone2": [
+  "water3": [
     9
   ],
   "snow1": [
-    10
+    10,
+    11,
+    12,
+    13
   ],
-  "soil6": [
-    11
-  ],
-  "stone3": [
-    12
-  ],
-  "cliff2": [
-    13,
+  "stone2": [
     14
   ],
-  "water2": [
-    15
-  ],
   "dirt4": [
+    15,
     16
   ],
-  "sand2": [
-    17
-  ],
-  "water5": [
+  "soil6": [
+    17,
     18
   ],
-  "cliff5": [
-    19,
-    20
+  "stone3": [
+    19
   ],
-  "stone4": [
+  "cliff2": [
+    20,
     21
   ],
-  "soil1": [
+  "water2": [
     22
   ],
-  "mud1": [
+  "sand2": [
     23
   ],
-  "cliff9": [
+  "water5": [
     24
   ],
-  "stone8": [
-    25
-  ],
-  "sand5": [
-    26
-  ],
-  "dirt3": [
+  "0017": [
+    25,
+    26,
     27
   ],
-  "dirt2": [
+  "cliff5": [
     28,
     29
   ],
-  "rock1": [
+  "stone4": [
     30
   ],
-  "sand4": [
-    31
-  ],
-  "water8": [
+  "sand5": [
+    31,
     32
   ],
-  "cliff8": [
+  "soil1": [
     33
   ],
-  "lava2": [
+  "mud1": [
     34
   ],
-  "stone5": [
+  "cliff9": [
     35
   ],
-  "cliff4": [
+  "stone8": [
     36
   ],
-  "water4": [
+  "dirt3": [
     37
   ],
-  "snow4": [
-    38
-  ],
-  "mud3": [
+  "dirt2": [
+    38,
     39
   ],
-  "rock2": [
+  "0018": [
     40,
-    41
-  ],
-  "soil3": [
-    42
-  ],
-  "stone6": [
+    41,
+    42,
     43
   ],
-  "cliff7": [
-    44,
-    45,
+  "rock1": [
+    44
+  ],
+  "sand4": [
+    45
+  ],
+  "water8": [
     46
   ],
-  "grass5": [
-    47
-  ],
-  "water7": [
+  "grass6": [
+    47,
     48
   ],
-  "dirt1": [
+  "cliff8": [
     49
   ],
-  "lava1": [
+  "lava2": [
     50
   ],
-  "sand6": [
-    51,
+  "stone5": [
+    51
+  ],
+  "cliff4": [
     52
   ],
-  "grass4": [
+  "water4": [
     53
   ],
-  "water6": [
+  "snow4": [
     54
   ],
-  "cliff6": [
+  "mud3": [
     55
   ],
-  "stone7": [
-    56
-  ],
-  "soil2": [
+  "rock2": [
+    56,
     57
   ],
-  "mud2": [
+  "soil3": [
     58
   ],
-  "dirt7": [
+  "stone6": [
     59
   ],
-  "soil5": [
+  "cliff7": [
     60,
     61,
-    62,
+    62
+  ],
+  "grass5": [
     63,
-    64,
-    65,
+    64
+  ],
+  "water7": [
+    65
+  ],
+  "dirt1": [
     66
   ],
-  "sand1": [
+  "lava1": [
     67
   ],
-  "cliff11": [
+  "sand6": [
     68,
     69
   ],
-  "grass2": [
-    70,
-    71,
-    72,
-    73,
+  "grass4": [
+    70
+  ],
+  "water6": [
+    71
+  ],
+  "cliff6": [
+    72
+  ],
+  "stone7": [
+    73
+  ],
+  "soil2": [
     74
   ],
-  "snow2": [
+  "mud2": [
     75
   ],
-  "dust3": [
+  "dirt7": [
     76
   ],
-  "cliff1": [
-    77
-  ],
-  "grass3": [
+  "snow2": [
+    77,
     78
   ],
-  "water1": [
-    79
-  ],
-  "tile1": [
+  "soil5": [
+    79,
     80,
     81,
-    82
+    82,
+    83,
+    84,
+    85
   ],
-  "stone1": [
-    83
-  ],
-  "soil4": [
-    84
-  ],
-  "dust2": [
-    85,
+  "sand1": [
     86
   ],
-  "mud4": [
-    87
-  ],
-  "snow3": [
+  "cliff11": [
+    87,
     88
   ],
+  "grass2": [
+    89,
+    90,
+    91,
+    92,
+    93
+  ],
+  "snow3": [
+    94,
+    95,
+    96,
+    97,
+    98
+  ],
+  "dust3": [
+    99
+  ],
+  "cliff1": [
+    100
+  ],
+  "grass3": [
+    101
+  ],
+  "water1": [
+    102
+  ],
+  "tile1": [
+    103,
+    104,
+    105
+  ],
+  "stone1": [
+    106
+  ],
+  "soil4": [
+    107
+  ],
+  "dust2": [
+    108,
+    109
+  ],
+  "mud4": [
+    110
+  ],
   "cliff10": [
-    89
+    111
   ],
   "dirt6": [
-    90
+    112
   ],
   "dirt1_cliff2": {
     "s": [
-      91
-    ],
-    "c": [
-      92
-    ]
-  },
-  "dirt1_dirt2": {
-    "s": [
-      93
-    ],
-    "c": [
-      94
-    ]
-  },
-  "dirt1_grass2": {
-    "s": [
-      95,
-      97
-    ],
-    "c": [
-      96,
-      98
-    ]
-  },
-  "dirt1_sand2": {
-    "s": [
-      99,
-      101
-    ],
-    "c": [
-      100,
-      102
-    ]
-  },
-  "dirt1_sand4": {
-    "s": [
-      103
-    ],
-    "c": [
-      104
-    ]
-  },
-  "dirt1_soil5": {
-    "s": [
-      105
-    ],
-    "c": [
-      106
-    ]
-  },
-  "cliff2_dirt1": {
-    "s": [
-      107
-    ],
-    "c": [
-      108
-    ]
-  },
-  "cliff2_dirt2": {
-    "s": [
-      109,
-      111,
       113
     ],
     "c": [
-      110,
-      112,
       114
     ]
   },
-  "cliff2_grass1": {
+  "dirt1_dirt2": {
     "s": [
       115
     ],
@@ -303,25 +267,19 @@
       116
     ]
   },
-  "cliff2_grass2": {
+  "dirt1_dirt4": {
     "s": [
       117,
-      119
-    ],
-    "c": [
-      118,
-      120
-    ]
-  },
-  "cliff2_grass3": {
-    "s": [
+      119,
       121
     ],
     "c": [
+      118,
+      120,
       122
     ]
   },
-  "cliff2_rock2": {
+  "dirt1_grass2": {
     "s": [
       123,
       125
@@ -331,51 +289,69 @@
       126
     ]
   },
-  "cliff2_sand2": {
+  "dirt1_sand2": {
     "s": [
-      127
+      127,
+      129
     ],
     "c": [
-      128
+      128,
+      130
     ]
   },
-  "cliff2_sand4": {
+  "dirt1_sand4": {
     "s": [
-      129,
-      131,
-      133,
+      131
+    ],
+    "c": [
+      132
+    ]
+  },
+  "dirt1_soil1": {
+    "s": [
+      133
+    ],
+    "c": [
+      134
+    ]
+  },
+  "dirt1_soil5": {
+    "s": [
       135
     ],
     "c": [
-      130,
-      132,
-      134,
       136
     ]
   },
-  "cliff2_soil5": {
+  "cliff2_dirt1": {
     "s": [
-      137,
-      139,
-      141
+      137
     ],
     "c": [
-      138,
-      140,
-      142
+      138
     ]
   },
-  "cliff2_water5": {
+  "cliff2_dirt2": {
     "s": [
-      143,
+      139,
+      141,
+      143
+    ],
+    "c": [
+      140,
+      142,
+      144
+    ]
+  },
+  "cliff2_grass1": {
+    "s": [
       145
     ],
     "c": [
-      144,
       146
     ]
   },
-  "dirt2_cliff2": {
+  "cliff2_grass2": {
     "s": [
       147,
       149
@@ -385,7 +361,7 @@
       150
     ]
   },
-  "dirt2_dirt1": {
+  "cliff2_grass3": {
     "s": [
       151
     ],
@@ -393,79 +369,61 @@
       152
     ]
   },
-  "dirt2_dust1": {
+  "cliff2_rock2": {
     "s": [
       153,
-      155,
-      157
+      155
     ],
     "c": [
       154,
-      156,
+      156
+    ]
+  },
+  "cliff2_sand2": {
+    "s": [
+      157
+    ],
+    "c": [
       158
     ]
   },
-  "dirt2_grass1": {
+  "cliff2_sand4": {
     "s": [
-      159
-    ],
-    "c": [
-      160
-    ]
-  },
-  "dirt2_grass2": {
-    "s": [
+      159,
       161,
-      163
-    ],
-    "c": [
-      162,
-      164
-    ]
-  },
-  "dirt2_grass3": {
-    "s": [
+      163,
       165
     ],
     "c": [
+      160,
+      162,
+      164,
       166
     ]
   },
-  "dirt2_rock2": {
+  "cliff2_soil5": {
     "s": [
-      167
+      167,
+      169,
+      171
     ],
     "c": [
-      168
+      168,
+      170,
+      172
     ]
   },
-  "dirt2_sand1": {
+  "cliff2_water5": {
     "s": [
-      169
-    ],
-    "c": [
-      170
-    ]
-  },
-  "dirt2_sand2": {
-    "s": [
-      171,
-      173
-    ],
-    "c": [
-      172,
-      174
-    ]
-  },
-  "dirt2_sand4": {
-    "s": [
+      173,
       175
     ],
     "c": [
+      174,
       176
     ]
   },
-  "dirt2_soil3": {
+  "dirt2_cliff2": {
     "s": [
       177,
       179
@@ -475,53 +433,47 @@
       180
     ]
   },
-  "dirt2_soil5": {
+  "dirt2_dirt1": {
     "s": [
-      181,
+      181
+    ],
+    "c": [
+      182
+    ]
+  },
+  "dirt2_dirt4": {
+    "s": [
       183
     ],
     "c": [
-      182,
       184
     ]
   },
-  "dirt2_stone1": {
+  "dirt2_dirt5": {
     "s": [
-      185
-    ],
-    "c": [
-      186
-    ]
-  },
-  "dirt2_water5": {
-    "s": [
+      185,
       187,
-      189,
-      191
+      189
     ],
     "c": [
+      186,
       188,
-      190,
-      192
+      190
     ]
   },
-  "grass1_cliff2": {
+  "dirt2_dust1": {
     "s": [
-      193
-    ],
-    "c": [
-      194
-    ]
-  },
-  "grass1_dirt2": {
-    "s": [
+      191,
+      193,
       195
     ],
     "c": [
+      192,
+      194,
       196
     ]
   },
-  "grass1_dirt6": {
+  "dirt2_grass1": {
     "s": [
       197
     ],
@@ -529,25 +481,25 @@
       198
     ]
   },
-  "grass1_grass2": {
+  "dirt2_grass2": {
     "s": [
-      199
+      199,
+      201
     ],
     "c": [
-      200
+      200,
+      202
     ]
   },
-  "grass1_grass3": {
+  "dirt2_grass3": {
     "s": [
-      201,
       203
     ],
     "c": [
-      202,
       204
     ]
   },
-  "grass1_sand2": {
+  "dirt2_rock2": {
     "s": [
       205
     ],
@@ -555,19 +507,25 @@
       206
     ]
   },
-  "grass2_cliff2": {
+  "dirt2_sand1": {
     "s": [
-      207,
+      207
+    ],
+    "c": [
+      208
+    ]
+  },
+  "dirt2_sand2": {
+    "s": [
       209,
       211
     ],
     "c": [
-      208,
       210,
       212
     ]
   },
-  "grass2_dirt1": {
+  "dirt2_sand4": {
     "s": [
       213
     ],
@@ -575,107 +533,77 @@
       214
     ]
   },
-  "grass2_dirt2": {
+  "dirt2_soil1": {
     "s": [
-      215,
-      217
+      215
     ],
     "c": [
-      216,
-      218
+      216
     ]
   },
-  "grass2_dirt6": {
+  "dirt2_soil3": {
     "s": [
-      219
-    ],
-    "c": [
-      220
-    ]
-  },
-  "grass2_grass1": {
-    "s": [
-      221
-    ],
-    "c": [
-      222
-    ]
-  },
-  "grass2_grass3": {
-    "s": [
-      223
-    ],
-    "c": [
-      224
-    ]
-  },
-  "grass2_sand2": {
-    "s": [
+      217,
+      219,
+      221,
+      223,
       225
     ],
     "c": [
+      218,
+      220,
+      222,
+      224,
       226
     ]
   },
-  "grass2_sand4": {
+  "dirt2_soil4": {
     "s": [
-      227
+      227,
+      229
     ],
     "c": [
-      228
+      228,
+      230
     ]
   },
-  "grass2_soil3": {
+  "dirt2_soil5": {
     "s": [
-      229,
-      231
+      231,
+      233
     ],
     "c": [
-      230,
-      232
+      232,
+      234
     ]
   },
-  "grass2_soil5": {
+  "dirt2_stone1": {
     "s": [
-      233,
-      235,
+      235
+    ],
+    "c": [
+      236
+    ]
+  },
+  "dirt2_water5": {
+    "s": [
       237,
       239,
-      241
-    ],
-    "c": [
-      234,
-      236,
-      238,
-      240,
-      242
-    ]
-  },
-  "grass2_stone1": {
-    "s": [
-      243
-    ],
-    "c": [
-      244
-    ]
-  },
-  "grass3_cliff2": {
-    "s": [
-      245
-    ],
-    "c": [
-      246
-    ]
-  },
-  "grass3_dirt2": {
-    "s": [
+      241,
+      243,
+      245,
       247
     ],
     "c": [
+      238,
+      240,
+      242,
+      244,
+      246,
       248
     ]
   },
-  "grass3_grass1": {
+  "grass1_cliff2": {
     "s": [
       249
     ],
@@ -683,7 +611,7 @@
       250
     ]
   },
-  "grass3_grass2": {
+  "grass1_dirt2": {
     "s": [
       251
     ],
@@ -691,7 +619,7 @@
       252
     ]
   },
-  "grass3_soil5": {
+  "grass1_dirt5": {
     "s": [
       253
     ],
@@ -699,7 +627,7 @@
       254
     ]
   },
-  "rock2_cliff2": {
+  "grass1_dirt6": {
     "s": [
       255
     ],
@@ -707,35 +635,35 @@
       256
     ]
   },
-  "rock2_dirt2": {
+  "grass1_dust2": {
     "s": [
-      257
-    ],
-    "c": [
-      258
-    ]
-  },
-  "sand2_cliff2": {
-    "s": [
+      257,
       259
     ],
     "c": [
+      258,
       260
     ]
   },
-  "sand2_dirt1": {
+  "grass1_grass2": {
     "s": [
-      261,
+      261
+    ],
+    "c": [
+      262
+    ]
+  },
+  "grass1_grass3": {
+    "s": [
       263,
       265
     ],
     "c": [
-      262,
       264,
       266
     ]
   },
-  "sand2_dirt2": {
+  "grass1_sand2": {
     "s": [
       267
     ],
@@ -743,31 +671,19 @@
       268
     ]
   },
-  "sand2_dirt6": {
+  "grass1_soil4": {
     "s": [
-      269
-    ],
-    "c": [
-      270
-    ]
-  },
-  "sand2_grass1": {
-    "s": [
-      271
-    ],
-    "c": [
-      272
-    ]
-  },
-  "sand2_grass2": {
-    "s": [
+      269,
+      271,
       273
     ],
     "c": [
+      270,
+      272,
       274
     ]
   },
-  "sand2_sand1": {
+  "grass2_cliff2": {
     "s": [
       275,
       277,
@@ -779,19 +695,25 @@
       280
     ]
   },
-  "sand2_sand4": {
+  "grass2_dirt1": {
     "s": [
-      281,
+      281
+    ],
+    "c": [
+      282
+    ]
+  },
+  "grass2_dirt2": {
+    "s": [
       283,
       285
     ],
     "c": [
-      282,
       284,
       286
     ]
   },
-  "sand2_soil5": {
+  "grass2_dirt6": {
     "s": [
       287
     ],
@@ -799,7 +721,7 @@
       288
     ]
   },
-  "sand2_stone1": {
+  "grass2_grass1": {
     "s": [
       289
     ],
@@ -807,7 +729,7 @@
       290
     ]
   },
-  "sand4_cliff2": {
+  "grass2_grass3": {
     "s": [
       291
     ],
@@ -815,7 +737,7 @@
       292
     ]
   },
-  "sand4_dirt1": {
+  "grass2_sand2": {
     "s": [
       293
     ],
@@ -823,7 +745,7 @@
       294
     ]
   },
-  "sand4_dirt2": {
+  "grass2_sand4": {
     "s": [
       295
     ],
@@ -831,7 +753,7 @@
       296
     ]
   },
-  "sand4_dirt6": {
+  "grass2_soil3": {
     "s": [
       297,
       299
@@ -841,57 +763,39 @@
       300
     ]
   },
-  "sand4_grass2": {
+  "grass2_soil5": {
     "s": [
-      301
-    ],
-    "c": [
-      302
-    ]
-  },
-  "sand4_sand1": {
-    "s": [
-      303
-    ],
-    "c": [
-      304
-    ]
-  },
-  "sand4_sand2": {
-    "s": [
-      305
-    ],
-    "c": [
-      306
-    ]
-  },
-  "sand4_stone1": {
-    "s": [
-      307
-    ],
-    "c": [
-      308
-    ]
-  },
-  "sand4_water5": {
-    "s": [
+      301,
+      303,
+      305,
+      307,
       309
     ],
     "c": [
+      302,
+      304,
+      306,
+      308,
       310
     ]
   },
-  "soil5_cliff2": {
+  "grass2_stone1": {
     "s": [
-      311,
+      311
+    ],
+    "c": [
+      312
+    ]
+  },
+  "grass3_cliff2": {
+    "s": [
       313
     ],
     "c": [
-      312,
       314
     ]
   },
-  "soil5_dirt1": {
+  "grass3_dirt2": {
     "s": [
       315
     ],
@@ -899,29 +803,47 @@
       316
     ]
   },
-  "soil5_dirt2": {
+  "grass3_grass1": {
     "s": [
-      317,
-      319,
+      317
+    ],
+    "c": [
+      318
+    ]
+  },
+  "grass3_grass2": {
+    "s": [
+      319
+    ],
+    "c": [
+      320
+    ]
+  },
+  "grass3_soil5": {
+    "s": [
       321
     ],
     "c": [
-      318,
-      320,
       322
     ]
   },
-  "soil5_grass2": {
+  "rock2_cliff2": {
     "s": [
-      323,
+      323
+    ],
+    "c": [
+      324
+    ]
+  },
+  "rock2_dirt2": {
+    "s": [
       325
     ],
     "c": [
-      324,
       326
     ]
   },
-  "soil5_grass3": {
+  "sand2_cliff2": {
     "s": [
       327
     ],
@@ -929,45 +851,39 @@
       328
     ]
   },
-  "soil5_sand2": {
+  "sand2_dirt1": {
     "s": [
-      329
-    ],
-    "c": [
-      330
-    ]
-  },
-  "water5_cliff2": {
-    "s": [
+      329,
       331,
       333
     ],
     "c": [
+      330,
       332,
       334
     ]
   },
-  "water5_dirt2": {
+  "sand2_dirt2": {
     "s": [
-      335,
-      337
+      335
     ],
     "c": [
-      336,
-      338
+      336
     ]
   },
-  "water5_dirt6": {
+  "sand2_dirt4": {
     "s": [
+      337,
       339,
       341
     ],
     "c": [
+      338,
       340,
       342
     ]
   },
-  "water5_sand4": {
+  "sand2_dirt6": {
     "s": [
       343
     ],
@@ -975,7 +891,7 @@
       344
     ]
   },
-  "water5_stone1": {
+  "sand2_grass1": {
     "s": [
       345
     ],
@@ -983,69 +899,75 @@
       346
     ]
   },
-  "dust1_dirt2": {
+  "sand2_grass2": {
     "s": [
-      347,
-      349
+      347
     ],
     "c": [
-      348,
-      350
+      348
     ]
   },
-  "sand1_dirt2": {
+  "sand2_sand1": {
     "s": [
-      351
+      349,
+      351,
+      353
     ],
     "c": [
-      352
+      350,
+      352,
+      354
     ]
   },
-  "sand1_sand2": {
+  "sand2_sand4": {
     "s": [
-      353,
       355,
-      357
-    ],
-    "c": [
-      354,
-      356,
-      358
-    ]
-  },
-  "sand1_sand4": {
-    "s": [
+      357,
       359
     ],
     "c": [
+      356,
+      358,
       360
     ]
   },
-  "soil3_dirt2": {
+  "sand2_snow3": {
     "s": [
       361,
-      363,
-      365,
-      367
+      363
     ],
     "c": [
       362,
-      364,
-      366,
-      368
+      364
     ]
   },
-  "soil3_grass2": {
+  "sand2_soil5": {
     "s": [
-      369,
+      365
+    ],
+    "c": [
+      366
+    ]
+  },
+  "sand2_soil6": {
+    "s": [
+      367,
+      369
+    ],
+    "c": [
+      368,
+      370
+    ]
+  },
+  "sand2_stone1": {
+    "s": [
       371
     ],
     "c": [
-      370,
       372
     ]
   },
-  "stone1_dirt2": {
+  "sand4_cliff2": {
     "s": [
       373
     ],
@@ -1053,7 +975,7 @@
       374
     ]
   },
-  "stone1_grass2": {
+  "sand4_dirt1": {
     "s": [
       375
     ],
@@ -1061,7 +983,7 @@
       376
     ]
   },
-  "stone1_sand2": {
+  "sand4_dirt2": {
     "s": [
       377
     ],
@@ -1069,23 +991,17 @@
       378
     ]
   },
-  "stone1_sand4": {
+  "sand4_dirt6": {
     "s": [
-      379
-    ],
-    "c": [
-      380
-    ]
-  },
-  "stone1_water5": {
-    "s": [
+      379,
       381
     ],
     "c": [
+      380,
       382
     ]
   },
-  "dirt6_grass1": {
+  "sand4_grass2": {
     "s": [
       383
     ],
@@ -1093,7 +1009,7 @@
       384
     ]
   },
-  "dirt6_grass2": {
+  "sand4_sand1": {
     "s": [
       385
     ],
@@ -1101,7 +1017,7 @@
       386
     ]
   },
-  "dirt6_sand2": {
+  "sand4_sand2": {
     "s": [
       387
     ],
@@ -1109,7 +1025,7 @@
       388
     ]
   },
-  "dirt6_sand4": {
+  "sand4_stone1": {
     "s": [
       389
     ],
@@ -1117,824 +1033,1498 @@
       390
     ]
   },
-  "dirt6_water5": {
+  "sand4_water5": {
     "s": [
-      391,
-      393
+      391
     ],
     "c": [
-      392,
-      394
+      392
+    ]
+  },
+  "soil5_cliff2": {
+    "s": [
+      393,
+      395
+    ],
+    "c": [
+      394,
+      396
+    ]
+  },
+  "soil5_dirt1": {
+    "s": [
+      397
+    ],
+    "c": [
+      398
+    ]
+  },
+  "soil5_dirt2": {
+    "s": [
+      399,
+      401,
+      403
+    ],
+    "c": [
+      400,
+      402,
+      404
+    ]
+  },
+  "soil5_grass2": {
+    "s": [
+      405,
+      407
+    ],
+    "c": [
+      406,
+      408
+    ]
+  },
+  "soil5_grass3": {
+    "s": [
+      409
+    ],
+    "c": [
+      410
+    ]
+  },
+  "soil5_sand2": {
+    "s": [
+      411
+    ],
+    "c": [
+      412
+    ]
+  },
+  "water5_cliff2": {
+    "s": [
+      413,
+      415
+    ],
+    "c": [
+      414,
+      416
+    ]
+  },
+  "water5_dirt2": {
+    "s": [
+      417,
+      419,
+      421,
+      423
+    ],
+    "c": [
+      418,
+      420,
+      422,
+      424
+    ]
+  },
+  "water5_dirt6": {
+    "s": [
+      425,
+      427
+    ],
+    "c": [
+      426,
+      428
+    ]
+  },
+  "water5_sand4": {
+    "s": [
+      429
+    ],
+    "c": [
+      430
+    ]
+  },
+  "water5_stone1": {
+    "s": [
+      431
+    ],
+    "c": [
+      432
+    ]
+  },
+  "dirt4_dirt1": {
+    "s": [
+      433
+    ],
+    "c": [
+      434
+    ]
+  },
+  "dirt4_dirt2": {
+    "s": [
+      435
+    ],
+    "c": [
+      436
+    ]
+  },
+  "dirt4_sand2": {
+    "s": [
+      437,
+      439,
+      441,
+      443
+    ],
+    "c": [
+      438,
+      440,
+      442,
+      444
+    ]
+  },
+  "dirt4_snow3": {
+    "s": [
+      445,
+      447,
+      449
+    ],
+    "c": [
+      446,
+      448,
+      450
+    ]
+  },
+  "dirt4_soil1": {
+    "s": [
+      451,
+      453
+    ],
+    "c": [
+      452,
+      454
+    ]
+  },
+  "soil1_dirt1": {
+    "s": [
+      455
+    ],
+    "c": [
+      456
+    ]
+  },
+  "soil1_dirt2": {
+    "s": [
+      457
+    ],
+    "c": [
+      458
+    ]
+  },
+  "soil1_dirt4": {
+    "s": [
+      459,
+      461
+    ],
+    "c": [
+      460,
+      462
+    ]
+  },
+  "soil1_snow3": {
+    "s": [
+      463
+    ],
+    "c": [
+      464
+    ]
+  },
+  "dirt5_dirt2": {
+    "s": [
+      465,
+      467
+    ],
+    "c": [
+      466,
+      468
+    ]
+  },
+  "dirt5_grass1": {
+    "s": [
+      469
+    ],
+    "c": [
+      470
+    ]
+  },
+  "dirt5_soil4": {
+    "s": [
+      471,
+      473
+    ],
+    "c": [
+      472,
+      474
+    ]
+  },
+  "dust1_dirt2": {
+    "s": [
+      475,
+      477
+    ],
+    "c": [
+      476,
+      478
+    ]
+  },
+  "sand1_dirt2": {
+    "s": [
+      479
+    ],
+    "c": [
+      480
+    ]
+  },
+  "sand1_sand2": {
+    "s": [
+      481,
+      483,
+      485
+    ],
+    "c": [
+      482,
+      484,
+      486
+    ]
+  },
+  "sand1_sand4": {
+    "s": [
+      487
+    ],
+    "c": [
+      488
+    ]
+  },
+  "soil3_dirt2": {
+    "s": [
+      489,
+      491,
+      493,
+      495,
+      497
+    ],
+    "c": [
+      490,
+      492,
+      494,
+      496,
+      498
+    ]
+  },
+  "soil3_grass2": {
+    "s": [
+      499,
+      501
+    ],
+    "c": [
+      500,
+      502
+    ]
+  },
+  "soil3_soil4": {
+    "s": [
+      503
+    ],
+    "c": [
+      504
+    ]
+  },
+  "soil4_dirt2": {
+    "s": [
+      505,
+      507
+    ],
+    "c": [
+      506,
+      508
+    ]
+  },
+  "soil4_dirt5": {
+    "s": [
+      509,
+      511
+    ],
+    "c": [
+      510,
+      512
+    ]
+  },
+  "soil4_dust2": {
+    "s": [
+      513,
+      515,
+      517,
+      519
+    ],
+    "c": [
+      514,
+      516,
+      518,
+      520
+    ]
+  },
+  "soil4_grass1": {
+    "s": [
+      521
+    ],
+    "c": [
+      522
+    ]
+  },
+  "soil4_soil3": {
+    "s": [
+      523
+    ],
+    "c": [
+      524
+    ]
+  },
+  "soil4_stone8": {
+    "s": [
+      525
+    ],
+    "c": [
+      526
+    ]
+  },
+  "stone1_dirt2": {
+    "s": [
+      527
+    ],
+    "c": [
+      528
+    ]
+  },
+  "stone1_grass2": {
+    "s": [
+      529
+    ],
+    "c": [
+      530
+    ]
+  },
+  "stone1_sand2": {
+    "s": [
+      531
+    ],
+    "c": [
+      532
+    ]
+  },
+  "stone1_sand4": {
+    "s": [
+      533
+    ],
+    "c": [
+      534
+    ]
+  },
+  "stone1_water5": {
+    "s": [
+      535
+    ],
+    "c": [
+      536
+    ]
+  },
+  "snow3_dirt4": {
+    "s": [
+      537,
+      539,
+      541
+    ],
+    "c": [
+      538,
+      540,
+      542
+    ]
+  },
+  "snow3_sand2": {
+    "s": [
+      543,
+      545
+    ],
+    "c": [
+      544,
+      546
+    ]
+  },
+  "snow3_sand5": {
+    "s": [
+      547,
+      549
+    ],
+    "c": [
+      548,
+      550
+    ]
+  },
+  "snow3_snow2": {
+    "s": [
+      551,
+      553,
+      555
+    ],
+    "c": [
+      552,
+      554,
+      556
+    ]
+  },
+  "snow3_soil1": {
+    "s": [
+      557,
+      559
+    ],
+    "c": [
+      558,
+      560
+    ]
+  },
+  "dirt6_grass1": {
+    "s": [
+      561
+    ],
+    "c": [
+      562
+    ]
+  },
+  "dirt6_grass2": {
+    "s": [
+      563
+    ],
+    "c": [
+      564
+    ]
+  },
+  "dirt6_sand2": {
+    "s": [
+      565
+    ],
+    "c": [
+      566
+    ]
+  },
+  "dirt6_sand4": {
+    "s": [
+      567
+    ],
+    "c": [
+      568
+    ]
+  },
+  "dirt6_water5": {
+    "s": [
+      569,
+      571
+    ],
+    "c": [
+      570,
+      572
+    ]
+  },
+  "dust2_soil4": {
+    "s": [
+      573
+    ],
+    "c": [
+      574
+    ]
+  },
+  "soil6_sand2": {
+    "s": [
+      575,
+      577
+    ],
+    "c": [
+      576,
+      578
+    ]
+  },
+  "snow2_snow1": {
+    "s": [
+      579
+    ],
+    "c": [
+      580
+    ]
+  },
+  "snow2_snow3": {
+    "s": [
+      581,
+      583,
+      585,
+      587,
+      589,
+      591
+    ],
+    "c": [
+      582,
+      584,
+      586,
+      588,
+      590,
+      592
+    ]
+  },
+  "snow1_snow2": {
+    "s": [
+      593
+    ],
+    "c": [
+      594
+    ]
+  },
+  "stone8_soil4": {
+    "s": [
+      595
+    ],
+    "c": [
+      596
     ]
   },
   "cliff2_dirt1_cliff2_dirt2": [
-    395
-  ],
-  "cliff2_dirt2_cliff2_dirt1": [
-    396
-  ],
-  "cliff2_cliff2_dirt1_grass2": [
-    397
-  ],
-  "cliff2_cliff2_grass2_dirt1": [
-    398
-  ],
-  "cliff2_cliff2_dirt1_soil5": [
-    399
-  ],
-  "cliff2_cliff2_soil5_dirt1": [
-    400
-  ],
-  "cliff2_cliff2_dirt2_dirt1": [
-    401
-  ],
-  "cliff2_cliff2_dirt1_dirt2": [
-    402
-  ],
-  "cliff2_cliff2_dirt2_grass1": [
-    403,
-    404
-  ],
-  "cliff2_cliff2_grass1_dirt2": [
-    405,
-    406
-  ],
-  "cliff2_cliff2_dirt2_soil5": [
-    407
-  ],
-  "cliff2_cliff2_soil5_dirt2": [
-    408
-  ],
-  "cliff2_cliff2_grass1_sand2": [
-    409
-  ],
-  "cliff2_cliff2_sand2_grass1": [
-    410
-  ],
-  "cliff2_grass2_cliff2_dirt1": [
-    411
-  ],
-  "cliff2_dirt1_cliff2_grass2": [
-    412
-  ],
-  "cliff2_cliff2_grass2_dirt2": [
-    413
-  ],
-  "cliff2_cliff2_dirt2_grass2": [
-    414
-  ],
-  "cliff2_cliff2_grass2_soil5": [
-    415,
-    416
-  ],
-  "cliff2_cliff2_soil5_grass2": [
-    417,
-    418
-  ],
-  "cliff2_cliff2_sand2_dirt2": [
-    419
-  ],
-  "cliff2_cliff2_dirt2_sand2": [
-    420
-  ],
-  "cliff2_soil5_cliff2_dirt1": [
-    421
-  ],
-  "cliff2_dirt1_cliff2_soil5": [
-    422
-  ],
-  "cliff2_soil5_cliff2_dirt2": [
-    423
-  ],
-  "cliff2_dirt2_cliff2_soil5": [
-    424
-  ],
-  "cliff2_soil5_cliff2_grass2": [
-    425
-  ],
-  "cliff2_grass2_cliff2_soil5": [
-    426
-  ],
-  "dirt1_dirt1_cliff2_dirt2": [
-    427
-  ],
-  "dirt1_dirt1_dirt2_cliff2": [
-    428
-  ],
-  "dirt1_cliff2_dirt1_dirt2": [
-    429
-  ],
-  "dirt1_dirt2_dirt1_cliff2": [
-    430
-  ],
-  "dirt1_dirt1_cliff2_grass2": [
-    431
-  ],
-  "dirt1_dirt1_grass2_cliff2": [
-    432
-  ],
-  "dirt1_dirt1_cliff2_soil5": [
-    433
-  ],
-  "dirt1_dirt1_soil5_cliff2": [
-    434
-  ],
-  "dirt1_cliff2_dirt1_soil5": [
-    435
-  ],
-  "dirt1_soil5_dirt1_cliff2": [
-    436
-  ],
-  "dirt1_dirt1_dirt2_grass2": [
-    437,
-    438,
-    439,
-    440,
-    441
-  ],
-  "dirt1_dirt1_grass2_dirt2": [
-    442,
-    443,
-    444,
-    445,
-    446
-  ],
-  "dirt1_dirt2_dirt1_grass2": [
-    447
-  ],
-  "dirt1_grass2_dirt1_dirt2": [
-    448
-  ],
-  "dirt1_dirt1_dirt2_sand4": [
-    449
-  ],
-  "dirt1_dirt1_sand4_dirt2": [
-    450
-  ],
-  "dirt1_dirt1_dirt2_soil5": [
-    451
-  ],
-  "dirt1_dirt1_soil5_dirt2": [
-    452
-  ],
-  "dirt1_dirt2_dirt1_soil5": [
-    453
-  ],
-  "dirt1_soil5_dirt1_dirt2": [
-    454
-  ],
-  "dirt1_grass2_dirt1_cliff2": [
-    455
-  ],
-  "dirt1_cliff2_dirt1_grass2": [
-    456
-  ],
-  "dirt1_sand4_dirt1_dirt2": [
-    457
-  ],
-  "dirt1_dirt2_dirt1_sand4": [
-    458
-  ],
-  "dirt1_dirt1_sand4_grass2": [
-    459
-  ],
-  "dirt1_dirt1_grass2_sand4": [
-    460
-  ],
-  "dirt1_sand4_dirt1_grass2": [
-    461
-  ],
-  "dirt1_grass2_dirt1_sand4": [
-    462
-  ],
-  "dirt1_dirt1_soil5_grass2": [
-    463
-  ],
-  "dirt1_dirt1_grass2_soil5": [
-    464
-  ],
-  "dirt1_soil5_dirt1_grass2": [
-    465
-  ],
-  "dirt1_grass2_dirt1_soil5": [
-    466
-  ],
-  "dirt2_dirt2_cliff2_grass1": [
-    467
-  ],
-  "dirt2_dirt2_grass1_cliff2": [
-    468
-  ],
-  "dirt2_cliff2_dirt2_grass1": [
-    469
-  ],
-  "dirt2_grass1_dirt2_cliff2": [
-    470
-  ],
-  "dirt2_dirt2_cliff2_grass2": [
-    471,
-    472,
-    473
-  ],
-  "dirt2_dirt2_grass2_cliff2": [
-    474,
-    475,
-    476
-  ],
-  "dirt2_cliff2_dirt2_grass2": [
-    477
-  ],
-  "dirt2_grass2_dirt2_cliff2": [
-    478
-  ],
-  "dirt2_dirt2_cliff2_rock2": [
-    479,
-    480
-  ],
-  "dirt2_dirt2_rock2_cliff2": [
-    481,
-    482
-  ],
-  "dirt2_dirt2_cliff2_sand2": [
-    483,
-    484,
-    485,
-    486
-  ],
-  "dirt2_dirt2_sand2_cliff2": [
-    487,
-    488,
-    489,
-    490
-  ],
-  "dirt2_cliff2_dirt2_sand2": [
-    491
-  ],
-  "dirt2_sand2_dirt2_cliff2": [
-    492
-  ],
-  "dirt2_cliff2_dirt2_soil5": [
-    493
-  ],
-  "dirt2_soil5_dirt2_cliff2": [
-    494
-  ],
-  "dirt2_dirt2_dirt1_cliff2": [
-    495
-  ],
-  "dirt2_dirt2_cliff2_dirt1": [
-    496
-  ],
-  "dirt2_dirt1_dirt2_cliff2": [
-    497
-  ],
-  "dirt2_cliff2_dirt2_dirt1": [
-    498
-  ],
-  "dirt2_dirt2_dirt1_grass2": [
-    499,
-    500,
-    501
-  ],
-  "dirt2_dirt2_grass2_dirt1": [
-    502,
-    503,
-    504
-  ],
-  "dirt2_dirt1_dirt2_grass2": [
-    505,
-    506
-  ],
-  "dirt2_grass2_dirt2_dirt1": [
-    507,
-    508
-  ],
-  "dirt2_dirt1_dirt2_sand2": [
-    509
-  ],
-  "dirt2_sand2_dirt2_dirt1": [
-    510
-  ],
-  "dirt2_dirt2_dirt1_sand4": [
-    511
-  ],
-  "dirt2_dirt2_sand4_dirt1": [
-    512
-  ],
-  "dirt2_dirt1_dirt2_soil5": [
-    513,
-    514
-  ],
-  "dirt2_soil5_dirt2_dirt1": [
-    515,
-    516
-  ],
-  "dirt2_dirt2_grass1_grass3": [
-    517
-  ],
-  "dirt2_dirt2_grass3_grass1": [
-    518
-  ],
-  "dirt2_grass1_dirt2_sand2": [
-    519
-  ],
-  "dirt2_sand2_dirt2_grass1": [
-    520
-  ],
-  "dirt2_dirt2_grass2_sand4": [
-    521
-  ],
-  "dirt2_dirt2_sand4_grass2": [
-    522
-  ],
-  "dirt2_dirt2_grass2_soil5": [
-    523,
-    524
-  ],
-  "dirt2_dirt2_soil5_grass2": [
-    525,
-    526
-  ],
-  "dirt2_grass3_dirt2_cliff2": [
-    527
-  ],
-  "dirt2_cliff2_dirt2_grass3": [
-    528
-  ],
-  "dirt2_dirt2_grass3_grass2": [
-    529,
-    530
-  ],
-  "dirt2_dirt2_grass2_grass3": [
-    531,
-    532
-  ],
-  "dirt2_dirt2_grass3_soil5": [
-    533
-  ],
-  "dirt2_dirt2_soil5_grass3": [
-    534
-  ],
-  "dirt2_dirt2_sand2_grass2": [
-    535
-  ],
-  "dirt2_dirt2_grass2_sand2": [
-    536
-  ],
-  "dirt2_sand2_dirt2_grass2": [
-    537
-  ],
-  "dirt2_grass2_dirt2_sand2": [
-    538
-  ],
-  "dirt2_dirt2_sand2_sand1": [
-    539
-  ],
-  "dirt2_dirt2_sand1_sand2": [
-    540
-  ],
-  "dirt2_sand4_dirt2_dirt1": [
-    541
-  ],
-  "dirt2_dirt1_dirt2_sand4": [
-    542
-  ],
-  "dirt2_sand4_dirt2_grass2": [
-    543
-  ],
-  "dirt2_grass2_dirt2_sand4": [
-    544
-  ],
-  "dirt2_dirt2_sand4_sand2": [
-    545
-  ],
-  "dirt2_dirt2_sand2_sand4": [
-    546
-  ],
-  "dirt2_sand4_dirt2_sand2": [
-    547
-  ],
-  "dirt2_sand2_dirt2_sand4": [
-    548
-  ],
-  "dirt2_dirt2_soil3_grass2": [
-    549
-  ],
-  "dirt2_dirt2_grass2_soil3": [
-    550
-  ],
-  "dirt2_soil3_dirt2_grass2": [
-    551
-  ],
-  "dirt2_grass2_dirt2_soil3": [
-    552
-  ],
-  "dirt2_dirt2_soil5_cliff2": [
-    553
-  ],
-  "dirt2_dirt2_cliff2_soil5": [
-    554
-  ],
-  "dirt2_dirt2_soil5_dirt1": [
-    555
-  ],
-  "dirt2_dirt2_dirt1_soil5": [
-    556
-  ],
-  "dirt2_soil5_dirt2_grass2": [
-    557
-  ],
-  "dirt2_grass2_dirt2_soil5": [
-    558
-  ],
-  "dirt2_dirt2_stone1_grass2": [
-    559
-  ],
-  "dirt2_dirt2_grass2_stone1": [
-    560
-  ],
-  "grass1_grass2_grass1_dirt2": [
-    561
-  ],
-  "grass1_dirt2_grass1_grass2": [
-    562
-  ],
-  "grass1_grass1_grass2_grass3": [
-    563
-  ],
-  "grass1_grass1_grass3_grass2": [
-    564
-  ],
-  "grass2_grass2_cliff2_dirt1": [
-    565
-  ],
-  "grass2_grass2_dirt1_cliff2": [
-    566
-  ],
-  "grass2_grass2_cliff2_dirt2": [
-    567
-  ],
-  "grass2_grass2_dirt2_cliff2": [
-    568
-  ],
-  "grass2_cliff2_grass2_dirt2": [
-    569
-  ],
-  "grass2_dirt2_grass2_cliff2": [
-    570
-  ],
-  "grass2_dirt1_grass2_cliff2": [
-    571
-  ],
-  "grass2_cliff2_grass2_dirt1": [
-    572
-  ],
-  "grass2_grass2_dirt1_dirt2": [
-    573,
-    574
-  ],
-  "grass2_grass2_dirt2_dirt1": [
-    575,
-    576
-  ],
-  "grass2_dirt1_grass2_dirt2": [
-    577
-  ],
-  "grass2_dirt2_grass2_dirt1": [
-    578
-  ],
-  "grass2_grass2_dirt1_sand4": [
-    579,
-    580
-  ],
-  "grass2_grass2_sand4_dirt1": [
-    581,
-    582
-  ],
-  "grass2_dirt1_grass2_sand4": [
-    583
-  ],
-  "grass2_sand4_grass2_dirt1": [
-    584
-  ],
-  "grass2_grass2_dirt1_soil5": [
-    585
-  ],
-  "grass2_grass2_soil5_dirt1": [
-    586
-  ],
-  "grass2_grass2_dirt2_grass1": [
-    587
-  ],
-  "grass2_grass2_grass1_dirt2": [
-    588
-  ],
-  "grass2_grass2_dirt2_sand2": [
-    589
-  ],
-  "grass2_grass2_sand2_dirt2": [
-    590
-  ],
-  "grass2_grass2_dirt2_sand4": [
-    591,
-    592
-  ],
-  "grass2_grass2_sand4_dirt2": [
-    593,
-    594
-  ],
-  "grass2_grass2_dirt2_soil5": [
-    595,
-    596,
     597
   ],
-  "grass2_grass2_soil5_dirt2": [
-    598,
-    599,
+  "cliff2_dirt2_cliff2_dirt1": [
+    598
+  ],
+  "cliff2_cliff2_dirt1_grass2": [
+    599
+  ],
+  "cliff2_cliff2_grass2_dirt1": [
     600
   ],
-  "grass2_grass3_grass2_dirt2": [
+  "cliff2_cliff2_dirt1_soil5": [
     601
   ],
-  "grass2_dirt2_grass2_grass3": [
+  "cliff2_cliff2_soil5_dirt1": [
     602
   ],
-  "grass2_grass3_grass2_soil5": [
-    603,
+  "cliff2_cliff2_dirt2_dirt1": [
+    603
+  ],
+  "cliff2_cliff2_dirt1_dirt2": [
     604
   ],
-  "grass2_soil5_grass2_grass3": [
+  "cliff2_cliff2_dirt2_grass1": [
     605,
     606
   ],
-  "grass2_sand2_grass2_dirt1": [
-    607
-  ],
-  "grass2_dirt1_grass2_sand2": [
+  "cliff2_cliff2_grass1_dirt2": [
+    607,
     608
   ],
-  "grass2_sand2_grass2_dirt2": [
-    609,
+  "cliff2_cliff2_dirt2_soil5": [
+    609
+  ],
+  "cliff2_cliff2_soil5_dirt2": [
     610
   ],
-  "grass2_dirt2_grass2_sand2": [
-    611,
+  "cliff2_cliff2_grass1_sand2": [
+    611
+  ],
+  "cliff2_cliff2_sand2_grass1": [
     612
   ],
-  "grass2_grass2_sand2_sand4": [
+  "cliff2_grass2_cliff2_dirt1": [
     613
   ],
-  "grass2_grass2_sand4_sand2": [
+  "cliff2_dirt1_cliff2_grass2": [
     614
   ],
-  "grass2_sand4_grass2_dirt2": [
+  "cliff2_cliff2_grass2_dirt2": [
     615
   ],
-  "grass2_dirt2_grass2_sand4": [
+  "cliff2_cliff2_dirt2_grass2": [
     616
   ],
-  "grass2_sand4_grass2_sand2": [
-    617
-  ],
-  "grass2_sand2_grass2_sand4": [
+  "cliff2_cliff2_grass2_soil5": [
+    617,
     618
   ],
-  "grass2_soil5_grass2_dirt1": [
-    619
-  ],
-  "grass2_dirt1_grass2_soil5": [
+  "cliff2_cliff2_soil5_grass2": [
+    619,
     620
   ],
-  "grass2_soil5_grass2_dirt2": [
+  "cliff2_cliff2_sand2_dirt2": [
     621
   ],
-  "grass2_dirt2_grass2_soil5": [
+  "cliff2_cliff2_dirt2_sand2": [
     622
   ],
-  "sand1_sand1_sand2_sand4": [
-    623,
-    624,
-    625,
+  "cliff2_soil5_cliff2_dirt1": [
+    623
+  ],
+  "cliff2_dirt1_cliff2_soil5": [
+    624
+  ],
+  "cliff2_soil5_cliff2_dirt2": [
+    625
+  ],
+  "cliff2_dirt2_cliff2_soil5": [
     626
   ],
-  "sand1_sand1_sand4_sand2": [
-    627,
-    628,
-    629,
+  "cliff2_soil5_cliff2_grass2": [
+    627
+  ],
+  "cliff2_grass2_cliff2_soil5": [
+    628
+  ],
+  "dirt1_dirt1_cliff2_dirt2": [
+    629
+  ],
+  "dirt1_dirt1_dirt2_cliff2": [
     630
   ],
-  "sand2_sand2_dirt2_grass2": [
+  "dirt1_cliff2_dirt1_dirt2": [
     631
   ],
-  "sand2_sand2_grass2_dirt2": [
+  "dirt1_dirt2_dirt1_cliff2": [
     632
   ],
-  "sand2_dirt2_sand2_grass2": [
+  "dirt1_dirt1_cliff2_grass2": [
     633
   ],
-  "sand2_grass2_sand2_dirt2": [
+  "dirt1_dirt1_grass2_cliff2": [
     634
   ],
-  "sand2_sand2_grass1_dirt2": [
+  "dirt1_dirt1_cliff2_soil5": [
     635
   ],
-  "sand2_sand2_dirt2_grass1": [
+  "dirt1_dirt1_soil5_cliff2": [
     636
   ],
-  "sand2_sand2_sand1_sand4": [
+  "dirt1_cliff2_dirt1_soil5": [
     637
   ],
-  "sand2_sand2_sand4_sand1": [
+  "dirt1_soil5_dirt1_cliff2": [
     638
   ],
-  "sand2_sand1_sand2_sand4": [
+  "dirt1_dirt1_dirt2_grass2": [
     639,
-    640
-  ],
-  "sand2_sand4_sand2_sand1": [
+    640,
     641,
-    642
-  ],
-  "sand2_sand2_sand4_dirt2": [
+    642,
     643
   ],
-  "sand2_sand2_dirt2_sand4": [
-    644
-  ],
-  "sand2_sand4_sand2_dirt2": [
-    645
-  ],
-  "sand2_dirt2_sand2_sand4": [
-    646
-  ],
-  "sand2_sand2_sand4_grass2": [
-    647
-  ],
-  "sand2_sand2_grass2_sand4": [
+  "dirt1_dirt1_grass2_dirt2": [
+    644,
+    645,
+    646,
+    647,
     648
   ],
-  "sand4_sand4_dirt1_dirt2": [
+  "dirt1_dirt2_dirt1_grass2": [
     649
   ],
-  "sand4_sand4_dirt2_dirt1": [
+  "dirt1_grass2_dirt1_dirt2": [
     650
   ],
-  "sand4_dirt1_sand4_dirt2": [
+  "dirt1_dirt1_dirt2_sand4": [
     651
   ],
-  "sand4_dirt2_sand4_dirt1": [
+  "dirt1_dirt1_sand4_dirt2": [
     652
   ],
-  "sand4_dirt1_sand4_grass2": [
+  "dirt1_dirt1_dirt2_soil5": [
     653
   ],
-  "sand4_grass2_sand4_dirt1": [
+  "dirt1_dirt1_soil5_dirt2": [
     654
   ],
-  "sand4_dirt2_sand4_grass2": [
+  "dirt1_dirt2_dirt1_soil5": [
     655
   ],
-  "sand4_grass2_sand4_dirt2": [
+  "dirt1_soil5_dirt1_dirt2": [
     656
   ],
-  "sand4_sand4_dirt6_water5": [
-    657,
+  "dirt1_grass2_dirt1_cliff2": [
+    657
+  ],
+  "dirt1_cliff2_dirt1_grass2": [
     658
   ],
-  "sand4_sand4_water5_dirt6": [
-    659,
+  "dirt1_sand4_dirt1_dirt2": [
+    659
+  ],
+  "dirt1_dirt2_dirt1_sand4": [
     660
   ],
-  "sand4_sand4_grass2_dirt1": [
+  "dirt1_dirt1_sand4_grass2": [
     661
   ],
-  "sand4_sand4_dirt1_grass2": [
+  "dirt1_dirt1_grass2_sand4": [
     662
   ],
-  "sand4_sand4_grass2_dirt2": [
+  "dirt1_sand4_dirt1_grass2": [
     663
   ],
-  "sand4_sand4_dirt2_grass2": [
+  "dirt1_grass2_dirt1_sand4": [
     664
   ],
-  "sand4_sand4_sand2_dirt2": [
+  "dirt1_dirt1_soil5_grass2": [
     665
   ],
-  "sand4_sand4_dirt2_sand2": [
+  "dirt1_dirt1_grass2_soil5": [
     666
   ],
-  "sand4_sand2_sand4_dirt2": [
+  "dirt1_soil5_dirt1_grass2": [
     667
   ],
-  "sand4_dirt2_sand4_sand2": [
+  "dirt1_grass2_dirt1_soil5": [
     668
   ],
-  "sand4_sand4_sand2_grass2": [
+  "dirt2_dirt2_cliff2_grass1": [
     669
   ],
-  "sand4_sand4_grass2_sand2": [
+  "dirt2_dirt2_grass1_cliff2": [
     670
   ],
-  "sand4_sand2_sand4_grass2": [
+  "dirt2_cliff2_dirt2_grass1": [
     671
   ],
-  "sand4_grass2_sand4_sand2": [
+  "dirt2_grass1_dirt2_cliff2": [
     672
   ],
-  "soil3_grass2_soil3_dirt2": [
-    673
-  ],
-  "soil3_dirt2_soil3_grass2": [
-    674
-  ],
-  "soil5_soil5_cliff2_dirt1": [
+  "dirt2_dirt2_cliff2_grass2": [
+    673,
+    674,
     675
   ],
-  "soil5_soil5_dirt1_cliff2": [
-    676
-  ],
-  "soil5_cliff2_soil5_dirt1": [
-    677
-  ],
-  "soil5_dirt1_soil5_cliff2": [
+  "dirt2_dirt2_grass2_cliff2": [
+    676,
+    677,
     678
   ],
-  "soil5_cliff2_soil5_dirt2": [
+  "dirt2_cliff2_dirt2_grass2": [
     679
   ],
-  "soil5_dirt2_soil5_cliff2": [
+  "dirt2_grass2_dirt2_cliff2": [
     680
   ],
-  "soil5_cliff2_soil5_grass2": [
+  "dirt2_dirt2_cliff2_rock2": [
     681,
     682
   ],
-  "soil5_grass2_soil5_cliff2": [
+  "dirt2_dirt2_rock2_cliff2": [
     683,
     684
   ],
-  "soil5_dirt1_soil5_dirt2": [
-    685
-  ],
-  "soil5_dirt2_soil5_dirt1": [
-    686
-  ],
-  "soil5_soil5_dirt2_cliff2": [
-    687
-  ],
-  "soil5_soil5_cliff2_dirt2": [
+  "dirt2_dirt2_cliff2_sand2": [
+    685,
+    686,
+    687,
     688
   ],
-  "soil5_soil5_dirt2_dirt1": [
-    689
-  ],
-  "soil5_soil5_dirt1_dirt2": [
-    690
-  ],
-  "soil5_soil5_grass2_cliff2": [
-    691
-  ],
-  "soil5_soil5_cliff2_grass2": [
+  "dirt2_dirt2_sand2_cliff2": [
+    689,
+    690,
+    691,
     692
   ],
-  "soil5_soil5_grass2_dirt1": [
+  "dirt2_cliff2_dirt2_sand2": [
     693
   ],
-  "soil5_soil5_dirt1_grass2": [
+  "dirt2_sand2_dirt2_cliff2": [
     694
   ],
-  "soil5_grass2_soil5_dirt1": [
+  "dirt2_cliff2_dirt2_soil5": [
     695
   ],
-  "soil5_dirt1_soil5_grass2": [
+  "dirt2_soil5_dirt2_cliff2": [
     696
   ],
-  "soil5_soil5_grass2_dirt2": [
+  "dirt2_dirt2_dirt1_cliff2": [
     697
   ],
-  "soil5_soil5_dirt2_grass2": [
+  "dirt2_dirt2_cliff2_dirt1": [
     698
   ],
-  "soil5_grass2_soil5_dirt2": [
-    699,
+  "dirt2_dirt1_dirt2_cliff2": [
+    699
+  ],
+  "dirt2_cliff2_dirt2_dirt1": [
     700
   ],
-  "soil5_dirt2_soil5_grass2": [
+  "dirt2_dirt2_dirt1_grass2": [
     701,
-    702
+    702,
+    703
   ],
-  "water5_water5_cliff2_dirt2": [
-    703,
-    704
-  ],
-  "water5_water5_dirt2_cliff2": [
+  "dirt2_dirt2_grass2_dirt1": [
+    704,
     705,
     706
   ],
+  "dirt2_dirt1_dirt2_grass2": [
+    707,
+    708
+  ],
+  "dirt2_grass2_dirt2_dirt1": [
+    709,
+    710
+  ],
+  "dirt2_dirt1_dirt2_sand2": [
+    711
+  ],
+  "dirt2_sand2_dirt2_dirt1": [
+    712
+  ],
+  "dirt2_dirt2_dirt1_sand4": [
+    713
+  ],
+  "dirt2_dirt2_sand4_dirt1": [
+    714
+  ],
+  "dirt2_dirt1_dirt2_soil5": [
+    715,
+    716
+  ],
+  "dirt2_soil5_dirt2_dirt1": [
+    717,
+    718
+  ],
+  "dirt2_dirt2_dirt5_soil4": [
+    719,
+    720,
+    721
+  ],
+  "dirt2_dirt2_soil4_dirt5": [
+    722,
+    723,
+    724
+  ],
+  "dirt2_dirt2_grass1_grass3": [
+    725
+  ],
+  "dirt2_dirt2_grass3_grass1": [
+    726
+  ],
+  "dirt2_grass1_dirt2_sand2": [
+    727
+  ],
+  "dirt2_sand2_dirt2_grass1": [
+    728
+  ],
+  "dirt2_dirt2_grass2_sand4": [
+    729
+  ],
+  "dirt2_dirt2_sand4_grass2": [
+    730
+  ],
+  "dirt2_dirt2_grass2_soil5": [
+    731,
+    732
+  ],
+  "dirt2_dirt2_soil5_grass2": [
+    733,
+    734
+  ],
+  "dirt2_grass3_dirt2_cliff2": [
+    735
+  ],
+  "dirt2_cliff2_dirt2_grass3": [
+    736
+  ],
+  "dirt2_dirt2_grass3_grass2": [
+    737,
+    738
+  ],
+  "dirt2_dirt2_grass2_grass3": [
+    739,
+    740
+  ],
+  "dirt2_dirt2_grass3_soil5": [
+    741
+  ],
+  "dirt2_dirt2_soil5_grass3": [
+    742
+  ],
+  "dirt2_dirt2_sand2_grass2": [
+    743
+  ],
+  "dirt2_dirt2_grass2_sand2": [
+    744
+  ],
+  "dirt2_sand2_dirt2_grass2": [
+    745
+  ],
+  "dirt2_grass2_dirt2_sand2": [
+    746
+  ],
+  "dirt2_dirt2_sand2_sand1": [
+    747
+  ],
+  "dirt2_dirt2_sand1_sand2": [
+    748
+  ],
+  "dirt2_sand4_dirt2_dirt1": [
+    749
+  ],
+  "dirt2_dirt1_dirt2_sand4": [
+    750
+  ],
+  "dirt2_sand4_dirt2_grass2": [
+    751
+  ],
+  "dirt2_grass2_dirt2_sand4": [
+    752
+  ],
+  "dirt2_dirt2_sand4_sand2": [
+    753
+  ],
+  "dirt2_dirt2_sand2_sand4": [
+    754
+  ],
+  "dirt2_sand4_dirt2_sand2": [
+    755
+  ],
+  "dirt2_sand2_dirt2_sand4": [
+    756
+  ],
+  "dirt2_dirt2_soil3_grass2": [
+    757
+  ],
+  "dirt2_dirt2_grass2_soil3": [
+    758
+  ],
+  "dirt2_soil3_dirt2_grass2": [
+    759,
+    760
+  ],
+  "dirt2_grass2_dirt2_soil3": [
+    761,
+    762
+  ],
+  "dirt2_dirt2_soil5_cliff2": [
+    763
+  ],
+  "dirt2_dirt2_cliff2_soil5": [
+    764
+  ],
+  "dirt2_dirt2_soil5_dirt1": [
+    765
+  ],
+  "dirt2_dirt2_dirt1_soil5": [
+    766
+  ],
+  "dirt2_soil5_dirt2_grass2": [
+    767
+  ],
+  "dirt2_grass2_dirt2_soil5": [
+    768
+  ],
+  "dirt2_dirt2_stone1_grass2": [
+    769
+  ],
+  "dirt2_dirt2_grass2_stone1": [
+    770
+  ],
+  "dirt4_sand2_dirt4_snow3": [
+    771,
+    772
+  ],
+  "dirt4_snow3_dirt4_sand2": [
+    773,
+    774
+  ],
+  "dirt4_dirt4_snow3_sand2": [
+    775
+  ],
+  "dirt4_dirt4_sand2_snow3": [
+    776
+  ],
+  "dirt4_dirt4_soil1_snow3": [
+    777
+  ],
+  "dirt4_dirt4_snow3_soil1": [
+    778
+  ],
+  "dirt4_soil1_dirt4_snow3": [
+    779,
+    780
+  ],
+  "dirt4_snow3_dirt4_soil1": [
+    781,
+    782
+  ],
+  "dirt5_dirt5_dirt2_soil4": [
+    783,
+    784
+  ],
+  "dirt5_dirt5_soil4_dirt2": [
+    785,
+    786
+  ],
+  "dirt5_dirt5_grass1_soil4": [
+    787,
+    788,
+    789,
+    790
+  ],
+  "dirt5_dirt5_soil4_grass1": [
+    791,
+    792,
+    793,
+    794
+  ],
+  "dirt5_soil4_dirt5_grass1": [
+    795,
+    796
+  ],
+  "dirt5_grass1_dirt5_soil4": [
+    797,
+    798
+  ],
+  "grass1_grass1_dust2_soil4": [
+    799
+  ],
+  "grass1_grass1_soil4_dust2": [
+    800
+  ],
+  "grass1_grass2_grass1_dirt2": [
+    801
+  ],
+  "grass1_dirt2_grass1_grass2": [
+    802
+  ],
+  "grass1_grass1_grass2_grass3": [
+    803
+  ],
+  "grass1_grass1_grass3_grass2": [
+    804
+  ],
+  "grass2_grass2_cliff2_dirt1": [
+    805
+  ],
+  "grass2_grass2_dirt1_cliff2": [
+    806
+  ],
+  "grass2_grass2_cliff2_dirt2": [
+    807
+  ],
+  "grass2_grass2_dirt2_cliff2": [
+    808
+  ],
+  "grass2_cliff2_grass2_dirt2": [
+    809
+  ],
+  "grass2_dirt2_grass2_cliff2": [
+    810
+  ],
+  "grass2_dirt1_grass2_cliff2": [
+    811
+  ],
+  "grass2_cliff2_grass2_dirt1": [
+    812
+  ],
+  "grass2_grass2_dirt1_dirt2": [
+    813,
+    814
+  ],
+  "grass2_grass2_dirt2_dirt1": [
+    815,
+    816
+  ],
+  "grass2_dirt1_grass2_dirt2": [
+    817
+  ],
+  "grass2_dirt2_grass2_dirt1": [
+    818
+  ],
+  "grass2_grass2_dirt1_sand4": [
+    819,
+    820
+  ],
+  "grass2_grass2_sand4_dirt1": [
+    821,
+    822
+  ],
+  "grass2_dirt1_grass2_sand4": [
+    823
+  ],
+  "grass2_sand4_grass2_dirt1": [
+    824
+  ],
+  "grass2_grass2_dirt1_soil5": [
+    825
+  ],
+  "grass2_grass2_soil5_dirt1": [
+    826
+  ],
+  "grass2_grass2_dirt2_grass1": [
+    827
+  ],
+  "grass2_grass2_grass1_dirt2": [
+    828
+  ],
+  "grass2_grass2_dirt2_sand2": [
+    829
+  ],
+  "grass2_grass2_sand2_dirt2": [
+    830
+  ],
+  "grass2_grass2_dirt2_sand4": [
+    831,
+    832
+  ],
+  "grass2_grass2_sand4_dirt2": [
+    833,
+    834
+  ],
+  "grass2_grass2_dirt2_soil5": [
+    835,
+    836,
+    837
+  ],
+  "grass2_grass2_soil5_dirt2": [
+    838,
+    839,
+    840
+  ],
+  "grass2_grass3_grass2_dirt2": [
+    841
+  ],
+  "grass2_dirt2_grass2_grass3": [
+    842
+  ],
+  "grass2_grass3_grass2_soil5": [
+    843,
+    844
+  ],
+  "grass2_soil5_grass2_grass3": [
+    845,
+    846
+  ],
+  "grass2_sand2_grass2_dirt1": [
+    847
+  ],
+  "grass2_dirt1_grass2_sand2": [
+    848
+  ],
+  "grass2_sand2_grass2_dirt2": [
+    849,
+    850
+  ],
+  "grass2_dirt2_grass2_sand2": [
+    851,
+    852
+  ],
+  "grass2_grass2_sand2_sand4": [
+    853
+  ],
+  "grass2_grass2_sand4_sand2": [
+    854
+  ],
+  "grass2_sand4_grass2_dirt2": [
+    855
+  ],
+  "grass2_dirt2_grass2_sand4": [
+    856
+  ],
+  "grass2_sand4_grass2_sand2": [
+    857
+  ],
+  "grass2_sand2_grass2_sand4": [
+    858
+  ],
+  "grass2_soil5_grass2_dirt1": [
+    859
+  ],
+  "grass2_dirt1_grass2_soil5": [
+    860
+  ],
+  "grass2_soil5_grass2_dirt2": [
+    861
+  ],
+  "grass2_dirt2_grass2_soil5": [
+    862
+  ],
+  "sand1_sand1_sand2_sand4": [
+    863,
+    864,
+    865,
+    866
+  ],
+  "sand1_sand1_sand4_sand2": [
+    867,
+    868,
+    869,
+    870
+  ],
+  "sand2_sand2_dirt2_grass2": [
+    871
+  ],
+  "sand2_sand2_grass2_dirt2": [
+    872
+  ],
+  "sand2_dirt2_sand2_grass2": [
+    873
+  ],
+  "sand2_grass2_sand2_dirt2": [
+    874
+  ],
+  "sand2_sand2_dirt4_snow3": [
+    875,
+    876
+  ],
+  "sand2_sand2_snow3_dirt4": [
+    877,
+    878
+  ],
+  "sand2_sand2_grass1_dirt2": [
+    879
+  ],
+  "sand2_sand2_dirt2_grass1": [
+    880
+  ],
+  "sand2_sand2_sand1_sand4": [
+    881
+  ],
+  "sand2_sand2_sand4_sand1": [
+    882
+  ],
+  "sand2_sand1_sand2_sand4": [
+    883,
+    884
+  ],
+  "sand2_sand4_sand2_sand1": [
+    885,
+    886
+  ],
+  "sand2_sand2_sand4_dirt2": [
+    887
+  ],
+  "sand2_sand2_dirt2_sand4": [
+    888
+  ],
+  "sand2_sand4_sand2_dirt2": [
+    889
+  ],
+  "sand2_dirt2_sand2_sand4": [
+    890
+  ],
+  "sand2_sand2_sand4_grass2": [
+    891
+  ],
+  "sand2_sand2_grass2_sand4": [
+    892
+  ],
+  "sand2_snow3_sand2_dirt4": [
+    893
+  ],
+  "sand2_dirt4_sand2_snow3": [
+    894
+  ],
+  "sand4_sand4_dirt1_dirt2": [
+    895
+  ],
+  "sand4_sand4_dirt2_dirt1": [
+    896
+  ],
+  "sand4_dirt1_sand4_dirt2": [
+    897
+  ],
+  "sand4_dirt2_sand4_dirt1": [
+    898
+  ],
+  "sand4_dirt1_sand4_grass2": [
+    899
+  ],
+  "sand4_grass2_sand4_dirt1": [
+    900
+  ],
+  "sand4_dirt2_sand4_grass2": [
+    901
+  ],
+  "sand4_grass2_sand4_dirt2": [
+    902
+  ],
+  "sand4_sand4_dirt6_water5": [
+    903,
+    904
+  ],
+  "sand4_sand4_water5_dirt6": [
+    905,
+    906
+  ],
+  "sand4_sand4_grass2_dirt1": [
+    907
+  ],
+  "sand4_sand4_dirt1_grass2": [
+    908
+  ],
+  "sand4_sand4_grass2_dirt2": [
+    909
+  ],
+  "sand4_sand4_dirt2_grass2": [
+    910
+  ],
+  "sand4_sand4_sand2_dirt2": [
+    911
+  ],
+  "sand4_sand4_dirt2_sand2": [
+    912
+  ],
+  "sand4_sand2_sand4_dirt2": [
+    913
+  ],
+  "sand4_dirt2_sand4_sand2": [
+    914
+  ],
+  "sand4_sand4_sand2_grass2": [
+    915
+  ],
+  "sand4_sand4_grass2_sand2": [
+    916
+  ],
+  "sand4_sand2_sand4_grass2": [
+    917
+  ],
+  "sand4_grass2_sand4_sand2": [
+    918
+  ],
+  "snow3_sand2_snow3_dirt4": [
+    919
+  ],
+  "snow3_dirt4_snow3_sand2": [
+    920
+  ],
+  "snow3_snow3_soil1_dirt4": [
+    921,
+    922
+  ],
+  "snow3_snow3_dirt4_soil1": [
+    923,
+    924
+  ],
+  "soil1_soil1_snow3_dirt4": [
+    925,
+    926
+  ],
+  "soil1_soil1_dirt4_snow3": [
+    927,
+    928
+  ],
+  "soil3_grass2_soil3_dirt2": [
+    929
+  ],
+  "soil3_dirt2_soil3_grass2": [
+    930
+  ],
+  "soil4_soil4_dirt5_grass1": [
+    931,
+    932,
+    933,
+    934
+  ],
+  "soil4_soil4_grass1_dirt5": [
+    935,
+    936,
+    937,
+    938
+  ],
+  "soil4_dirt5_soil4_grass1": [
+    939,
+    940
+  ],
+  "soil4_grass1_soil4_dirt5": [
+    941,
+    942
+  ],
+  "soil5_soil5_cliff2_dirt1": [
+    943
+  ],
+  "soil5_soil5_dirt1_cliff2": [
+    944
+  ],
+  "soil5_cliff2_soil5_dirt1": [
+    945
+  ],
+  "soil5_dirt1_soil5_cliff2": [
+    946
+  ],
+  "soil5_cliff2_soil5_dirt2": [
+    947
+  ],
+  "soil5_dirt2_soil5_cliff2": [
+    948
+  ],
+  "soil5_cliff2_soil5_grass2": [
+    949,
+    950
+  ],
+  "soil5_grass2_soil5_cliff2": [
+    951,
+    952
+  ],
+  "soil5_dirt1_soil5_dirt2": [
+    953
+  ],
+  "soil5_dirt2_soil5_dirt1": [
+    954
+  ],
+  "soil5_soil5_dirt2_cliff2": [
+    955
+  ],
+  "soil5_soil5_cliff2_dirt2": [
+    956
+  ],
+  "soil5_soil5_dirt2_dirt1": [
+    957
+  ],
+  "soil5_soil5_dirt1_dirt2": [
+    958
+  ],
+  "soil5_soil5_grass2_cliff2": [
+    959
+  ],
+  "soil5_soil5_cliff2_grass2": [
+    960
+  ],
+  "soil5_soil5_grass2_dirt1": [
+    961
+  ],
+  "soil5_soil5_dirt1_grass2": [
+    962
+  ],
+  "soil5_grass2_soil5_dirt1": [
+    963
+  ],
+  "soil5_dirt1_soil5_grass2": [
+    964
+  ],
+  "soil5_soil5_grass2_dirt2": [
+    965
+  ],
+  "soil5_soil5_dirt2_grass2": [
+    966
+  ],
+  "soil5_grass2_soil5_dirt2": [
+    967,
+    968
+  ],
+  "soil5_dirt2_soil5_grass2": [
+    969,
+    970
+  ],
+  "water5_water5_cliff2_dirt2": [
+    971,
+    972
+  ],
+  "water5_water5_dirt2_cliff2": [
+    973,
+    974
+  ],
   "water5_water5_dirt6_sand4": [
-    707
+    975
   ],
   "water5_water5_sand4_dirt6": [
-    708
+    976
   ]
 }

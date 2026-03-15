@@ -80,15 +80,15 @@ class Renderer(Widget):
 
     SCALE_FACTOR = 0.2
     SCALE_INITIAL = 1.0
-    MAX_SCALE = 10.0
+    MAX_SCALE = 15.0
     MIN_SCALE = 0.5
     ROTATE_SPEED = 1.0
     ROTATE_VERTICAL_MIN = 1
     ROTATE_VERTICAL_MAX = 90
     ROTATE_VERTICAL_INITIAL = 25
 
-    SEGMENT_SIZE = 3.0
-    PLANET_EQUATOR_SEGMENTS = 720.0
+    SEGMENT_SIZE = 10.0
+    PLANET_EQUATOR_SEGMENTS = 360.0
     PLANET_EQUATOR_LENGTH = SEGMENT_SIZE * PLANET_EQUATOR_SEGMENTS
     PLANET_RADIUS = PLANET_EQUATOR_LENGTH / (2.0 * math.pi)    
     SEGMENT_ANGLE = 360.0 / PLANET_EQUATOR_SEGMENTS
@@ -101,8 +101,8 @@ class Renderer(Widget):
     SEGMENT_COS = math.cos(SEGMENT_ANGLE_RADIANS)  
     PI_4_SIN = math.sin(math.pi / 4.0)
     PI_4_COS = math.cos(math.pi / 4.0)
-    ELEVATION_FACTOR = PLANET_RADIUS / 4.0
-    VISIBLE_AREA_SIZE_SEGMENTS = 40
+    ELEVATION_FACTOR = PLANET_RADIUS / 10.0
+    VISIBLE_AREA_SIZE_SEGMENTS = 32
     VISIBLE_AREA_SIZE_SEGMENTS_HALF = int(VISIBLE_AREA_SIZE_SEGMENTS / 2.0)
     LAND_MOVE_SPEED = 0.25
 
@@ -169,8 +169,8 @@ class Renderer(Widget):
         self.segment_shift_h = 0.5
         planet_angle_x = mth.w2lat_degrees(self.area_center_w, self.PLANET_EQUATOR_SEGMENTS)
         planet_angle_z = mth.h2lon_degrees(self.area_center_h, self.PLANET_EQUATOR_SEGMENTS)
-        self.global_land_rotate_x.angle = 0 # mth.lat_globe2camera(planet_angle_x)
-        self.global_land_rotate_z.angle = 0 # mth.lon_globe2camera(planet_angle_z)
+        self.global_land_rotate_x.angle = 0
+        self.global_land_rotate_z.angle = 0
         w = int(self.area_center_w)
         h = int(self.area_center_h)
         self.land_area_left = w - self.VISIBLE_AREA_SIZE_SEGMENTS_HALF
@@ -235,16 +235,12 @@ class Renderer(Widget):
         e01 = _get_elevation(w_i + 1, h_i + 1)
         e10 = _get_elevation(w_i, h_i)
         e11 = _get_elevation(w_i + 1, h_i)
-        # e00 = _get_elevation(w_i, h_i)
-        # e01 = _get_elevation(w_i, h_i + 1)
-        # e10 = _get_elevation(w_i + 1, h_i)
-        # e11 = _get_elevation(w_i + 1, h_i + 1)
         p00 = (float(w_i), float(h_i) + 1.0, e00)
         p01 = (float(w_i) + 1.0, float(h_i) + 1.0, e01)
         p10 = (float(w_i), float(h_i), e10)
         p11 = (float(w_i) + 1.0, float(h_i), e11)
-        if mth.point_line_left_or_right(w_f, h_f, p01[0], p01[1], p10[0], p10[1]) == 1:
-            e = mth.get_z_in_triangle(w_f, h_f, p00, p01, p10)
+        if mth.point_line_left_or_right(w_f, h_f, p01[0], p01[1], p10[0], p10[1]) == -1:
+            e = mth.get_z_in_triangle(w_f, h_f, p01, p10, p00)
         else:
             e = mth.get_z_in_triangle(w_f, h_f, p01, p10, p11)
         planet_shift_y = self.PLANET_RADIUS + e * self.ELEVATION_FACTOR

@@ -1647,6 +1647,8 @@ def move_tiles_by_shape_by_four_corners_with_three_types(tiles_dir, dest_dir, mi
 def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False, save_merged_tiles=True):
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
+    if not os.path.exists(ready_dir):
+        os.makedirs(ready_dir)
     registry = {}
     graph = {}
     lst = sorted(os.listdir(src_dir))
