@@ -48,7 +48,6 @@ void main (void) {
 }
 """
 
-
 fragment_shader_src = """
 #ifdef GL_ES
     precision highp float;
@@ -66,6 +65,54 @@ void main (void) {
     gl_FragColor = texture2D(texture_id, tex_coord0) * line_color;
 }
 """
+
+
+# vertex_shader_src = """
+# #ifdef GL_ES
+#     precision highp float;
+# #endif
+# attribute vec3  v_pos;
+# attribute vec3  v_normal;
+# attribute vec2  v_tex_coord;
+# uniform mat4 modelview_mat;
+# uniform mat4 projection_mat;
+# uniform float Tr;
+# varying vec2 tex_coord0;
+# varying vec4 normal_vec;
+# varying vec4 vertex_pos;
+# void main (void) {
+#     vec4 pos = modelview_mat * vec4(v_pos, 1.0);
+#     vertex_pos = pos;
+#     normal_vec = vec4(v_normal,0.0);
+#     gl_Position = projection_mat * pos;
+#     tex_coord0 = v_tex_coord;
+# }
+# """
+# fragment_shader_src = """
+# #ifdef GL_ES
+#     precision highp float;
+# #endif
+# varying vec4 normal_vec;
+# varying vec4 vertex_pos;
+# varying vec2 tex_coord0;
+# uniform sampler2D texture_id;
+# uniform mat4 normal_mat;
+# uniform vec4 line_color;
+# uniform vec3 Kd;
+# uniform vec3 Ka;
+# uniform vec3 Ks;
+# uniform float Tr;
+# uniform float Ns;
+# uniform float intensity;
+# void main (void) {
+#     vec4 v_normal = normalize( normal_mat * normal_vec );
+#     vec4 v_light = normalize( vec4(0,0,0,1) - vertex_pos );
+#     vec3 Ia = intensity * Kd;
+#     vec3 Id = intensity * Ka * max(dot(v_light, v_normal), 0.0);
+#     vec3 Is = intensity * Ks * pow(max(dot(v_light, v_normal), 0.0), Ns); 
+#     gl_FragColor = vec4(Ia + Id + Is, Tr);
+# }
+# """
 
 
 def ignore_undertouch(func):
@@ -87,8 +134,8 @@ class Renderer(Widget):
     ROTATE_VERTICAL_MAX = 90
     ROTATE_VERTICAL_INITIAL = 25
 
-    SEGMENT_SIZE = 10.0
-    PLANET_EQUATOR_SEGMENTS = 360.0
+    SEGMENT_SIZE = 5.0
+    PLANET_EQUATOR_SEGMENTS = 360
     PLANET_EQUATOR_LENGTH = SEGMENT_SIZE * PLANET_EQUATOR_SEGMENTS
     PLANET_RADIUS = PLANET_EQUATOR_LENGTH / (2.0 * math.pi)    
     SEGMENT_ANGLE = 360.0 / PLANET_EQUATOR_SEGMENTS
@@ -102,9 +149,9 @@ class Renderer(Widget):
     PI_4_SIN = math.sin(math.pi / 4.0)
     PI_4_COS = math.cos(math.pi / 4.0)
     ELEVATION_FACTOR = PLANET_RADIUS / 10.0
-    VISIBLE_AREA_SIZE_SEGMENTS = 32
+    VISIBLE_AREA_SIZE_SEGMENTS = 36
     VISIBLE_AREA_SIZE_SEGMENTS_HALF = int(VISIBLE_AREA_SIZE_SEGMENTS / 2.0)
-    LAND_MOVE_SPEED = 0.25
+    LAND_MOVE_SPEED = 0.1
 
     def __init__(self, app_root, scene, **kwargs):
         self.app_root = app_root
@@ -167,16 +214,12 @@ class Renderer(Widget):
         self.area_center_h = int(map_center_h)
         self.segment_shift_w = 0.5
         self.segment_shift_h = 0.5
-        planet_angle_x = mth.w2lat_degrees(self.area_center_w, self.PLANET_EQUATOR_SEGMENTS)
-        planet_angle_z = mth.h2lon_degrees(self.area_center_h, self.PLANET_EQUATOR_SEGMENTS)
-        self.global_land_rotate_x.angle = 0
-        self.global_land_rotate_z.angle = 0
         w = int(self.area_center_w)
         h = int(self.area_center_h)
         self.land_area_left = w - self.VISIBLE_AREA_SIZE_SEGMENTS_HALF
         self.land_area_top  = h - self.VISIBLE_AREA_SIZE_SEGMENTS_HALF
-        camera_shift_angle_x = mth.w2lat_degrees(-self.segment_shift_w, self.PLANET_EQUATOR_SEGMENTS)
-        camera_shift_angle_z = mth.h2lon_degrees(-self.segment_shift_h, self.PLANET_EQUATOR_SEGMENTS)
+        camera_shift_angle_z = mth.w2lat_degrees(-self.segment_shift_w+0.5, self.PLANET_EQUATOR_SEGMENTS)
+        camera_shift_angle_x = mth.h2lon_degrees(-self.segment_shift_h+0.5, self.PLANET_EQUATOR_SEGMENTS)
         elevation_at_center = self.scene.land.get_elevation(w, h)
         planet_shift_y = self.PLANET_RADIUS + elevation_at_center * self.ELEVATION_FACTOR
         self.global_land_translate_before = Translate(0, -planet_shift_y, 0, group='land')
@@ -201,7 +244,26 @@ class Renderer(Widget):
                     self.add_land_segment(w_t, h_t, _w, _h)
                     added += 1
         if _Debug:
-            print(f'prepare land area at {w} {h} with {added} segments planet angle x:{planet_angle_x} z:{planet_angle_z}')
+            print(f'prepare land area at {w} {h} with {added} segments planet angle x:0 z:0')
+
+    def calculate_elevation(self, w_i, h_i, shift_w, shift_h):
+        _get_elevation = self.scene.land.get_elevation
+        e00 = self.PLANET_RADIUS + _get_elevation(w_i, h_i) * self.ELEVATION_FACTOR
+        e01 = self.PLANET_RADIUS + _get_elevation(w_i, h_i+1) * self.ELEVATION_FACTOR
+        e10 = self.PLANET_RADIUS + _get_elevation(w_i+1, h_i) * self.ELEVATION_FACTOR
+        e11 = self.PLANET_RADIUS + _get_elevation(w_i+1, h_i+1) * self.ELEVATION_FACTOR
+        a = self.SEGMENT_ANGLE
+        p00 = (0, 0, e00)
+        p01 = (0, a, e01)
+        p10 = (a, 0, e10)
+        p11 = (a, a, e11)
+        w_f = shift_w * a
+        h_f = shift_h * a
+        if mth.point_line_left_or_right(w_f, h_f, p00[0], p00[1], p11[0], p11[1]) == -1:
+            e = mth.get_z_in_triangle(w_f, h_f, p00, p11, p01)
+        else:
+            e = mth.get_z_in_triangle(w_f, h_f, p11, p00, p10)
+        return e
 
     def update_land(self):
         w0shift = float(self.segment_shift_w)
@@ -226,28 +288,14 @@ class Renderer(Widget):
         hd = h_i - h0
         self.area_center_w = w_i
         self.area_center_h = h_i
-        w_f = float(self.area_center_w) + self.segment_shift_w
-        h_f = float(self.area_center_h) + self.segment_shift_h
+        e = self.calculate_elevation(w_i, h_i, self.segment_shift_w, self.segment_shift_h)
         if _Debug:
-            print(f'  map from {w0},{h0} shift:{w0shift},{h0shift} to {w_i},{h_i} shift:{self.segment_shift_w},{self.segment_shift_h} global:{w_f},{h_f}')
-        _get_elevation = self.scene.land.get_elevation
-        e00 = _get_elevation(w_i, h_i + 1)
-        e01 = _get_elevation(w_i + 1, h_i + 1)
-        e10 = _get_elevation(w_i, h_i)
-        e11 = _get_elevation(w_i + 1, h_i)
-        p00 = (float(w_i), float(h_i) + 1.0, e00)
-        p01 = (float(w_i) + 1.0, float(h_i) + 1.0, e01)
-        p10 = (float(w_i), float(h_i), e10)
-        p11 = (float(w_i) + 1.0, float(h_i), e11)
-        if mth.point_line_left_or_right(w_f, h_f, p01[0], p01[1], p10[0], p10[1]) == -1:
-            e = mth.get_z_in_triangle(w_f, h_f, p01, p10, p00)
-        else:
-            e = mth.get_z_in_triangle(w_f, h_f, p01, p10, p11)
-        planet_shift_y = self.PLANET_RADIUS + e * self.ELEVATION_FACTOR
+            print(f'  map from {w0},{h0} shift:{w0shift},{h0shift} to {w_i},{h_i} with e:{e} new shift is {self.segment_shift_w},{self.segment_shift_h}')
+        planet_shift_y = e # self.PLANET_RADIUS + e * self.ELEVATION_FACTOR
         self.global_land_translate_before.y = -planet_shift_y
         self.global_land_translate_after.y = planet_shift_y
-        camera_shift_angle_x = mth.w2lat_degrees(-self.segment_shift_w, self.PLANET_EQUATOR_SEGMENTS)
-        camera_shift_angle_z = mth.h2lon_degrees(-self.segment_shift_h, self.PLANET_EQUATOR_SEGMENTS)
+        camera_shift_angle_z = mth.w2lat_degrees(-self.segment_shift_w+0.5, self.PLANET_EQUATOR_SEGMENTS)
+        camera_shift_angle_x = mth.h2lon_degrees(-self.segment_shift_h+0.5, self.PLANET_EQUATOR_SEGMENTS)
         self.global_land_rotate_x.angle = camera_shift_angle_x
         self.global_land_rotate_z.angle = camera_shift_angle_z
         added = 0
@@ -264,8 +312,8 @@ class Renderer(Widget):
                 if new_area_left <= w_t and w_t <= new_area_right and new_area_top <= h_t and h_t <= new_area_bottom:
                     area_w -= wd
                     area_h -= hd
-                    segment_angle_x = mth.w2lat_degrees(float(area_w) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF) + 1.0, self.PLANET_EQUATOR_SEGMENTS)
-                    segment_angle_z = mth.h2lon_degrees(float(area_h) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF) + 1.0, self.PLANET_EQUATOR_SEGMENTS)
+                    segment_angle_z = mth.w2lat_degrees(float(area_w) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.PLANET_EQUATOR_SEGMENTS)
+                    segment_angle_x = mth.h2lon_degrees(float(area_h) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.PLANET_EQUATOR_SEGMENTS)
                     segment_rotate_x.angle = segment_angle_x
                     segment_rotate_z.angle = segment_angle_z
                     self.land_tiles_visible[(w_t, h_t)][0] = area_w
@@ -274,8 +322,6 @@ class Renderer(Widget):
                     to_remove.append((w_t, h_t, area_w, area_h))
             for w_t, h_t, area_w, area_h in to_remove:
                 self.remove_land_segment(w_t, h_t)
-                if _Debug:
-                    print(f'            removed {w_t} {h_t}   as {area_w} {area_h}')
                 removed += 1
             for _w in range(0, self.VISIBLE_AREA_SIZE_SEGMENTS):
                 for _h in range(0, self.VISIBLE_AREA_SIZE_SEGMENTS):
@@ -283,19 +329,17 @@ class Renderer(Widget):
                     h_t = new_area_top + _h
                     if (w_t, h_t) not in self.land_tiles_visible:
                         self.add_land_segment(w_t, h_t, _w, _h)
-                        if _Debug:
-                            print(f'            added {w_t} {h_t}   as {_w} {_h} shift:{self.segment_shift_w} {self.segment_shift_h}')
                         added += 1
             self.land_area_left = new_area_left
             self.land_area_top = new_area_top
             if _Debug:
-                print(f'        updated land area, moved by {wd},{hd} added:{added} removed:{removed}')
+                print(f'        updated land area, moved by {wd},{hd} shift:{self.segment_shift_w},{self.segment_shift_h} segments added:{added} removed:{removed}')
         else:
             for k in self.land_tiles_visible.keys():
                 w_t, h_t = k
                 area_w, area_h, segment_rotate_x, segment_rotate_z = self.land_tiles_visible[(w_t, h_t)]
-                segment_angle_x = mth.w2lat_degrees(float(area_w) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF) + 1.0, self.PLANET_EQUATOR_SEGMENTS)
-                segment_angle_z = mth.h2lon_degrees(float(area_h) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF) + 1.0, self.PLANET_EQUATOR_SEGMENTS)
+                segment_angle_z = mth.w2lat_degrees(float(area_w) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.PLANET_EQUATOR_SEGMENTS)
+                segment_angle_x = mth.h2lon_degrees(float(area_h) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.PLANET_EQUATOR_SEGMENTS)
                 segment_rotate_x.angle = segment_angle_x
                 segment_rotate_z.angle = segment_angle_z
                 self.land_tiles_visible[(w_t, h_t)][0] = area_w
@@ -304,14 +348,14 @@ class Renderer(Widget):
     def add_land_segment(self, map_w, map_h, area_w, area_h):
         _get_elevation = self.scene.land.get_elevation
         _get_texture = self.scene.land.get_texture
-        w_t = map_w
-        h_t = map_h
+        w_t = int(map_w)
+        h_t = int(map_h)
         w = float(area_w)
         h = float(area_h)
-        e00 = self.PLANET_RADIUS + _get_elevation(w_t, h_t + 1) * self.ELEVATION_FACTOR
-        e01 = self.PLANET_RADIUS + _get_elevation(w_t + 1, h_t + 1) * self.ELEVATION_FACTOR
-        e10 = self.PLANET_RADIUS + _get_elevation(w_t, h_t) * self.ELEVATION_FACTOR
-        e11 = self.PLANET_RADIUS + _get_elevation(w_t + 1, h_t) * self.ELEVATION_FACTOR
+        e00 = self.PLANET_RADIUS + _get_elevation(w_t, h_t) * self.ELEVATION_FACTOR
+        e01 = self.PLANET_RADIUS + _get_elevation(w_t, h_t + 1) * self.ELEVATION_FACTOR
+        e10 = self.PLANET_RADIUS + _get_elevation(w_t + 1, h_t) * self.ELEVATION_FACTOR
+        e11 = self.PLANET_RADIUS + _get_elevation(w_t + 1, h_t + 1) * self.ELEVATION_FACTOR
         y00 = e00 * self.SEGMENT_COS
         y01 = e01 * self.SEGMENT_COS
         y10 = e10 * self.SEGMENT_COS
@@ -320,29 +364,27 @@ class Renderer(Widget):
         c01 = e01 * self.SEGMENT_SIN
         c10 = e10 * self.SEGMENT_SIN
         c11 = e11 * self.SEGMENT_SIN
-        v00 = (-c00 * self.PI_4_SIN, y00, -c00 * self.PI_4_COS)
-        v11 = (c11 * self.PI_4_SIN, y11, c11 * self.PI_4_COS)
-        v10 = (c10 * self.PI_4_COS, y10, -c10 * self.PI_4_SIN)
-        v01 = (-c01 * self.PI_4_COS, y01, c01 * self.PI_4_SIN)
-        # if _Debug:
-        #     print(f'     map segment at w:{map_w} h:{map_h} angle_x:{segment_angle_x} angle_z:{segment_angle_z}')
+        v00 = (c00 * self.PI_4_SIN, y00, -c00 * self.PI_4_COS)
+        v10 = (-c10 * self.PI_4_COS, y10, -c10 * self.PI_4_SIN)
+        v01 = (c01 * self.PI_4_COS, y01, c01 * self.PI_4_SIN)
+        v11 = (-c11 * self.PI_4_SIN, y11, c11 * self.PI_4_COS)
         tex_source, rotate = _get_texture(w_t, h_t)
-        if rotate == 0:
+        if rotate == 270:
             tex_coord00 = (0.0, 1.0)
             tex_coord01 = (1.0, 1.0)
             tex_coord10 = (0.0, 0.0)
             tex_coord11 = (1.0, 0.0)
-        elif rotate == 90:
+        elif rotate == 0:
             tex_coord00 = (0.0, 0.0)
             tex_coord01 = (0.0, 1.0)
             tex_coord10 = (1.0, 0.0)
             tex_coord11 = (1.0, 1.0)
-        elif rotate == 180:
+        elif rotate == 90:
             tex_coord00 = (1.0, 0.0)
             tex_coord01 = (0.0, 0.0)
             tex_coord10 = (1.0, 1.0)
             tex_coord11 = (0.0, 1.0)
-        elif rotate == 270:
+        elif rotate == 180:
             tex_coord00 = (1.0, 1.0)
             tex_coord01 = (1.0, 0.0)
             tex_coord10 = (0.0, 1.0)
@@ -353,16 +395,21 @@ class Renderer(Widget):
             v10[0], v10[1], v10[2], 1, 0, 0, tex_coord10[0], tex_coord10[1],
             v11[0], v11[1], v11[2], 1, 0, 0, tex_coord11[0], tex_coord11[1],
         ]
-        segment_group_name = f'land_{w_t}_{h_t}'
+        segment_group_name = f'land_{map_w}_{map_h}'
         segment_rotate_x = Rotate(0, 1, 0, 0, group=segment_group_name)
         segment_rotate_z = Rotate(0, 0, 0, 1, group=segment_group_name)
-        segment_angle_x = mth.w2lat_degrees(w - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF) + 1.0, self.PLANET_EQUATOR_SEGMENTS)
-        segment_angle_z = mth.h2lon_degrees(h - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF) + 1.0, self.PLANET_EQUATOR_SEGMENTS)
+        segment_angle_z = mth.w2lat_degrees(w - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.PLANET_EQUATOR_SEGMENTS)
+        segment_angle_x = mth.h2lon_degrees(h - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.PLANET_EQUATOR_SEGMENTS)
         segment_rotate_x.angle = segment_angle_x
         segment_rotate_z.angle = segment_angle_z
         self.container_land_tiles.add(PushMatrix(group=segment_group_name))
         self.container_land_tiles.add(segment_rotate_x)
         self.container_land_tiles.add(segment_rotate_z)
+        if int(self.area_center_w) == int(map_w) and int(self.area_center_h) == int(map_h):
+            if _Debug:
+                print(f'     map segment at w:{map_w} h:{map_h} area_w:{area_w} area_h:{area_h} {e00} {e01} {e10} {e11}')
+        #     self.container_land_tiles.add(BindTexture(source='./marker.png', index=1, group=segment_group_name))
+        # else:
         self.container_land_tiles.add(BindTexture(source=tex_source, index=1, group=segment_group_name))
         self.container_land_tiles.add(Mesh(
             vertices=vert,
@@ -372,7 +419,7 @@ class Renderer(Widget):
             group=segment_group_name,
         ))
         self.container_land_tiles.add(PopMatrix(group=segment_group_name))
-        self.land_tiles_visible[(w_t, h_t)] = [area_w, area_h, segment_rotate_x, segment_rotate_z]
+        self.land_tiles_visible[(map_w, map_h)] = [area_w, area_h, segment_rotate_x, segment_rotate_z]
 
     def remove_land_segment(self, w_t, h_t):
         tile_group_name = f'land_{w_t}_{h_t}'
@@ -469,6 +516,16 @@ class Renderer(Widget):
             print(f'removed mesh unit ({unit.name}) from scene')
 
     def setup_scene(self):
+        if False:
+            ChangeState(
+                line_color=(1., 1., 1., 1.),
+                Kd=(0.0, 1.0, 0.0),
+                Ka=(1.0, 1.0, 0.0),
+                Ks=(0.3, 0.3, 0.3),
+                Tr=1.0,
+                Ns=1.0,
+                intensity=1.0,
+            )
         PushMatrix()
         self.global_translate = Translate(0, -1, 0)
         self.global_rotate_x = Rotate(-self.ROTATE_VERTICAL_INITIAL, 1, 0, 0)
@@ -476,48 +533,67 @@ class Renderer(Widget):
         self.global_scale = Scale(self.SCALE_INITIAL)
         sz = 1
         PushState()
-        ChangeState(line_color=(0.5, 0.5, 0.5, 1.))
-        Mesh(
-            vertices=[
-                -1 * sz, -1 * sz, -1 * sz,
-                -1 * sz, -1 * sz, 1 * sz,
-                -1 * sz, 1 * sz, 1 * sz,
-                -1 * sz, 1 * sz, -1 * sz,
-                1 * sz, -1 * sz, -1 * sz,
-                1 * sz, -1 * sz, 1 * sz,
-                1 * sz, 1 * sz, 1 * sz,
-                1 * sz, 1 * sz, -1 * sz,
-            ],
-            indices=[0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7],
-            fmt=[(b'v_pos', 3, 'float'), ],
-            mode='lines',
-        )
-        ChangeState(line_color=(1., 0., 0., 1.))
-        Mesh(
-            vertices=[1 * sz, 0, 0, 0, 0, 0],
-            indices=[0, 1],
-            fmt=[(b'v_pos', 3, 'float'), ],
-            mode='lines',
-        )
-        ChangeState(line_color=(0., 1., 0., 1.))
-        Mesh(
-            vertices=[0, 1 * sz, 0, 0, 0, 0],
-            indices=[0, 1],
-            fmt=[(b'v_pos', 3, 'float'), ],
-            mode='lines',
-        )
-        ChangeState(line_color=(0., 0., 1., 1.))
-        Mesh(
-            vertices=[0, 0, 1 * sz, 0, 0, 0],
-            indices=[0, 1],
-            fmt=[(b'v_pos', 3, 'float'), ],
-            mode='lines',
-        )
-        ChangeState(line_color=(1.,1.,1.,1.))
+        if True:
+            Mesh(
+                vertices=[
+                    -1 * sz, -1 * sz, -1 * sz,
+                    -1 * sz, -1 * sz, 1 * sz,
+                    -1 * sz, 1 * sz, 1 * sz,
+                    -1 * sz, 1 * sz, -1 * sz,
+                    1 * sz, -1 * sz, -1 * sz,
+                    1 * sz, -1 * sz, 1 * sz,
+                    1 * sz, 1 * sz, 1 * sz,
+                    1 * sz, 1 * sz, -1 * sz,
+                ],
+                indices=[0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7],
+                fmt=[(b'v_pos', 3, 'float'), ],
+                mode='lines',
+            )
+            ChangeState(line_color=(1., 0., 0., 1.))
+            Mesh(
+                vertices=[1 * sz, 0, 0, 0, 0, 0],
+                indices=[0, 1],
+                fmt=[(b'v_pos', 3, 'float'), ],
+                mode='lines',
+            )
+            ChangeState(line_color=(0., 1., 0., 1.))
+            Mesh(
+                vertices=[0, 1 * sz, 0, 0, 0, 0],
+                indices=[0, 1],
+                fmt=[(b'v_pos', 3, 'float'), ],
+                mode='lines',
+            )
+            ChangeState(line_color=(0., 0., 1., 1.))
+            Mesh(
+                vertices=[0, 0, 1 * sz, 0, 0, 0],
+                indices=[0, 1],
+                fmt=[(b'v_pos', 3, 'float'), ],
+                mode='lines',
+            )
+            ChangeState(line_color=(1.,1.,1.,1.))
         PopState()
         Color(1, 1, 1)
         self.container_land = InstructionGroup()
         self.container = InstructionGroup()
+        if False:
+            self.container_land.add(ChangeState(
+                line_color=(1., 1., 1., 1.),
+                Kd=(0.0, 1.0, 0.0),
+                Ka=(1.0, 1.0, 0.0),
+                Ks=(0.3, 0.3, 0.3),
+                Tr=1.0,
+                Ns=1.0,
+                intensity=1.0,
+            ))
+            self.container.add(ChangeState(
+                line_color=(1., 1., 1., 1.),
+                Kd=(0.0, 1.0, 0.0),
+                Ka=(1.0, 1.0, 0.0),
+                Ks=(0.3, 0.3, 0.3),
+                Tr=1.0,
+                Ns=1.0,
+                intensity=1.0,
+            ))
         PopMatrix()
 
     def on_keyboard_closed(self):
@@ -657,6 +733,13 @@ class Renderer(Widget):
         self.canvas['modelview_mat'] = Matrix().look_at(0, 0, -5, 0, 0, 0, 0, 1, 0)
         self.canvas['diffuse_light'] = (1.0, 1.0, 1.0)
         self.canvas['ambient_light'] = (0.1, 0.1, 0.1)
+        self.canvas['Kd'] = (0.0, 1.0, 0.0)
+        self.canvas['Ka'] = (1.0, 1.0, 0.0)
+        self.canvas['Ks'] = (0.3, 0.3, 0.3)
+        self.canvas['Tr'] = 1.0
+        self.canvas['Ns'] = 1.0
+        self.canvas['intensity'] = 1.0
+        self.canvas['line_color'] = (1., 1., 1., 1.)
         self.on_gl_error('step 2')
 
     def on_update_animations(self, delta):

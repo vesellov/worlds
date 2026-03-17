@@ -113,7 +113,7 @@ class AppRoot(App):
         if unit:
             unit.animation_playing = unit.animations_loaded[0]
             renderer.add_unit(unit.name)
-        renderer.prepare_land(356, 482, land.width, land.height) # int(land.width / 2), int(land.height / 2),
+        renderer.prepare_land(350, 507, land.width, land.height) # int(land.width / 2), int(land.height / 2),
         # renderer.update_land()
         return renderer
 
