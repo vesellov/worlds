@@ -161,15 +161,15 @@ def read_json_file(json_file_path, output_width, output_height):
 
 def plant_trees(data):
     trees_biomes_mapping = {
-        'Tropical seasonal forest': (3.0, ['hills',]),
-        'Temperate deciduous forest': (3.0, ['hills', 'fields',]),
-        'Tropical rainforest': (6.0, ['hills',]),
-        'Temperate rainforest': (3.0, ['coast',]),
-        'Taiga': (0.5, ['hills']),
-        'Hot desert': (0.1, ['desert',]),
-        'Glacier': (0.1, ['winter',]),
-        'Cold desert': (0.1, ['winter',]),
-        'Grassland': (0.1, ['fields',]),
+        'Tropical seasonal forest': (10.0, ['hills',]),
+        'Temperate deciduous forest': (10.0, ['hills', 'fields',]),
+        'Tropical rainforest': (20.0, ['hills',]),
+        'Temperate rainforest': (10.0, ['coast',]),
+        'Taiga': (1.0, ['hills']),
+        'Hot desert': (1.0, ['desert',]),
+        'Glacier': (1.0, ['winter',]),
+        'Cold desert': (1.0, ['winter',]),
+        'Grassland': (1.0, ['fields',]),
     }
     trees_registry = {}
     for model_name, variants in json.loads(open('models.json', 'rt').read()).items():
@@ -214,6 +214,7 @@ def plant_trees(data):
             t['x'] = p.x
             t['y'] = p.y
             trees.append(t)
+    print(f"Planted {len(trees)} trees")
     return trees
 
 
@@ -239,7 +240,11 @@ def main():
         else:
             raise Exception(f"Unexpected parts count in {t}")
 
-    biome_image, heightmap_image, biomes_colors = read_json_file(sys.argv[1], sys.argv[2], sys.argv[3])
+    biome_image, heightmap_image, biomes_colors = read_json_file(
+        json_file_path=sys.argv[1],
+        output_width=sys.argv[2],
+        output_height=sys.argv[3],
+    )
 
     if heightmap_image.size != biome_image.size:
         raise Exception("Height map and biome map sizes do not match")
@@ -626,7 +631,7 @@ def main():
             tile = tiles_map[(x, y)]
             tiles_image.putpixel((x, y), avarage_colors[tile])
             stats[tile] = stats.get(tile, 0) + 1
-    tiles_image.save(sys.argv[4])
+    tiles_image.save('tiles.png')
 
     missing_links = {}
     for x in range(1, biome_image.width-1):
@@ -919,7 +924,7 @@ def main():
             catalog_id, rotate = tiles[(x, y)] if (x, y) in tiles else (None, None)
             if catalog_id is not None:
                 encoded_image.putpixel((x, y), (catalog_id % 256, catalog_id // 256, rotate // 90))
-    encoded_image.save(sys.argv[5])
+    encoded_image.save('encoded.png')
 
     fragment_image = Image.new("RGB", (fragment_width * 64, fragment_height * 64), "black")
     for x in range(fragment_x, fragment_x + fragment_width):
@@ -928,7 +933,7 @@ def main():
             if catalog_id is not None:
                 catalog_image = Image.open(os.path.join('textures', 'land', f'{catalog_id:05d}.png'))
                 fragment_image.paste(catalog_image.rotate(rotate), ((x - fragment_x) * 64, (y - fragment_y) * 64))
-    fragment_image.save(sys.argv[6])
+    fragment_image.save('fragment.png')
 
     data = read_full_json_file(sys.argv[1])
     trees_list = plant_trees(data)

@@ -27,6 +27,10 @@ class MeshData(object):
         self.object_name = None
         self.object_part_name = None
         self.onstage = False
+        self.center = []
+        self.min = []
+        self.max = []
+        self.radius = []
         self.vertices = []
         self.indices = []
         self.material = kwargs.get('material', None)
@@ -288,7 +292,6 @@ class ModelData(object):
                 mod_file_name = res.unpack_res_element(figures_file, res_mod_element, dest_file_name=os.path.join(destination_sub_dir, template + '.mod'))
                 mod_filetree = res.unpack_mod_info(mod_file_name, destination_dir=destination_sub_dir)
                 for mod_element in mod_filetree:
-                    print('mod_element', mod_element)
                     el = mod_element[0][:-4]
                     if mod_element[0].endswith('.fig'):
                         if not selected_parts or el in selected_parts:
@@ -420,18 +423,18 @@ class LandData(object):
     def load_plants_data(self, plants_data_file_name):
         plants_list = json.loads(open(plants_data_file_name, 'rt').read())
         for plant in plants_list:
-            x = int(plant['x'])
-            y = int(plant['y'])
-            shift_w = plant['x'] - x
-            shift_h = plant['y'] - y
-            plant['x'] = x
-            plant['y'] = y
+            int_w = int(plant['x'])
+            int_h = int(plant['y'])
+            shift_w = float(plant['x']) - float(int_w)
+            shift_h = float(plant['y']) - float(int_h)
+            plant['w'] = int_w
+            plant['h'] = int_h
             plant['sw'] = shift_w
             plant['sh'] = shift_h
             plant['so'] = None
-            if (x, y) not in self.plants_map_data:
-                self.plants_map_data[(x, y)] = []
-            self.plants_map_data[(x, y)].append(plant)
+            if (int_w, int_h) not in self.plants_map_data:
+                self.plants_map_data[(int_w, int_h)] = []
+            self.plants_map_data[(int_w, int_h)].append(plant)
 
     def save_elevation_memmap(self, file_name_prefix, destination_dir):
         file_path = os.path.join(destination_dir, f'{file_name_prefix}.{self.width}.{self.height}.memmap')
@@ -498,6 +501,28 @@ class SceneData(object):
         self.models[template] = model
 
     def create_mesh_from_fig_data(self, fig_data, prefix='', texture_filename=None, coefs=[0, 0, 0]):
+        """
+        fig_data fields list:
+            0:"blocks",
+            1:"vertex_count",
+            2:"normal_count",
+            3:"texcoord_count",
+            4:"index_count",
+            5:"vertex_component_count",
+            6:"morph_component_count",
+            7:"group",
+            8:"texture_number",
+            9:"center",
+            10:"min",
+            11:"max",
+            12:"radius",
+            13:"vertices",
+            14:"normals",
+            15:"texcoords",
+            16:"indexes",
+            17:"vertex_components",
+            18:"morph_components"
+        """
         global _NextMeshID
         _NextMeshID += 1
         name = prefix + '_' + str(_NextMeshID)
@@ -541,6 +566,10 @@ class SceneData(object):
                 ])
             mesh.indices.extend([idx, idx + 1, idx + 2])
             idx += 3
+        mesh.center = fig_data[9]
+        mesh.min = fig_data[10]
+        mesh.max = fig_data[11]
+        mesh.radius = fig_data[12]
         self.meshes[name] = mesh
         if _Debug:
             print(f'  prepared mesh <{name}> with {idx} faces and texture {texture_filename}')

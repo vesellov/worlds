@@ -370,8 +370,8 @@ class Renderer(Widget):
         return e
 
     def update_land(self):
-        w0shift = float(self.segment_shift_w)
-        h0shift = float(self.segment_shift_h)
+        # w0shift = float(self.segment_shift_w)
+        # h0shift = float(self.segment_shift_h)
         w0 = int(self.area_center_w)
         h0 = int(self.area_center_h)
         w_i = w0
@@ -466,6 +466,9 @@ class Renderer(Widget):
         e01 = self.PLANET_RADIUS + _get_elevation(w_t, h_t + 1) * self.ELEVATION_FACTOR
         e10 = self.PLANET_RADIUS + _get_elevation(w_t + 1, h_t) * self.ELEVATION_FACTOR
         e11 = self.PLANET_RADIUS + _get_elevation(w_t + 1, h_t + 1) * self.ELEVATION_FACTOR
+        e_min = min(e00, e01, e10, e11)
+        e_max = max(e00, e01, e10, e11)
+        e_correction = (e_max - e_min) * 0.2
         y00 = e00 * self.SEGMENT_COS
         y01 = e01 * self.SEGMENT_COS
         y10 = e10 * self.SEGMENT_COS
@@ -546,14 +549,16 @@ class Renderer(Widget):
                     )
                     self.scene.land.plants_map_data[(map_w, map_h)][i]['so'] = so.name
                 if True:
+                    e = self.calculate_elevation(map_w, map_h, plant['sw'], plant['sh'])
+                    c = e * self.SEGMENT_SIN
                     so_rotate_x, so_rotate_z = self.add_static_object(
                         name=self.scene.land.plants_map_data[(map_w, map_h)][i]['so'],
                         # container=self.container_land_tiles,
                         rotate_x=segment_angle_x,
                         rotate_z=segment_angle_z,
-                        x=0,  # self.SEGMENT_SIZE * plant['sh'],
-                        y=y00,
-                        z=0,  # self.SEGMENT_SIZE * plant['sw'],
+                        x=-c * self.PI_4_SIN * ((plant['sw'] - 0.5) * 2.0),
+                        y=e - e_correction,
+                        z=c * self.PI_4_COS * ((plant['sh'] - 0.5) * 2.0),
                     )
                     static_objects_at_segment.append((plant['so'], so_rotate_x, so_rotate_z))
         self.container_land_tiles.add(PopMatrix(group=segment_group_name))
