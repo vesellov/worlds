@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import time
 import numpy as np
@@ -15,6 +16,7 @@ _Debug = True
 
 
 _NextUnitID = 0
+_NextStaticObjectID = 0
 _NextMeshID = 0
 
 
@@ -22,8 +24,8 @@ class MeshData(object):
 
     def __init__(self, **kwargs):
         self.name = kwargs.get("name")
-        self.unit_name = None
-        self.unit_part_name = None
+        self.object_name = None
+        self.object_part_name = None
         self.onstage = False
         self.vertices = []
         self.indices = []
@@ -176,17 +178,103 @@ class UnitData(object):
         self.walk_parts_ordered(_part_visitor)
 
 
+class StaticObjectData(object):
+
+    def __init__(self):
+        self.name = None
+        self.template = None
+        self.meshes = {}
+        self.parts = []
+        self.parts_tree = {}
+        self.parts_tree_ordered = []
+        self.bones = {}
+        self.parts_parents = {}
+        self.textures = {}
+        self.onstage = False
+
+    def list_parents(self, part_name):
+        if part_name not in self.parts_parents:
+            return []
+        parents = []
+        current_part = part_name
+        while current_part and current_part in self.parts_parents:
+            next_parent = self.parts_parents[current_part]
+            if next_parent:
+                parents.insert(0, next_parent)
+            current_part = next_parent
+        return parents
+
+    def walk_parts(self, visitor_before, visitor_after=None, tree=None):
+        if tree is None:
+            tree = self.parts_tree
+        for part_name, other_parts in tree.items():
+            if part_name in self.parts:
+                visitor_before(self, part_name)
+                self.walk_parts(visitor_before, visitor_after, other_parts)
+                if visitor_after:
+                    visitor_after(self, part_name)
+
+    def walk_parts_ordered(self, visitor, ordered_tree=None, parent_part_name=None):
+        if ordered_tree is None:
+            ordered_tree = self.parts_tree_ordered
+        this_part_name = ordered_tree[0]
+        if this_part_name not in self.parts:
+            return
+        this_part_branches = ordered_tree[1]
+        visitor(this_part_name, parent_part_name)
+        if this_part_branches:
+            for branch in this_part_branches:
+                self.walk_parts_ordered(visitor, ordered_tree=branch, parent_part_name=this_part_name)
+
+    def walk_parts_before_after(self, visitor_before, visitor_after, ordered_tree=None, parent_part_name=None):
+        if ordered_tree is None:
+            ordered_tree = self.parts_tree_ordered
+        this_part_name = ordered_tree[0]
+        if this_part_name not in self.parts:
+            return
+        this_part_branches = ordered_tree[1]
+        visitor_before(this_part_name, parent_part_name)
+        if this_part_branches:
+            for branch in this_part_branches:
+                self.walk_parts_before_after(visitor_before, visitor_after, ordered_tree=branch, parent_part_name=this_part_name)
+        visitor_after(this_part_name, parent_part_name)
+
+
 class ModelData(object):
 
-    def __init__(self, template, **kwargs):
-        self.template = template
+    def __init__(self, **kwargs):
         self.links = {}
         self.figures = {}
         self.bones = {}
         self.animations = {}
 
-    def unpack_figure_data(self, figures_res_file_path, destination_dir, selected_parts=[], selected_animations=[], save_json=False):
-        destination_sub_dir = os.path.join(destination_dir, self.template)
+    def scan_figure_data(self, figures_res_file_path):
+        items = {}
+        with open(figures_res_file_path, 'rb') as figures_file:
+            res_filetree_dict = res.read_res_filetree(figures_file, return_dict=True)
+            for k in res_filetree_dict.keys():
+                ext = k[-4:]
+                if ext not in items:
+                    items[ext] = []
+                items[ext].append(k[:-4])
+        return items
+
+    def unpack_texture(self, texture_res_file_path, destination_dir, name):
+        with open(texture_res_file_path, 'rb') as texture_file:
+            res_filetree_dict = res.read_res_filetree(texture_file, return_dict=True)
+            for k in res_filetree_dict.keys():
+                if k.endswith('.mmp') and k[:-4].lower() == name.lower():
+                    mmp_file_path = os.path.join(destination_dir, name.lower() + '.mmp')
+                    png_file_path = os.path.join(destination_dir, name.lower() + '.png')
+                    res.unpack_res_element(texture_file, res_filetree_dict[k], dest_file_name=mmp_file_path)
+                    pil_img = res.read_mmp(mmp_file_path)
+                    pil_img.save(png_file_path)
+                    os.remove(mmp_file_path)
+                    return png_file_path
+        return None
+
+    def unpack_figure_data(self, figures_res_file_path, destination_dir, template, selected_parts=[], selected_animations=[], save_json=False):
+        destination_sub_dir = os.path.join(destination_dir, template)
         if not os.path.isdir(destination_sub_dir):
             os.makedirs(destination_sub_dir)
         lnk_count = 0
@@ -195,11 +283,12 @@ class ModelData(object):
         anm_count = 0
         with open(figures_res_file_path, 'rb') as figures_file:
             res_filetree_dict = res.read_res_filetree(figures_file, return_dict=True)
-            res_mod_element = res_filetree_dict.get(self.template + '.mod')
+            res_mod_element = res_filetree_dict.get(template + '.mod')
             if res_mod_element:
-                mod_file_name = res.unpack_res_element(figures_file, res_mod_element, dest_file_name=os.path.join(destination_sub_dir, self.template + '.mod'))
+                mod_file_name = res.unpack_res_element(figures_file, res_mod_element, dest_file_name=os.path.join(destination_sub_dir, template + '.mod'))
                 mod_filetree = res.unpack_mod_info(mod_file_name, destination_dir=destination_sub_dir)
                 for mod_element in mod_filetree:
+                    print('mod_element', mod_element)
                     el = mod_element[0][:-4]
                     if mod_element[0].endswith('.fig'):
                         if not selected_parts or el in selected_parts:
@@ -215,9 +304,9 @@ class ModelData(object):
                             'tree': lnk_tree,
                             'parents': lnk_parents,
                         }
-            res_anm_element = res_filetree_dict.get(self.template + '.anm')
+            res_anm_element = res_filetree_dict.get(template + '.anm')
             if res_anm_element:
-                anm_file_name = res.unpack_res_element(figures_file, res_anm_element, dest_file_name=os.path.join(destination_sub_dir, self.template + '.anm'))
+                anm_file_name = res.unpack_res_element(figures_file, res_anm_element, dest_file_name=os.path.join(destination_sub_dir, template + '.anm'))
                 with open(anm_file_name, 'rb') as anm_file:
                     anm_filetree = res.read_res_filetree(anm_file)
                     for anm_element in anm_filetree:
@@ -239,9 +328,9 @@ class ModelData(object):
                                         res.unpack_res_element(one_anm_file, one_anm_element, dest_file_name=one_anm_dest_file_name)
                                         self.animations[anm_element[0][:-4]][one_anm_element[0]] = res.read_anm_info(one_anm_dest_file_name)
                                         anm_count += 1
-            res_bon_element = res_filetree_dict.get(self.template + '.bon')
+            res_bon_element = res_filetree_dict.get(template + '.bon')
             if res_bon_element:
-                bon_file_name = res.unpack_res_element(figures_file, res_bon_element, dest_file_name=os.path.join(destination_sub_dir, self.template + '.bon'))
+                bon_file_name = res.unpack_res_element(figures_file, res_bon_element, dest_file_name=os.path.join(destination_sub_dir, template + '.bon'))
                 with open(bon_file_name, 'rb') as bon_file:
                     bon_filetree = res.read_res_filetree(bon_file)
                     for bon_element in bon_filetree:
@@ -252,18 +341,18 @@ class ModelData(object):
                         self.bones[bon_element[0][:-4]] = res.read_bon_info(one_bon_file_name)
                         bon_count += 1
         if _Debug:
-            print(f'for model {{{self.template}}} unpacked {lnk_count} links, {fig_count} figures, {bon_count} bones and {anm_count} animations')
+            print(f'for model {{{template}}} unpacked {lnk_count} links, {fig_count} figures, {bon_count} bones and {anm_count} animations')
         if save_json:
-            dest_json_file_path = os.path.join(destination_dir, self.template + '.json')
+            dest_json_file_path = os.path.join(destination_dir, template + '.json')
             open(dest_json_file_path, 'wt').write(json.dumps({
-                'template': self.template,
+                'template': template,
                 'figures': self.figures,
                 'links': self.links,
                 'animations': self.animations,
                 'bones': self.bones,
             }, indent=2))
             if _Debug:
-                print(f'for model {{{self.template}}} saved {lnk_count} links, {fig_count} figures, {bon_count} bones and {anm_count} animations to {dest_json_file_path}')
+                print(f'for model {{{template}}} saved {lnk_count} links, {fig_count} figures, {bon_count} bones and {anm_count} animations to {dest_json_file_path}')
 
 
 class LandData(object):
@@ -274,6 +363,7 @@ class LandData(object):
         self.elevation_map_data = {}
         self.tiles_map_data = {}
         self.tiles_textures_dir_path = None
+        self.plants_map_data = {}
 
     def load_tilemap_file(self, tilemap_file_name):
         im = Image(tilemap_file_name, keep_data=True)
@@ -326,6 +416,22 @@ class LandData(object):
                 if not _tex:
                     _tex = Image(file_path_source).texture
                     Cache.append('kv.texture', file_path, _tex)
+
+    def load_plants_data(self, plants_data_file_name):
+        plants_list = json.loads(open(plants_data_file_name, 'rt').read())
+        for plant in plants_list:
+            x = int(plant['x'])
+            y = int(plant['y'])
+            shift_w = plant['x'] - x
+            shift_h = plant['y'] - y
+            plant['x'] = x
+            plant['y'] = y
+            plant['sw'] = shift_w
+            plant['sh'] = shift_h
+            plant['so'] = None
+            if (x, y) not in self.plants_map_data:
+                self.plants_map_data[(x, y)] = []
+            self.plants_map_data[(x, y)].append(plant)
 
     def save_elevation_memmap(self, file_name_prefix, destination_dir):
         file_path = os.path.join(destination_dir, f'{file_name_prefix}.{self.width}.{self.height}.memmap')
@@ -383,12 +489,13 @@ class SceneData(object):
 
     def __init__(self, land):
         self.units = {}
+        self.static_objects = {}
         self.meshes = {}
         self.land = land
         self.models = {}
 
-    def add_model(self, model):
-        self.models[model.template] = model
+    def add_model(self, template, model):
+        self.models[template] = model
 
     def create_mesh_from_fig_data(self, fig_data, prefix='', texture_filename=None, coefs=[0, 0, 0]):
         global _NextMeshID
@@ -436,7 +543,7 @@ class SceneData(object):
             idx += 3
         self.meshes[name] = mesh
         if _Debug:
-            print(f'  prepared mesh <{name}> with {idx} faces')
+            print(f'  prepared mesh <{name}> with {idx} faces and texture {texture_filename}')
         return mesh
     
     def create_unit_from_model_data(self, template, coefs=[0, 0, 0], selected_parts=[], excluded_parts=[], selected_animations=[], textures={'*': 'default.png'}):
@@ -477,8 +584,8 @@ class SceneData(object):
                 texture_filename=u.textures[part_name] if part_name in u.textures else u.textures['*'],
                 coefs=coefs,
             )
-            mesh.unit_name = u.name
-            mesh.unit_part_name = part_name
+            mesh.object_name = u.name
+            mesh.object_part_name = part_name
             u.meshes[part_name] = mesh
             related_meshes[part_name] = mesh.name
             for anim_name in u.animations_loaded:
@@ -506,3 +613,75 @@ class SceneData(object):
         if _Debug:
             print(f'unit ({u.name}) created in {t2 - t1} sec')
         return u
+
+    def create_static_object_from_model_data(self, template, coefs=[0, 0, 0], selected_parts=[], excluded_parts=[], textures={'*': 'default.png'}):
+        global _NextStaticObjectID
+        _NextStaticObjectID += 1
+        m = self.models[template]
+        so = StaticObjectData()
+        so.template = template
+        so.name = template + str(_NextStaticObjectID)
+        so.textures = textures
+        so.parts_tree_ordered = m.links[template]['ordered']
+        so.parts_tree = m.links[template]['tree']
+        so.parts_parents = m.links[template]['parents']
+        ordered_parts_list = res.flat_tree(so.parts_tree_ordered)
+        related_meshes = {}
+        if not selected_parts:
+            selected_parts = ordered_parts_list
+        for exclude in excluded_parts:
+            if exclude in selected_parts:
+                selected_parts.remove(exclude)
+        if _Debug:
+            print(f'about to prepare static object ({so.name}) with {len(selected_parts)} parts from model {{{template}}}')
+        t1 = time.time()
+        for part_name in selected_parts:
+            so.parts.append(part_name)
+            part_info = m.bones[part_name]
+            so.bones[part_name] = mth.ei2xyz_list([
+                mth.trilinear([part_info[i][0] for i in range(8)], coefs),
+                mth.trilinear([part_info[i][1] for i in range(8)], coefs),
+                mth.trilinear([part_info[i][2] for i in range(8)], coefs),
+            ])
+            mesh = self.create_mesh_from_fig_data(
+                fig_data=m.figures[part_name],
+                prefix=so.name + '_' + part_name,
+                texture_filename=so.textures[part_name] if part_name in so.textures else so.textures['*'],
+                coefs=coefs,
+            )
+            mesh.object_name = so.name
+            mesh.object_part_name = part_name
+            so.meshes[part_name] = mesh
+            related_meshes[part_name] = mesh.name
+        self.static_objects[so.name] = so
+        t2 = time.time()
+        if _Debug:
+            print(f'static object ({so.name}) created in {t2 - t1} sec')
+        return so
+
+
+def main():
+    cmd = sys.argv[1]
+    if cmd == 'list_models':
+        md = ModelData()
+        st = md.scan_figure_data(sys.argv[2])
+        print('\n'.join(sorted(st['mod'])))
+    elif cmd == 'list_figures':
+        md = ModelData()
+        st = md.scan_figure_data()
+        print('\n'.join(sorted(st['fig'])))
+    elif cmd == 'unpack_models':
+        md = ModelData()
+        st = md.scan_figure_data(sys.argv[2])
+        lst = sorted(st['mod'])
+        # lst = ['unmogo', ] + lst
+        for m in lst:
+            print(f'loading {m}')
+            try:
+                md.unpack_figure_data(sys.argv[2], destination_dir='models', template=m)
+            except:
+                pass
+            
+
+if __name__ == '__main__':
+    main()

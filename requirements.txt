@@ -6,3 +6,4 @@ opencv-python
 imagehash
 scipy
 scikit-image
+shapely

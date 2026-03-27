@@ -5,6 +5,7 @@ import pprint
 import random
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
+from shapely.geometry import Point, Polygon
 import numpy as np
 
 min_x = 0
@@ -23,6 +24,18 @@ BEACH_COAST_LINE_HEIGHT_MAX = 16  # 0 is the water level after heightmap transla
 def xy2draw(x, y):
     global min_x, min_y, input_width, input_height, width, height
     return float(x - min_x) * float(width) / float(input_width), float(y - min_y) * float(height) / float(input_height)
+
+
+def random_points_in_polygon(polygon_points, random_points_number):
+    polygon = Polygon(polygon_points)
+    points = []
+    minx, miny, maxx, maxy = polygon.bounds
+    while len(points) < random_points_number:
+        pnt = Point(np.random.uniform(minx, maxx), np.random.uniform(miny, maxy))
+        if polygon.contains(pnt):
+            if pnt not in points:
+                points.append(pnt)
+    return points
 
 
 def read_full_json_file(file_path):
@@ -144,6 +157,64 @@ def read_json_file(json_file_path, output_width, output_height):
     biome_image.save('biome.png')
     heightmap_image.save('heightmap.png')
     return biome_image, heightmap_image, biomes_colors
+
+
+def plant_trees(data):
+    trees_biomes_mapping = {
+        'Tropical seasonal forest': (3.0, ['hills',]),
+        'Temperate deciduous forest': (3.0, ['hills', 'fields',]),
+        'Tropical rainforest': (6.0, ['hills',]),
+        'Temperate rainforest': (3.0, ['coast',]),
+        'Taiga': (0.5, ['hills']),
+        'Hot desert': (0.1, ['desert',]),
+        'Glacier': (0.1, ['winter',]),
+        'Cold desert': (0.1, ['winter',]),
+        'Grassland': (0.1, ['fields',]),
+    }
+    trees_registry = {}
+    for model_name, variants in json.loads(open('models.json', 'rt').read()).items():
+        for variant in variants:
+            tex = variant['t']
+            coefs = variant['c']
+            kind = variant['k']
+            land_types = variant['b']
+            if not kind:
+                continue
+            if kind == 'tree':
+                for land_type in land_types:
+                    if land_type not in trees_registry:
+                        trees_registry[land_type] = []
+                    trees_registry[land_type].append({
+                        'm': model_name,
+                        'c': coefs,
+                        't': tex,
+                    })
+    cells = data['pack']['cells']
+    vertices = data['pack']['vertices']
+    biomes_names = data['biomesData']['name']
+    trees = []
+    for cell in cells:
+        points = []
+        biome = biomes_names[cell['biome']]
+        if biome not in trees_biomes_mapping:
+            continue
+        for v_i in cell['v']:
+            v = vertices[v_i]
+            x, y = v['p']
+            coord = xy2draw(x, y)
+            points.append(list(coord))
+        density, land_types = trees_biomes_mapping[biome]
+        trees_in_cell_number = int(random.random() * density)
+        random_points = random_points_in_polygon(points, random_points_number=trees_in_cell_number)
+        tree_variants = []
+        for land_type in land_types:
+            tree_variants.extend(trees_registry[land_type])
+        for p in random_points:
+            t = random.choice(tree_variants)
+            t['x'] = p.x
+            t['y'] = p.y
+            trees.append(t)
+    return trees
 
 
 def color_distance(c1, c2):
@@ -858,6 +929,10 @@ def main():
                 catalog_image = Image.open(os.path.join('textures', 'land', f'{catalog_id:05d}.png'))
                 fragment_image.paste(catalog_image.rotate(rotate), ((x - fragment_x) * 64, (y - fragment_y) * 64))
     fragment_image.save(sys.argv[6])
+
+    data = read_full_json_file(sys.argv[1])
+    trees_list = plant_trees(data)
+    open('trees.json', 'w').write(json.dumps(trees_list, indent=2))
 
     different_biomes = list(stats.keys())
     different_biomes.sort(key=lambda i: stats[i], reverse=True)

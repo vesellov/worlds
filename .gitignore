@@ -1,7 +1,9 @@
 # Project
-figures.res
-models/
+*.res
 *.memmap
+*.json
+*.png
+models/
 
 
 # Byte-compiled / optimized / DLL files

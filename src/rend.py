@@ -1,3 +1,4 @@
+import os
 import sys
 import math
 
@@ -21,6 +22,7 @@ from kivy.graphics import (
 )
 
 import mth
+import dat
 
 
 vertex_shader_src = """
@@ -59,12 +61,30 @@ varying vec2 tex_coord0;
 
 uniform sampler2D texture_id;
 uniform mat4 normal_mat;
-uniform vec4 line_color;
 
 void main (void) {
-    gl_FragColor = texture2D(texture_id, tex_coord0) * line_color;
+    gl_FragColor = texture2D(texture_id, tex_coord0);
 }
 """
+
+
+# fragment_shader_src = """
+# #ifdef GL_ES
+#     precision highp float;
+# #endif
+#
+# varying vec4 normal_vec;
+# varying vec4 vertex_pos;
+# varying vec2 tex_coord0;
+#
+# uniform sampler2D texture_id;
+# uniform mat4 normal_mat;
+# uniform vec4 line_color;
+#
+# void main (void) {
+#     gl_FragColor = texture2D(texture_id, tex_coord0) * line_color;
+# }
+# """
 
 
 # vertex_shader_src = """
@@ -127,8 +147,8 @@ class Renderer(Widget):
 
     SCALE_FACTOR = 0.2
     SCALE_INITIAL = 1.0
-    MAX_SCALE = 15.0
-    MIN_SCALE = 0.5
+    MAX_SCALE = 25.0
+    MIN_SCALE = 0.2
     ROTATE_SPEED = 1.0
     ROTATE_VERTICAL_MIN = 1
     ROTATE_VERTICAL_MAX = 90
@@ -162,6 +182,7 @@ class Renderer(Widget):
         self.container = None
         self.container_land = None
         self.container_land_tiles = None
+        self.container_static_objects = None
         self.meshes_onstage = set()
         self.global_translate = None
         self.global_rotate_x = None
@@ -196,6 +217,87 @@ class Renderer(Widget):
         self.keyboard_handler.bind(on_key_down=self.on_keyboard_down)
         Clock.schedule_interval(self.on_update_glsl, 1 / 60)
         Clock.schedule_interval(self.on_update_animations, 1 / 25)
+
+    def setup_scene(self):
+        if False:
+            ChangeState(
+                line_color=(1., 1., 1., 1.),
+                Kd=(0.0, 1.0, 0.0),
+                Ka=(1.0, 1.0, 0.0),
+                Ks=(0.3, 0.3, 0.3),
+                Tr=1.0,
+                Ns=1.0,
+                intensity=1.0,
+            )
+        PushMatrix()
+        self.global_translate = Translate(0, -1, 0)
+        self.global_rotate_x = Rotate(-self.ROTATE_VERTICAL_INITIAL, 1, 0, 0)
+        self.global_rotate_y = Rotate(0, 0, 1, 0)
+        self.global_scale = Scale(self.SCALE_INITIAL)
+        sz = 1
+        PushState()
+        if False:
+            Mesh(
+                vertices=[
+                    -1 * sz, -1 * sz, -1 * sz,
+                    -1 * sz, -1 * sz, 1 * sz,
+                    -1 * sz, 1 * sz, 1 * sz,
+                    -1 * sz, 1 * sz, -1 * sz,
+                    1 * sz, -1 * sz, -1 * sz,
+                    1 * sz, -1 * sz, 1 * sz,
+                    1 * sz, 1 * sz, 1 * sz,
+                    1 * sz, 1 * sz, -1 * sz,
+                ],
+                indices=[0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7],
+                fmt=[(b'v_pos', 3, 'float'), ],
+                mode='lines',
+            )
+            ChangeState(line_color=(1., 0., 0., 1.))
+            Mesh(
+                vertices=[1 * sz, 0, 0, 0, 0, 0],
+                indices=[0, 1],
+                fmt=[(b'v_pos', 3, 'float'), ],
+                mode='lines',
+            )
+            ChangeState(line_color=(0., 1., 0., 1.))
+            Mesh(
+                vertices=[0, 1 * sz, 0, 0, 0, 0],
+                indices=[0, 1],
+                fmt=[(b'v_pos', 3, 'float'), ],
+                mode='lines',
+            )
+            ChangeState(line_color=(0., 0., 1., 1.))
+            Mesh(
+                vertices=[0, 0, 1 * sz, 0, 0, 0],
+                indices=[0, 1],
+                fmt=[(b'v_pos', 3, 'float'), ],
+                mode='lines',
+            )
+            ChangeState(line_color=(1.,1.,1.,1.))
+        PopState()
+        Color(1, 1, 1)
+        self.container = InstructionGroup()
+        self.container_land = InstructionGroup()
+        if False:
+            self.container_land.add(ChangeState(
+                line_color=(1., 1., 1., 1.),
+                Kd=(0.0, 1.0, 0.0),
+                Ka=(1.0, 1.0, 0.0),
+                Ks=(0.3, 0.3, 0.3),
+                Tr=1.0,
+                Ns=1.0,
+                intensity=1.0,
+            ))
+            self.container.add(ChangeState(
+                line_color=(1., 1., 1., 1.),
+                Kd=(0.0, 1.0, 0.0),
+                Ka=(1.0, 1.0, 0.0),
+                Ks=(0.3, 0.3, 0.3),
+                Tr=1.0,
+                Ns=1.0,
+                intensity=1.0,
+            ))
+        PopMatrix()
 
     def define_rotate_angle(self, touch):
         x_angle = (touch.dx / self.width) * 360.0 * self.ROTATE_SPEED
@@ -232,7 +334,9 @@ class Renderer(Widget):
         self.container_land.add(self.global_land_rotate_y)
         self.container_land.add(self.global_land_rotate_z)
         self.container_land_tiles = InstructionGroup()
+        self.container_static_objects = InstructionGroup()
         self.container_land.add(self.container_land_tiles)
+        self.container_land.add(self.container_static_objects)
         self.container_land.add(self.global_land_translate_after)
         self.container_land.add(PopMatrix(group='land'))
         added = 0
@@ -289,8 +393,8 @@ class Renderer(Widget):
         self.area_center_w = w_i
         self.area_center_h = h_i
         e = self.calculate_elevation(w_i, h_i, self.segment_shift_w, self.segment_shift_h)
-        if _Debug:
-            print(f'  map from {w0},{h0} shift:{w0shift},{h0shift} to {w_i},{h_i} with e:{e} new shift is {self.segment_shift_w},{self.segment_shift_h}')
+        # if _Debug:
+        #     print(f'  map from {w0},{h0} shift:{w0shift},{h0shift} to {w_i},{h_i} with e:{e} new shift is {self.segment_shift_w},{self.segment_shift_h}')
         planet_shift_y = e # self.PLANET_RADIUS + e * self.ELEVATION_FACTOR
         self.global_land_translate_before.y = -planet_shift_y
         self.global_land_translate_after.y = planet_shift_y
@@ -308,7 +412,7 @@ class Renderer(Widget):
             to_remove = []
             for k in self.land_tiles_visible.keys():
                 w_t, h_t = k
-                area_w, area_h, segment_rotate_x, segment_rotate_z = self.land_tiles_visible[(w_t, h_t)]
+                area_w, area_h, segment_rotate_x, segment_rotate_z, static_objects_at_segment = self.land_tiles_visible[(w_t, h_t)]
                 if new_area_left <= w_t and w_t <= new_area_right and new_area_top <= h_t and h_t <= new_area_bottom:
                     area_w -= wd
                     area_h -= hd
@@ -318,6 +422,9 @@ class Renderer(Widget):
                     segment_rotate_z.angle = segment_angle_z
                     self.land_tiles_visible[(w_t, h_t)][0] = area_w
                     self.land_tiles_visible[(w_t, h_t)][1] = area_h
+                    for so_name, so_rotate_x, so_rotate_z in static_objects_at_segment:
+                        so_rotate_x.angle = segment_angle_x
+                        so_rotate_z.angle = segment_angle_z
                 else:
                     to_remove.append((w_t, h_t, area_w, area_h))
             for w_t, h_t, area_w, area_h in to_remove:
@@ -337,13 +444,16 @@ class Renderer(Widget):
         else:
             for k in self.land_tiles_visible.keys():
                 w_t, h_t = k
-                area_w, area_h, segment_rotate_x, segment_rotate_z = self.land_tiles_visible[(w_t, h_t)]
+                area_w, area_h, segment_rotate_x, segment_rotate_z, static_objects_at_segment = self.land_tiles_visible[(w_t, h_t)]
                 segment_angle_z = mth.w2lat_degrees(float(area_w) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.PLANET_EQUATOR_SEGMENTS)
                 segment_angle_x = mth.h2lon_degrees(float(area_h) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.PLANET_EQUATOR_SEGMENTS)
                 segment_rotate_x.angle = segment_angle_x
                 segment_rotate_z.angle = segment_angle_z
                 self.land_tiles_visible[(w_t, h_t)][0] = area_w
                 self.land_tiles_visible[(w_t, h_t)][1] = area_h
+                for so_name, so_rotate_x, so_rotate_z in static_objects_at_segment:
+                    so_rotate_x.angle = segment_angle_x
+                    so_rotate_z.angle = segment_angle_z
 
     def add_land_segment(self, map_w, map_h, area_w, area_h):
         _get_elevation = self.scene.land.get_elevation
@@ -418,11 +528,42 @@ class Renderer(Widget):
             mode='triangles',
             group=segment_group_name,
         ))
+        static_objects_at_segment = []
+        if (map_w, map_h) in self.scene.land.plants_map_data:
+            for i in range(len(self.scene.land.plants_map_data[(map_w, map_h)])):
+                plant = self.scene.land.plants_map_data[(map_w, map_h)][i]
+                if plant['m'] not in self.scene.models:
+                    m = dat.ModelData()
+                    m.unpack_figure_data('figures.res', 'models', template=plant['m'])
+                    if not os.path.isfile('textures/model/' + plant['m'] + '.png'):
+                        m.unpack_texture('textures.res', 'textures/model', plant['m'])
+                    self.scene.add_model(plant['m'], m)
+                if not plant.get('so'):
+                    so = self.scene.create_static_object_from_model_data(
+                        template=plant['m'],
+                        coefs=plant['c'],
+                        textures={'*': 'textures/model/' + plant['t'] + '.png', },
+                    )
+                    self.scene.land.plants_map_data[(map_w, map_h)][i]['so'] = so.name
+                if True:
+                    so_rotate_x, so_rotate_z = self.add_static_object(
+                        name=self.scene.land.plants_map_data[(map_w, map_h)][i]['so'],
+                        # container=self.container_land_tiles,
+                        rotate_x=segment_angle_x,
+                        rotate_z=segment_angle_z,
+                        x=0,  # self.SEGMENT_SIZE * plant['sh'],
+                        y=y00,
+                        z=0,  # self.SEGMENT_SIZE * plant['sw'],
+                    )
+                    static_objects_at_segment.append((plant['so'], so_rotate_x, so_rotate_z))
         self.container_land_tiles.add(PopMatrix(group=segment_group_name))
-        self.land_tiles_visible[(map_w, map_h)] = [area_w, area_h, segment_rotate_x, segment_rotate_z]
+        self.land_tiles_visible[(map_w, map_h)] = [area_w, area_h, segment_rotate_x, segment_rotate_z, static_objects_at_segment]
 
     def remove_land_segment(self, w_t, h_t):
         tile_group_name = f'land_{w_t}_{h_t}'
+        _, _, _, _, static_objects_at_segment = self.land_tiles_visible[(w_t, h_t)]
+        for so_name, _, _ in static_objects_at_segment:
+            self.remove_static_object(so_name)
         self.container_land_tiles.remove_group(tile_group_name)
         self.land_tiles_visible.pop((w_t, h_t))
 
@@ -513,88 +654,63 @@ class Renderer(Widget):
             self.meshes_onstage.remove(mesh.name)
         self.container.remove_group(unit.name)
         if _Debug:
-            print(f'removed mesh unit ({unit.name}) from scene')
+            print(f'removed unit ({unit.name}) from scene')
 
-    def setup_scene(self):
-        if False:
-            ChangeState(
-                line_color=(1., 1., 1., 1.),
-                Kd=(0.0, 1.0, 0.0),
-                Ka=(1.0, 1.0, 0.0),
-                Ks=(0.3, 0.3, 0.3),
-                Tr=1.0,
-                Ns=1.0,
-                intensity=1.0,
-            )
-        PushMatrix()
-        self.global_translate = Translate(0, -1, 0)
-        self.global_rotate_x = Rotate(-self.ROTATE_VERTICAL_INITIAL, 1, 0, 0)
-        self.global_rotate_y = Rotate(0, 0, 1, 0)
-        self.global_scale = Scale(self.SCALE_INITIAL)
-        sz = 1
-        PushState()
-        if True:
-            Mesh(
-                vertices=[
-                    -1 * sz, -1 * sz, -1 * sz,
-                    -1 * sz, -1 * sz, 1 * sz,
-                    -1 * sz, 1 * sz, 1 * sz,
-                    -1 * sz, 1 * sz, -1 * sz,
-                    1 * sz, -1 * sz, -1 * sz,
-                    1 * sz, -1 * sz, 1 * sz,
-                    1 * sz, 1 * sz, 1 * sz,
-                    1 * sz, 1 * sz, -1 * sz,
-                ],
-                indices=[0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7],
-                fmt=[(b'v_pos', 3, 'float'), ],
-                mode='lines',
-            )
-            ChangeState(line_color=(1., 0., 0., 1.))
-            Mesh(
-                vertices=[1 * sz, 0, 0, 0, 0, 0],
-                indices=[0, 1],
-                fmt=[(b'v_pos', 3, 'float'), ],
-                mode='lines',
-            )
-            ChangeState(line_color=(0., 1., 0., 1.))
-            Mesh(
-                vertices=[0, 1 * sz, 0, 0, 0, 0],
-                indices=[0, 1],
-                fmt=[(b'v_pos', 3, 'float'), ],
-                mode='lines',
-            )
-            ChangeState(line_color=(0., 0., 1., 1.))
-            Mesh(
-                vertices=[0, 0, 1 * sz, 0, 0, 0],
-                indices=[0, 1],
-                fmt=[(b'v_pos', 3, 'float'), ],
-                mode='lines',
-            )
-            ChangeState(line_color=(1.,1.,1.,1.))
-        PopState()
-        Color(1, 1, 1)
-        self.container_land = InstructionGroup()
-        self.container = InstructionGroup()
-        if False:
-            self.container_land.add(ChangeState(
-                line_color=(1., 1., 1., 1.),
-                Kd=(0.0, 1.0, 0.0),
-                Ka=(1.0, 1.0, 0.0),
-                Ks=(0.3, 0.3, 0.3),
-                Tr=1.0,
-                Ns=1.0,
-                intensity=1.0,
+    def add_static_object(self, name, rotate_x, rotate_z, x, y, z):
+        if name not in self.scene.static_objects:
+            raise Exception(f'Static object {name} does not exist')
+        so = self.scene.static_objects[name]
+
+        def _visitor(part_name, parent_part_name):
+            mesh = so.meshes.get(part_name)
+            mesh.part_translate = Transform(group=mesh.name)
+            self.container_static_objects.add(PushMatrix(group=mesh.name))
+            self.container_static_objects.add(mesh.part_translate)
+            translate_mat = Matrix()
+            translate_mat.translate(x, y, z)
+            mesh.part_translate.matrix = translate_mat
+            # TODO: check if we can pass texture data directly to Mesh instruction as a parameter
+            self.container_static_objects.add(BindTexture(source=mesh.material['map_Kd'], index=1, group=mesh.name))
+            self.container_static_objects.add(Mesh(
+                vertices=mesh.vertices,
+                indices=mesh.indices,
+                fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+                mode='triangles',
+                group=mesh.name,
+                # texture=<already loaded Texture>,
             ))
-            self.container.add(ChangeState(
-                line_color=(1., 1., 1., 1.),
-                Kd=(0.0, 1.0, 0.0),
-                Ka=(1.0, 1.0, 0.0),
-                Ks=(0.3, 0.3, 0.3),
-                Tr=1.0,
-                Ns=1.0,
-                intensity=1.0,
-            ))
-        PopMatrix()
+            self.container_static_objects.add(PopMatrix(group=mesh.name))  # part_translate
+            self.meshes_onstage.add(mesh.name)
+            mesh.onstage = True
+
+        segment_rotate_x = Rotate(0, 1, 0, 0, group=so.name)
+        segment_rotate_z = Rotate(0, 0, 0, 1, group=so.name)
+        segment_rotate_x.angle = rotate_x
+        segment_rotate_z.angle = rotate_z
+        self.container_static_objects.add(PushMatrix(group=so.name))  # static object
+        self.container_static_objects.add(segment_rotate_x)
+        self.container_static_objects.add(segment_rotate_z)
+        so.walk_parts_ordered(_visitor)
+        self.container_static_objects.add(PopMatrix(group=so.name))  # static object
+        so.onstage = True
+        if _Debug:
+            print(f'added static object ({so.name}) on scene')
+        return segment_rotate_x, segment_rotate_z
+
+    def remove_static_object(self, name):
+        if name not in self.scene.static_objects:
+            raise Exception(f'Static object {name} does not exist')
+        so = self.scene.static_objects[name]
+        so.onstage = False
+        for mesh in so.meshes.values():
+            mesh.onstage = False
+            self.container_static_objects.remove_group(mesh.name)
+            mesh.part_rotate = None
+            mesh.part_translate = None
+            self.meshes_onstage.remove(mesh.name)
+        self.container_static_objects.remove_group(so.name)
+        if _Debug:
+            print(f'removed static object ({so.name}) from scene')
 
     def on_keyboard_closed(self):
         self.keyboard_handler.unbind(on_key_down=self.on_keyboard_down)
@@ -606,6 +722,8 @@ class Renderer(Widget):
         elif keycode[1] == 'z':
             for u in self.scene.units.values():
                 if not u.onstage:
+                    continue
+                if not u.animations_loaded:
                     continue
                 current_animation_ind = u.animations_loaded.index(u.animation_playing)
                 current_animation_ind += 1
@@ -619,6 +737,8 @@ class Renderer(Widget):
         elif keycode[1] == 'x':
             for u in self.scene.units.values():
                 if not u.onstage:
+                    continue
+                if not u.animations_loaded:
                     continue
                 current_animation_ind = u.animations_loaded.index(u.animation_playing)
                 current_animation_ind -= 1
@@ -637,11 +757,11 @@ class Renderer(Widget):
             for name in units_onstage:
                 self.remove_unit(name)
             self.app_root.test_id += 1
-            if self.app_root.test_id > 3:
-                self.app_root.test_id = 1
             unit = self.app_root.prepare_test_unit(scene=self.scene, test=self.app_root.test_id)
             if unit and not unit.onstage:
-                self.add_unit(name)
+                if unit.animations_loaded:
+                    unit.animation_playing = unit.animations_loaded[0]
+                self.add_unit(unit.name)
         elif keycode[1] == 'v':
             units_onstage = []
             for unit in self.scene.units.values():
@@ -650,11 +770,11 @@ class Renderer(Widget):
             for name in units_onstage:
                 self.remove_unit(name)
             self.app_root.test_id -= 1
-            if self.app_root.test_id == 0:
-                self.app_root.test_id = 3
             unit = self.app_root.prepare_test_unit(scene=self.scene, test=self.app_root.test_id)
             if unit and not unit.onstage:
-                self.add_unit(name)
+                if unit.animations_loaded:
+                    unit.animation_playing = unit.animations_loaded[0]
+                self.add_unit(unit.name)
         elif keycode[1] == 'a':
             if self.area_center_h + self.VISIBLE_AREA_SIZE_SEGMENTS_HALF + 1 < self.map_height:
                 self.segment_shift_h = self.segment_shift_h + self.LAND_MOVE_SPEED
