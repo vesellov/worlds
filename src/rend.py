@@ -17,8 +17,10 @@ from kivy.graphics.context_instructions import Transform  # @UnresolvedImport
 from kivy.graphics import (
     RenderContext, Callback, BindTexture,
     ChangeState, PushState, PopState,
-    PushMatrix, PopMatrix, Scale,
+    PushMatrix, PopMatrix,
+    # Scale,
     Color, Translate, Rotate, Mesh,
+    # UpdateNormalMatrix,
 )
 
 import mth
@@ -44,7 +46,7 @@ varying vec4 vertex_pos;
 void main (void) {
     vec4 pos = modelview_mat * vec4(v_pos, 1.0);
     vertex_pos = pos;
-    normal_vec = vec4(v_normal,0.0);
+    normal_vec = vec4(v_normal, 0.0);
     gl_Position = projection_mat * pos;
     tex_coord0 = v_tex_coord;
 }
@@ -145,14 +147,19 @@ def ignore_undertouch(func):
 
 class Renderer(Widget):
 
-    SCALE_FACTOR = 0.2
-    SCALE_INITIAL = 1.0
-    MAX_SCALE = 25.0
-    MIN_SCALE = 0.2
+    CAMERA_DISTANCE_TO_CENTER_INITIAL = 5.0
+    CAMERA_VIEW_CLIP_NEAR = 1.0
+    CAMERA_VIEW_CLIP_FAR = 200.0
+
+    SCALE_INITIAL = 2.0
+    SCALE_MIN = 0.5
+    SCALE_MAX = 10.0
+    SCALE_SPEED_FACTOR = 0.15
+
     ROTATE_SPEED = 1.0
     ROTATE_VERTICAL_MIN = 1
-    ROTATE_VERTICAL_MAX = 90
-    ROTATE_VERTICAL_INITIAL = 25
+    ROTATE_VERTICAL_MAX = 80
+    ROTATE_VERTICAL_INITIAL = 45
 
     SEGMENT_SIZE = 5.0
     PLANET_EQUATOR_SEGMENTS = 360
@@ -168,8 +175,8 @@ class Renderer(Widget):
     SEGMENT_COS = math.cos(SEGMENT_ANGLE_RADIANS)  
     PI_4_SIN = math.sin(math.pi / 4.0)
     PI_4_COS = math.cos(math.pi / 4.0)
-    ELEVATION_FACTOR = PLANET_RADIUS / 10.0
-    VISIBLE_AREA_SIZE_SEGMENTS = 36
+    ELEVATION_FACTOR = PLANET_RADIUS / 5.0
+    VISIBLE_AREA_SIZE_SEGMENTS = 48
     VISIBLE_AREA_SIZE_SEGMENTS_HALF = int(VISIBLE_AREA_SIZE_SEGMENTS / 2.0)
     LAND_MOVE_SPEED = 0.1
 
@@ -184,17 +191,25 @@ class Renderer(Widget):
         self.container_land_tiles = None
         self.container_static_objects = None
         self.meshes_onstage = set()
-        self.global_translate = None
-        self.global_rotate_x = None
-        self.global_rotate_y = None
-        self.global_scale = None
+        # self.global_translate = None
+        # self.global_rotate_x = None
+        # self.global_rotate_y = None
+        # self.global_scale = None
         self.global_land_translate_before = None
         self.global_land_translate_after = None
         self.global_land_rotate_x = None
         self.global_land_rotate_y = None
         self.global_land_rotate_z = None
-        self.map_center_w = None
-        self.map_center_h = None
+        self.global_eye_x = 0
+        self.global_eye_y = 0
+        self.global_eye_z = 0
+        self.global_center_x = 0
+        self.global_center_y = 0
+        self.global_center_z = 0
+        self.camera_distance_scale_factor = self.SCALE_INITIAL
+        self.camera_distance_to_center = self.CAMERA_DISTANCE_TO_CENTER_INITIAL
+        self.camera_angle_y = float(self.ROTATE_VERTICAL_INITIAL)
+        self.camera_angle_z = 180.0
         self.map_width = None
         self.map_height = None
         self.area_center_w = None
@@ -209,6 +224,7 @@ class Renderer(Widget):
         with self.canvas:
             self.cb = Callback(self.on_setup_gl_context)
             PushMatrix()
+            # UpdateNormalMatrix()
             self.setup_scene()
             PopMatrix()
             self.cb = Callback(self.on_reset_gl_context)
@@ -230,10 +246,13 @@ class Renderer(Widget):
                 intensity=1.0,
             )
         PushMatrix()
-        self.global_translate = Translate(0, -1, 0)
-        self.global_rotate_x = Rotate(-self.ROTATE_VERTICAL_INITIAL, 1, 0, 0)
-        self.global_rotate_y = Rotate(0, 0, 1, 0)
-        self.global_scale = Scale(self.SCALE_INITIAL)
+        # self.global_translate = Translate(0, -1, 0)
+        # self.global_translate = Translate(0, 0, 0)
+        # self.global_rotate_x = Rotate(-self.ROTATE_VERTICAL_INITIAL, 1, 0, 0)
+        # self.global_rotate_x = Rotate(0, 1, 0, 0)
+        # self.global_rotate_y = Rotate(0, 0, 1, 0)
+        # self.global_scale = Scale(self.SCALE_INITIAL)
+        # self.global_scale = Scale(1)
         sz = 1
         PushState()
         if False:
@@ -273,7 +292,7 @@ class Renderer(Widget):
                 fmt=[(b'v_pos', 3, 'float'), ],
                 mode='lines',
             )
-            ChangeState(line_color=(1.,1.,1.,1.))
+            ChangeState(line_color=(1., 1., 1., 1.))
         PopState()
         Color(1, 1, 1)
         self.container = InstructionGroup()
@@ -299,6 +318,30 @@ class Renderer(Widget):
             ))
         PopMatrix()
 
+    def setup_canvas(self):
+        asp = self.width / float(self.height)
+        # self.on_gl_error('step 1')
+        # self.canvas['texture_id'] = 1
+        self.global_eye_x = float(self.camera_distance_scale_factor) * self.camera_distance_to_center * math.sin(math.radians(self.camera_angle_y)) * math.sin(math.radians(self.camera_angle_z))
+        self.global_eye_y = float(self.camera_distance_scale_factor) * self.camera_distance_to_center * math.cos(math.radians(self.camera_angle_y))
+        self.global_eye_z = float(self.camera_distance_scale_factor) * self.camera_distance_to_center * math.sin(math.radians(self.camera_angle_y)) * math.cos(math.radians(self.camera_angle_z))
+        self.canvas['projection_mat'] = Matrix().view_clip(-asp, asp, -1, 1, self.CAMERA_VIEW_CLIP_NEAR, self.CAMERA_VIEW_CLIP_FAR, 1)
+        self.canvas['modelview_mat'] = Matrix().look_at(
+            self.global_eye_x, self.global_eye_y, self.global_eye_z,
+            self.global_center_x, self.global_center_y, self.global_center_z,
+            0, 1, 0,  # up vector
+        )
+        # self.canvas['diffuse_light'] = (1.0, 1.0, 1.0)
+        # self.canvas['ambient_light'] = (0.1, 0.1, 0.1)
+        # self.canvas['Kd'] = (0.0, 1.0, 0.0)
+        # self.canvas['Ka'] = (1.0, 1.0, 0.0)
+        # self.canvas['Ks'] = (0.3, 0.3, 0.3)
+        # self.canvas['Tr'] = 1.0
+        # self.canvas['Ns'] = 1.0
+        # self.canvas['intensity'] = 1.0
+        # self.canvas['line_color'] = (1., 1., 1., 1.)
+        # self.on_gl_error('step 2')
+
     def define_rotate_angle(self, touch):
         x_angle = (touch.dx / self.width) * 360.0 * self.ROTATE_SPEED
         y_angle = -1 * (touch.dy / self.height) * 360.0 * self.ROTATE_SPEED
@@ -308,8 +351,6 @@ class Renderer(Widget):
         self.global_land_rotate_x = Rotate(0, 1, 0, 0, group='land')
         self.global_land_rotate_y = Rotate(0, 0, 1, 0, group='land')
         self.global_land_rotate_z = Rotate(0, 0, 0, 1, group='land')
-        self.map_center_w = map_center_w
-        self.map_center_h = map_center_h
         self.map_width = map_width
         self.map_height = map_height
         self.area_center_w = int(map_center_w)
@@ -440,7 +481,7 @@ class Renderer(Widget):
             self.land_area_left = new_area_left
             self.land_area_top = new_area_top
             if _Debug:
-                print(f'        updated land area, moved by {wd},{hd} shift:{self.segment_shift_w},{self.segment_shift_h} segments added:{added} removed:{removed}')
+                print(f'        updated land area at {w_i} {h_i}, moved by {wd},{hd} shift:{round(self.segment_shift_w, 2)},{round(self.segment_shift_h, 2)} segments added:{added} removed:{removed}')
         else:
             for k in self.land_tiles_visible.keys():
                 w_t, h_t = k
@@ -454,6 +495,8 @@ class Renderer(Widget):
                 for so_name, so_rotate_x, so_rotate_z in static_objects_at_segment:
                     so_rotate_x.angle = segment_angle_x
                     so_rotate_z.angle = segment_angle_z
+            if _Debug:
+                print(f'        updated land area at {w_i} {h_i}, shift:{round(self.segment_shift_w, 2)},{round(self.segment_shift_h, 2)}')
 
     def add_land_segment(self, map_w, map_h, area_w, area_h):
         _get_elevation = self.scene.land.get_elevation
@@ -724,6 +767,38 @@ class Renderer(Widget):
     def on_keyboard_down(self, keyboard, keycode, text, modifiers):
         if keycode[1] == 'escape':
             App.get_running_app().stop()
+        # elif keycode[1] == 't':
+        #     self.camera_distance_to_center += 1.0
+        # elif keycode[1] == 'y':
+        #     self.camera_distance_to_center -= 1.0
+        # elif keycode[1] == 'l':
+        #     self.camera_angle_z += 1.0
+        # elif keycode[1] == 'j':
+        #     self.camera_angle_z -= 1.0
+        # elif keycode[1] == 'i':
+        #     self.camera_angle_y += 1.0
+        # elif keycode[1] == 'k':
+        #     self.camera_angle_y -= 1.0
+        # elif keycode[1] == 'u':
+        #     self.global_eye_y += 1.0
+        # elif keycode[1] == 'i':
+        #     self.global_eye_y -= 1.0
+        # elif keycode[1] == 'o':
+        #     self.global_eye_z += 1.0
+        # elif keycode[1] == 'p':
+        #     self.global_eye_z -= 1.0
+        # elif keycode[1] == 'f':
+        #     self.global_center_x += 1.0
+        # elif keycode[1] == 'g':
+        #     self.global_center_x -= 1.0
+        # elif keycode[1] == 'h':
+        #     self.global_center_y += 1.0
+        # elif keycode[1] == 'j':
+        #     self.global_center_y -= 1.0
+        # elif keycode[1] == 'k':
+        #     self.global_center_z += 1.0
+        # elif keycode[1] == 'l':
+        #     self.global_center_z -= 1.0
         elif keycode[1] == 'z':
             for u in self.scene.units.values():
                 if not u.onstage:
@@ -803,16 +878,15 @@ class Renderer(Widget):
         touch.grab(self)
         self.touches.append(touch)
         if 'button' in touch.profile and touch.button in ('scrollup', 'scrolldown'):
+            factor = self.camera_distance_scale_factor
             if touch.button == "scrolldown":
-                scale = 1.0 + self.SCALE_FACTOR
+                factor = factor * (1.0 - self.SCALE_SPEED_FACTOR)
             if touch.button == "scrollup":
-                scale = 1.0 - self.SCALE_FACTOR
-            xyz = self.global_scale.xyz
-            scale = xyz[0] * scale
-            if scale < self.MAX_SCALE and scale > self.MIN_SCALE:
-                self.global_scale.xyz = (scale, scale, scale)
+                factor = factor * (1.0 + self.SCALE_SPEED_FACTOR)
+            if factor >= self.SCALE_MIN and factor <= self.SCALE_MAX:
+                self.camera_distance_scale_factor = factor
                 if _Debug:
-                    print(f'new scale is {scale}')
+                    print(f'new scale factor is {self.camera_distance_scale_factor}')
 
     @ignore_undertouch
     def on_touch_up(self, touch):
@@ -825,13 +899,15 @@ class Renderer(Widget):
         if touch in self.touches and touch.grab_current == self:
             if len(self.touches) == 1:
                 ax, ay = self.define_rotate_angle(touch)
-                new_global_rotate_x_angle = self.global_rotate_x.angle - ay
-                if new_global_rotate_x_angle > -self.ROTATE_VERTICAL_MIN:
-                    new_global_rotate_x_angle = -self.ROTATE_VERTICAL_MIN
-                if new_global_rotate_x_angle < -self.ROTATE_VERTICAL_MAX:
-                    new_global_rotate_x_angle = -self.ROTATE_VERTICAL_MAX
-                self.global_rotate_y.angle -= ax
-                self.global_rotate_x.angle = new_global_rotate_x_angle
+                new_global_rotate_x_angle = self.camera_angle_y - ay
+                if new_global_rotate_x_angle < self.ROTATE_VERTICAL_MIN:
+                    new_global_rotate_x_angle = self.ROTATE_VERTICAL_MIN
+                if new_global_rotate_x_angle > self.ROTATE_VERTICAL_MAX:
+                    new_global_rotate_x_angle = self.ROTATE_VERTICAL_MAX
+                self.camera_angle_y = new_global_rotate_x_angle
+                self.camera_angle_z -= ax
+                if _Debug:
+                    print(f'new camera angle y:{self.camera_angle_y} z:{self.camera_angle_z}')
 
     def on_setup_gl_context(self, *args):
         glEnable(GL_DEPTH_TEST)
@@ -851,21 +927,7 @@ class Renderer(Widget):
             sys.exit(0)
 
     def on_update_glsl(self, delta):
-        asp = self.width / float(self.height)
-        self.on_gl_error('step 1')
-        self.canvas['texture_id'] = 1
-        self.canvas['projection_mat'] = Matrix().view_clip(-asp, asp, -1, 1, 1, 100, 1)
-        self.canvas['modelview_mat'] = Matrix().look_at(0, 0, -5, 0, 0, 0, 0, 1, 0)
-        self.canvas['diffuse_light'] = (1.0, 1.0, 1.0)
-        self.canvas['ambient_light'] = (0.1, 0.1, 0.1)
-        self.canvas['Kd'] = (0.0, 1.0, 0.0)
-        self.canvas['Ka'] = (1.0, 1.0, 0.0)
-        self.canvas['Ks'] = (0.3, 0.3, 0.3)
-        self.canvas['Tr'] = 1.0
-        self.canvas['Ns'] = 1.0
-        self.canvas['intensity'] = 1.0
-        self.canvas['line_color'] = (1., 1., 1., 1.)
-        self.on_gl_error('step 2')
+        self.setup_canvas()
 
     def on_update_animations(self, delta):
         # TODO: maintain separate list of active animations for all units
