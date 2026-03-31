@@ -1,7 +1,6 @@
 import os
 import sys
 import json
-import time
 import numpy as np
 
 from kivy.core.image import Image
@@ -15,18 +14,13 @@ import mth
 _Debug = True
 
 
-_NextUnitID = 0
-_NextStaticObjectID = 0
-_NextMeshID = 0
-
-
 class MeshData(object):
 
     def __init__(self, **kwargs):
         self.name = kwargs.get("name")
         self.object_name = None
         self.object_part_name = None
-        self.onstage = False
+        self.coefs = [0, 0, 0]
         self.center = []
         self.min = []
         self.max = []
@@ -34,11 +28,16 @@ class MeshData(object):
         self.vertices = []
         self.indices = []
         self.material = kwargs.get('material', None)
+
+
+class MeshTransformData(object):
+
+    def __init__(self):
         self.part_translate = None
-        self.part_animate = None
+        self.part_rotate = None
 
 
-class UnitPartAnimationData(object):
+class ObjectPartAnimationData(object):
 
     def __init__(self):
         self.frames = 0
@@ -50,7 +49,7 @@ class UnitPartAnimationData(object):
         self.morphing_frames = []
 
     def duplicate(self):
-        d = UnitPartAnimationData()
+        d = ObjectPartAnimationData()
         d.frames = self.frames
         d.rotation_frames_input = self.rotation_frames_input.copy()
         d.translation_frames_input = self.translation_frames_input.copy()
@@ -61,7 +60,7 @@ class UnitPartAnimationData(object):
         return d
 
 
-class UnitAnimationData(object):
+class ObjectAnimationData(object):
 
     def __init__(self, template, animation):
         self.template = template
@@ -69,10 +68,11 @@ class UnitAnimationData(object):
         self.parts = {}
 
 
-class UnitData(object):
+class ObjectData(object):
 
-    def __init__(self):
-        self.name = None
+    def __init__(self, name, static=True):
+        self.name = name
+        self.static = static
         self.template = None
         self.meshes = {}
         self.parts = []
@@ -81,11 +81,11 @@ class UnitData(object):
         self.bones = {}
         self.parts_parents = {}
         self.textures = {}
+        self.root_part_name = None
+        self.root_mesh_name = None
+        self.root_mesh_center = None
         self.animations = {}
         self.animations_loaded = []
-        self.animation_playing = None
-        self.animation_frame = 0
-        self.onstage = False
 
     def list_parents(self, part_name):
         if part_name not in self.parts_parents:
@@ -176,72 +176,10 @@ class UnitData(object):
                 part_a.rotation_frames_input = []
                 part_a.translation_frames_input = []
                 count += 1
-            if _Debug:
-                print(f'    calculated {count} animations for [{part_name}]')
+            # if _Debug:
+            #     print(f'    calculated {count} animations for [{part_name}]')
 
         self.walk_parts_ordered(_part_visitor)
-
-
-class StaticObjectData(object):
-
-    def __init__(self):
-        self.name = None
-        self.template = None
-        self.meshes = {}
-        self.parts = []
-        self.parts_tree = {}
-        self.parts_tree_ordered = []
-        self.bones = {}
-        self.parts_parents = {}
-        self.textures = {}
-        self.onstage = False
-
-    def list_parents(self, part_name):
-        if part_name not in self.parts_parents:
-            return []
-        parents = []
-        current_part = part_name
-        while current_part and current_part in self.parts_parents:
-            next_parent = self.parts_parents[current_part]
-            if next_parent:
-                parents.insert(0, next_parent)
-            current_part = next_parent
-        return parents
-
-    def walk_parts(self, visitor_before, visitor_after=None, tree=None):
-        if tree is None:
-            tree = self.parts_tree
-        for part_name, other_parts in tree.items():
-            if part_name in self.parts:
-                visitor_before(self, part_name)
-                self.walk_parts(visitor_before, visitor_after, other_parts)
-                if visitor_after:
-                    visitor_after(self, part_name)
-
-    def walk_parts_ordered(self, visitor, ordered_tree=None, parent_part_name=None):
-        if ordered_tree is None:
-            ordered_tree = self.parts_tree_ordered
-        this_part_name = ordered_tree[0]
-        if this_part_name not in self.parts:
-            return
-        this_part_branches = ordered_tree[1]
-        visitor(this_part_name, parent_part_name)
-        if this_part_branches:
-            for branch in this_part_branches:
-                self.walk_parts_ordered(visitor, ordered_tree=branch, parent_part_name=this_part_name)
-
-    def walk_parts_before_after(self, visitor_before, visitor_after, ordered_tree=None, parent_part_name=None):
-        if ordered_tree is None:
-            ordered_tree = self.parts_tree_ordered
-        this_part_name = ordered_tree[0]
-        if this_part_name not in self.parts:
-            return
-        this_part_branches = ordered_tree[1]
-        visitor_before(this_part_name, parent_part_name)
-        if this_part_branches:
-            for branch in this_part_branches:
-                self.walk_parts_before_after(visitor_before, visitor_after, ordered_tree=branch, parent_part_name=this_part_name)
-        visitor_after(this_part_name, parent_part_name)
 
 
 class ModelData(object):
@@ -367,6 +305,7 @@ class LandData(object):
         self.tiles_map_data = {}
         self.tiles_textures_dir_path = None
         self.plants_map_data = {}
+        self.plants_variants = {}
 
     def load_tilemap_file(self, tilemap_file_name):
         im = Image(tilemap_file_name, keep_data=True)
@@ -423,6 +362,18 @@ class LandData(object):
     def load_plants_data(self, plants_data_file_name):
         plants_list = json.loads(open(plants_data_file_name, 'rt').read())
         for plant in plants_list:
+            # if True:
+            #     plant['k'] = "nafltr56:tree02:0.5:0.5:0.5",
+            #     plant['c'] = [0.5, 0.5, 0.5]
+            #     plant['t'] = 'tree02'
+            #     plant['m'] = 'nafltr56'
+            plant['c'] = mth.quantize_coefs(plant['c'])
+            if plant['k'] not in self.plants_variants:
+                variant = dict(plant)
+                variant.pop('x', None)
+                variant.pop('y', None)
+                variant['so'] = None
+                self.plants_variants[plant['k']] = variant
             int_w = int(plant['x'])
             int_h = int(plant['y'])
             shift_w = float(plant['x']) - float(int_w)
@@ -446,14 +397,6 @@ class LandData(object):
     def get_elevation(self, w, h):
         _w = w
         _h = h
-        # if w < 0:
-        #     _w = -w 
-        # elif w >= self.width:
-        #     _w = self.width - w
-        # if h < 0:
-        #     _h = -h
-        # elif h >= self.height:
-        #     _h = self.height - h
         if w < 0:
             _w = w + self.width
         if w >= self.width:
@@ -467,14 +410,6 @@ class LandData(object):
     def get_texture(self, w, h):
         _w = w
         _h = h
-        # if w < 0:
-        #     _w = -w 
-        # elif w >= self.width:
-        #     _w = self.width - w
-        # if h < 0:
-        #     _h = -h
-        # elif h >= self.height:
-        #     _h = self.height - h
         if w < 0:
             _w = w + self.width
         if w >= self.width:
@@ -486,207 +421,6 @@ class LandData(object):
         catalog_id, rotate = self.tiles_map_data[(_w, _h)]
         texture_file_path = os.path.join(self.tiles_textures_dir_path, f'{catalog_id:05d}.png')
         return texture_file_path, rotate
-
-
-class SceneData(object):
-
-    def __init__(self, land):
-        self.units = {}
-        self.static_objects = {}
-        self.meshes = {}
-        self.land = land
-        self.models = {}
-
-    def add_model(self, template, model):
-        self.models[template] = model
-
-    def create_mesh_from_fig_data(self, fig_data, prefix='', texture_filename=None, coefs=[0, 0, 0]):
-        """
-        fig_data fields list:
-            0:"blocks",
-            1:"vertex_count",
-            2:"normal_count",
-            3:"texcoord_count",
-            4:"index_count",
-            5:"vertex_component_count",
-            6:"morph_component_count",
-            7:"group",
-            8:"texture_number",
-            9:"center",
-            10:"min",
-            11:"max",
-            12:"radius",
-            13:"vertices",
-            14:"normals",
-            15:"texcoords",
-            16:"indexes",
-            17:"vertex_components",
-            18:"morph_components"
-        """
-        global _NextMeshID
-        _NextMeshID += 1
-        name = prefix + '_' + str(_NextMeshID)
-        mesh = MeshData(
-            name=name,
-            material={'map_Kd': texture_filename} if texture_filename else None,
-        )
-        vert_buf = []
-        norm_buf = []
-        tex_buf = []
-        for i in range(fig_data[1]):
-            for j in range(4):
-                vert_buf.append(mth.ei2xyz_list([
-                    mth.trilinear([fig_data[13][i][0][k][j] for k in range(8)], coefs),
-                    mth.trilinear([fig_data[13][i][1][k][j] for k in range(8)], coefs),
-                    mth.trilinear([fig_data[13][i][2][k][j] for k in range(8)], coefs),
-                ]))
-        for i in range(fig_data[2]):
-            for j in range(4):
-                norm_buf.append(mth.ei2xyz_list([
-                    fig_data[14][i][0][j],
-                    fig_data[14][i][1][j],
-                    fig_data[14][i][2][j],
-                ]))
-        for i in range(fig_data[3]):
-            tex_buf.append(fig_data[15][i])
-        idx = 0
-        d = fig_data[17]
-        for i in fig_data[16]:
-            for f in range(3):
-                j = i[f]
-                mesh.vertices.extend([
-                    vert_buf[d[j][0] * 4 + d[j][1]][0],
-                    vert_buf[d[j][0] * 4 + d[j][1]][1],
-                    vert_buf[d[j][0] * 4 + d[j][1]][2],
-                    norm_buf[d[j][2] * 4 + d[j][3]][0],
-                    norm_buf[d[j][2] * 4 + d[j][3]][1],
-                    norm_buf[d[j][2] * 4 + d[j][3]][2],
-                    tex_buf[d[j][4]][0],
-                    tex_buf[d[j][4]][1],
-                ])
-            mesh.indices.extend([idx, idx + 1, idx + 2])
-            idx += 3
-        mesh.center = fig_data[9]
-        mesh.min = fig_data[10]
-        mesh.max = fig_data[11]
-        mesh.radius = fig_data[12]
-        self.meshes[name] = mesh
-        if _Debug:
-            print(f'  prepared mesh <{name}> with {idx} faces and texture {texture_filename}')
-        return mesh
-    
-    def create_unit_from_model_data(self, template, coefs=[0, 0, 0], selected_parts=[], excluded_parts=[], selected_animations=[], textures={'*': 'default.png'}):
-        global _NextUnitID
-        _NextUnitID += 1
-        m = self.models[template]
-        u = UnitData()
-        u.template = template
-        u.name = template + str(_NextUnitID)
-        u.textures = textures
-        u.parts_tree_ordered = m.links[template]['ordered']
-        u.parts_tree = m.links[template]['tree']
-        u.parts_parents = m.links[template]['parents']
-        ordered_parts_list = res.flat_tree(u.parts_tree_ordered)
-        u.animations_loaded = selected_animations
-        if not u.animations_loaded:
-            u.animations_loaded = list(m.animations.keys())
-        related_meshes = {}
-        if not selected_parts:
-            selected_parts = ordered_parts_list
-        for exclude in excluded_parts:
-            if exclude in selected_parts:
-                selected_parts.remove(exclude)
-        if _Debug:
-            print(f'about to prepare unit ({u.name}) with {len(selected_parts)} parts and {len(u.animations_loaded)} animations from model {{{template}}}')
-        t1 = time.time()
-        for part_name in selected_parts:
-            u.parts.append(part_name)
-            part_info = m.bones[part_name]
-            u.bones[part_name] = mth.ei2xyz_list([
-                mth.trilinear([part_info[i][0] for i in range(8)], coefs),
-                mth.trilinear([part_info[i][1] for i in range(8)], coefs),
-                mth.trilinear([part_info[i][2] for i in range(8)], coefs),
-            ])
-            mesh = self.create_mesh_from_fig_data(
-                fig_data=m.figures[part_name],
-                prefix=u.name + '_' + part_name,
-                texture_filename=u.textures[part_name] if part_name in u.textures else u.textures['*'],
-                coefs=coefs,
-            )
-            mesh.object_name = u.name
-            mesh.object_part_name = part_name
-            u.meshes[part_name] = mesh
-            related_meshes[part_name] = mesh.name
-            for anim_name in u.animations_loaded:
-                if part_name not in m.animations[anim_name]:
-                    continue
-                animation_info = m.animations[anim_name][part_name]
-                if anim_name not in u.animations:
-                    u.animations[anim_name] = UnitAnimationData(template, anim_name)
-                a = UnitPartAnimationData()
-                a.rotation_frames_input = [mth.ei2quad_list(quad) for quad in animation_info[1]]
-                a.translation_frames_input = [mth.ei2xyz_list(coord) for coord in animation_info[3]]
-                morphing_frames = []
-                if animation_info[4] != 0 and animation_info[5] != 0:
-                    for value in animation_info[6]:
-                        morphing_frames.append([])
-                        for i in range(animation_info[5]):
-                            morphing_frames[0].append(mth.ei2xyz_list(value[i]))
-                    a.morphing_frames_input = morphing_frames
-                a.frames = len(a.rotation_frames_input)
-                u.animations[anim_name].parts[part_name] = a
-
-        u.calculate_animations()
-        self.units[u.name] = u
-        t2 = time.time()
-        if _Debug:
-            print(f'unit ({u.name}) created in {t2 - t1} sec')
-        return u
-
-    def create_static_object_from_model_data(self, template, coefs=[0, 0, 0], selected_parts=[], excluded_parts=[], textures={'*': 'default.png'}):
-        global _NextStaticObjectID
-        _NextStaticObjectID += 1
-        m = self.models[template]
-        so = StaticObjectData()
-        so.template = template
-        so.name = template + str(_NextStaticObjectID)
-        so.textures = textures
-        so.parts_tree_ordered = m.links[template]['ordered']
-        so.parts_tree = m.links[template]['tree']
-        so.parts_parents = m.links[template]['parents']
-        ordered_parts_list = res.flat_tree(so.parts_tree_ordered)
-        related_meshes = {}
-        if not selected_parts:
-            selected_parts = ordered_parts_list
-        for exclude in excluded_parts:
-            if exclude in selected_parts:
-                selected_parts.remove(exclude)
-        if _Debug:
-            print(f'about to prepare static object ({so.name}) with {len(selected_parts)} parts from model {{{template}}}')
-        t1 = time.time()
-        for part_name in selected_parts:
-            so.parts.append(part_name)
-            part_info = m.bones[part_name]
-            so.bones[part_name] = mth.ei2xyz_list([
-                mth.trilinear([part_info[i][0] for i in range(8)], coefs),
-                mth.trilinear([part_info[i][1] for i in range(8)], coefs),
-                mth.trilinear([part_info[i][2] for i in range(8)], coefs),
-            ])
-            mesh = self.create_mesh_from_fig_data(
-                fig_data=m.figures[part_name],
-                prefix=so.name + '_' + part_name,
-                texture_filename=so.textures[part_name] if part_name in so.textures else so.textures['*'],
-                coefs=coefs,
-            )
-            mesh.object_name = so.name
-            mesh.object_part_name = part_name
-            so.meshes[part_name] = mesh
-            related_meshes[part_name] = mesh.name
-        self.static_objects[so.name] = so
-        t2 = time.time()
-        if _Debug:
-            print(f'static object ({so.name}) created in {t2 - t1} sec')
-        return so
 
 
 def main():
@@ -703,7 +437,6 @@ def main():
         md = ModelData()
         st = md.scan_figure_data(sys.argv[2])
         lst = sorted(st['mod'])
-        # lst = ['unmogo', ] + lst
         for m in lst:
             print(f'loading {m}')
             try:

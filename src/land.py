@@ -26,6 +26,10 @@ def xy2draw(x, y):
     return float(x - min_x) * float(width) / float(input_width), float(y - min_y) * float(height) / float(input_height)
 
 
+def quantize_coefs(coefs, quant_size=0.5):
+    return [round(round(c / quant_size, 0) * quant_size, 1) for c in coefs]
+
+
 def random_points_in_polygon(polygon_points, random_points_number):
     polygon = Polygon(polygon_points)
     points = []
@@ -172,23 +176,36 @@ def plant_trees(data):
         'Grassland': (1.0, ['fields',]),
     }
     trees_registry = {}
+    trees_variants = {}
     for model_name, variants in json.loads(open('models.json', 'rt').read()).items():
         for variant in variants:
+            modl = variant['m']
             tex = variant['t']
-            coefs = variant['c']
+            coefs = quantize_coefs(variant['c'])
             kind = variant['k']
             land_types = variant['b']
             if not kind:
                 continue
             if kind == 'tree':
+                tree_variant_key = f'{modl}:{tex}:{coefs[0]}:{coefs[1]}:{coefs[2]}'
+                if tree_variant_key not in trees_variants:
+                    trees_variants[tree_variant_key] = {
+                        'm': modl,
+                        't': tex,
+                        'c': coefs,
+                        'k': tree_variant_key,
+                    }
                 for land_type in land_types:
                     if land_type not in trees_registry:
                         trees_registry[land_type] = []
-                    trees_registry[land_type].append({
-                        'm': model_name,
-                        'c': coefs,
-                        't': tex,
-                    })
+                    if tree_variant_key not in trees_registry[land_type]:
+                        trees_registry[land_type].append(tree_variant_key)
+                    # trees_registry[land_type].append({
+                    #     'm': model_name,
+                    #     'c': coefs,
+                    #     't': tex,
+                    #     'k': tree_variant_key,
+                    # })
     cells = data['pack']['cells']
     vertices = data['pack']['vertices']
     biomes_names = data['biomesData']['name']
@@ -210,12 +227,13 @@ def plant_trees(data):
         for land_type in land_types:
             tree_variants.extend(trees_registry[land_type])
         for p in random_points:
-            t = random.choice(tree_variants)
+            t_variant = random.choice(tree_variants)
+            t = dict(trees_variants[t_variant])
             t['x'] = p.x
             t['y'] = p.y
             trees.append(t)
     print(f"Planted {len(trees)} trees")
-    return trees
+    return trees, trees_variants
 
 
 def color_distance(c1, c2):
@@ -936,8 +954,9 @@ def main():
     fragment_image.save('fragment.png')
 
     data = read_full_json_file(sys.argv[1])
-    trees_list = plant_trees(data)
+    trees_list, trees_variants = plant_trees(data)
     open('trees.json', 'w').write(json.dumps(trees_list, indent=2))
+    open('trees_variants.json', 'w').write(json.dumps(trees_variants, indent=2))
 
     different_biomes = list(stats.keys())
     different_biomes.sort(key=lambda i: stats[i], reverse=True)

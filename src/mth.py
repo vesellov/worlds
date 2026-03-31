@@ -444,3 +444,11 @@ def get_z_in_triangle(x, y, p1, p2, p3):
     if C == 0:
         return (z1 + z2 + z3) / 3.0
     return -(A * x + B * y + D) / C
+
+
+def quantize_coefs(coefs, quant_size=0.5):
+    return [round(round(c / quant_size, 0) * quant_size, 1) for c in coefs]
+
+
+def sqrt_dist(dx, dy):
+    return math.sqrt(dx*dx + dy*dy)
