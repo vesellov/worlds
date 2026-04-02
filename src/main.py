@@ -160,7 +160,7 @@ class AppRoot(App):
         scene = scen.Scene(land=land)
         renderer = rend.Renderer(app_root=self, scene=scene)
         self.known_templates = json.loads(open('models.json', 'rt').read())
-        scene.parent = renderer
+        scene.renderer = renderer
         self.test_id = 299
         # unit = self.prepare_test_unit(scene=scene, test=self.test_id)
         # if unit:
@@ -168,7 +168,7 @@ class AppRoot(App):
         #         unit.animation_playing = unit.animations_loaded[0]
         #     renderer.add_unit(unit.name)
         # self.prepare_trees(scene)
-        scene.prepare_land(287, 829, land.width, land.height) # int(land.width / 2), int(land.height / 2),
+        scene.prepare_land(277, 829, land.width, land.height) # int(land.width / 2), int(land.height / 2),
         # renderer.update_land()
         return renderer
 

@@ -1,7 +1,7 @@
 import os
 import sys
 import math
-
+import random
 
 _Debug = True
 
@@ -155,12 +155,12 @@ class Renderer(Widget):
 
     SCALE_INITIAL = 2.0
     SCALE_MIN = 0.5
-    SCALE_MAX = 100.0
+    SCALE_MAX = 12.0
     SCALE_SPEED_FACTOR = 0.2
 
     ROTATE_SPEED = 1.0
     ROTATE_VERTICAL_MIN = 1
-    ROTATE_VERTICAL_MAX = 380
+    ROTATE_VERTICAL_MAX = 79
     ROTATE_VERTICAL_INITIAL = 45
 
     def __init__(self, app_root, scene, **kwargs):
@@ -173,6 +173,7 @@ class Renderer(Widget):
         self.camera_distance_to_center = self.CAMERA_DISTANCE_TO_CENTER_INITIAL
         self.camera_angle_y = float(self.ROTATE_VERTICAL_INITIAL)
         self.camera_angle_z = 180.0
+        self.camera_unit_lock = None
         self.global_eye_x = 0
         self.global_eye_y = 0
         self.global_eye_z = 0
@@ -380,123 +381,42 @@ class Renderer(Widget):
             self.app_root.test_id += 1
             template_name = sorted(self.app_root.known_templates.keys())[self.app_root.test_id]
             test_model_data = self.app_root.known_templates[template_name][0]
-            self.scene.place_animated_unit_on_land(
+            unit = self.scene.place_animated_unit_on_land(
                 template=template_name,
                 map_w=self.scene.area_center_w,
                 map_h=self.scene.area_center_h,
                 shift_w=0.5,
                 shift_h=0.5,
+                direction=random.randint(0, 360),
                 texture=test_model_data['t'],
                 coefs=test_model_data['c'],
             )
-        # elif keycode[1] == 'c':
-        #     animated_units_onstage = []
-        #     for unit in self.scene.units.values():
-        #         if unit.static:
-        #             continue
-        #         animated_units_onstage.append(unit.name)
-        #     for name in animated_units_onstage:
-        #         # self.scene.remove_unit_from_stage(container=self.scene.container, unit_name=name)
-        #         self.scene.remove_unit_from_stage(container=self.scene.container_static_objects, unit_name=name)
-        #         # u = self.scene.units[name]
-        #         # self.scene.remove_unit_from_stage(container=self.scene.land_segment_containers[(u.w, u.h)], unit_name=name)
-        #         # self.scene.remove_unit_from_stage(container=self.scene.container, unit_name=name)
-        #     self.app_root.test_id += 1
-        #     ao = self.app_root.prepare_test_unit(scene=self.scene, test=self.app_root.test_id)
-        #     w = float(self.scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF)
-        #     h = float(self.scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF)
-        #     shift_w = 0.5
-        #     shift_h = 0.5
-        #     e = self.scene.calculate_elevation(self.scene.area_center_w, self.scene.area_center_h, shift_w, shift_h)
-        #     c = e * self.scene.SEGMENT_SIN
-        #     e_correction = 0
-        #     segment_angle_z = mth.w2lat_degrees(w - float(self.scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.scene.PLANET_EQUATOR_SEGMENTS)
-        #     segment_angle_x = mth.h2lon_degrees(h - float(self.scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.scene.PLANET_EQUATOR_SEGMENTS)
-        #     unit = self.scene.construct_unit_from_object_data(
-        #         # container=self.scene.container,
-        #         container=self.scene.container_static_objects,
-        #         # container=self.scene.land_segment_containers[(self.scene.area_center_w, self.scene.area_center_h)],
-        #         object_name=ao.name,
-        #         angle_coords=(
-        #             segment_angle_x,
-        #             segment_angle_z,
-        #         ),
-        #         shift_vector=(
-        #             -c * self.scene.PI_4_SIN * ((shift_w - 0.5) * 2.0),
-        #             e - e_correction,
-        #             c * self.scene.PI_4_COS * ((shift_h - 0.5) * 2.0),
-        #         ),
-        #         static=False,
-        #     )
-        #     unit.w = self.scene.area_center_w
-        #     unit.h = self.scene.area_center_h
-        #     unit.shift_w = shift_w
-        #     unit.shift_h = shift_h
-        #     if unit.animations_list:
-        #         unit.animation_playing = unit.animations_list[0]
-        # elif keycode[1] == 'v':
-        #     animated_units_onstage = []
-        #     for unit in self.scene.units.values():
-        #         if unit.static:
-        #             continue
-        #         animated_units_onstage.append(unit.name)
-        #     for name in animated_units_onstage:
-        #         # self.scene.remove_unit_from_stage(container=self.scene.container, unit_name=name)
-        #         # self.scene.remove_unit_from_stage(container=self.scene.land_segment_containers[(w_t, h_t)], unit_name=name)
-        #         u = self.scene.units[name]
-        #         self.scene.remove_unit_from_stage(container=self.scene.land_segment_containers[(u.w, u.h)], unit_name=name)
-        #     self.app_root.test_id -= 1
-        #     ao = self.app_root.prepare_test_unit(scene=self.scene, test=self.app_root.test_id)
-        #     w = float(self.scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF)
-        #     h = float(self.scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF)
-        #     shift_w = 0.5
-        #     shift_h = 0.5
-        #     segment_angle_z = mth.w2lat_degrees(w - float(self.scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.scene.PLANET_EQUATOR_SEGMENTS)
-        #     segment_angle_x = mth.h2lon_degrees(h - self.scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF - float(self.scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.scene.PLANET_EQUATOR_SEGMENTS)
-        #     e = self.scene.calculate_elevation(self.scene.area_center_w, self.scene.area_center_h, shift_w, shift_h)
-        #     c = e * self.scene.SEGMENT_SIN
-        #     e_correction = 0.2
-        #     unit = self.scene.construct_unit_from_object_data(
-        #         # container=self.scene.container,
-        #         container=self.scene.land_segment_containers[(self.scene.area_center_w, self.scene.area_center_h)],
-        #         object_name=ao.name,
-        #         angle_coords=(
-        #             segment_angle_x,
-        #             segment_angle_z,
-        #         ),
-        #         shift_vector=(
-        #             -c * self.scene.PI_4_SIN * ((shift_w - 0.5) * 2.0),
-        #             e - e_correction,
-        #             c * self.scene.PI_4_COS * ((shift_h - 0.5) * 2.0),
-        #         ),
-        #         static=False,
-        #     )
-        #     unit.w = self.scene.area_center_w
-        #     unit.h = self.scene.area_center_h
-        #     unit.shift_w = shift_w
-        #     unit.shift_h = shift_h
-        #     if unit.animations_list:
-        #         unit.animation_playing = unit.animations_list[0]
+            unit.max_speed = random.randint(5, 40) / 1000.0
+            unit.acceleration = random.randint(1, 10) / 1000.0
+        elif keycode[1] == 'l':
+            animated_units_onstage = []
+            for unit in self.scene.units.values():
+                if unit.static:
+                    continue
+                animated_units_onstage.append(unit.name)
+            animated_units_onstage = sorted(animated_units_onstage)
+            if self.camera_unit_lock:
+                current_index = animated_units_onstage.index(self.camera_unit_lock)
+                current_index += 1
+                if current_index >= len(animated_units_onstage):
+                    current_index = 0
+                self.camera_unit_lock = animated_units_onstage[current_index]
+            else:
+                if animated_units_onstage:
+                    self.camera_unit_lock = animated_units_onstage[0]
         elif keycode[1] == 'a':
             self.scene.shift_land(0, self.scene.LAND_MOVE_SPEED)
-            # if self.scene.area_center_h + self.scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF + 1 < self.map_height:
-            #     self.scene.segment_shift_h = self.scene.segment_shift_h + self.LAND_MOVE_SPEED
-            #     self.scene.update_land()
         elif keycode[1] == 'd':
             self.scene.shift_land(0, -self.scene.LAND_MOVE_SPEED)
-            # if self.scene.area_center_h - self.scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF > 0:
-            #     self.scene.segment_shift_h = self.scene.segment_shift_h - self.LAND_MOVE_SPEED
-            #     self.scene.update_land()
         elif keycode[1] == 's':
             self.scene.shift_land(self.scene.LAND_MOVE_SPEED, 0)
-            # if self.area_center_w + self.VISIBLE_AREA_SIZE_SEGMENTS_HALF + 1 < self.map_width:
-            #     self.segment_shift_w = self.segment_shift_w + self.LAND_MOVE_SPEED
-            #     self.update_land()
         elif keycode[1] == 'w':
             self.scene.shift_land(-self.scene.LAND_MOVE_SPEED, 0)
-            # if self.area_center_w - self.VISIBLE_AREA_SIZE_SEGMENTS_HALF > 0:
-            #     self.segment_shift_w = self.segment_shift_w - self.LAND_MOVE_SPEED
-            #     self.update_land()
         return True
 
     @ignore_undertouch
