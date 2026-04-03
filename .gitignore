@@ -1,7 +1,7 @@
 # Project
 res/
 models/
-data/*
+data/*.res
 
 
 # Byte-compiled / optimized / DLL files
