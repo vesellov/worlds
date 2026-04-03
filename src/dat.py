@@ -361,28 +361,27 @@ class LandData(object):
 
     def load_plants_data(self, plants_data_file_name):
         plants_list = json.loads(open(plants_data_file_name, 'rt').read())
-        for plant in plants_list:
-            # if True:
-            #     plant['k'] = "nafltr56:tree02:0.5:0.5:0.5",
-            #     plant['c'] = [0.5, 0.5, 0.5]
-            #     plant['t'] = 'tree02'
-            #     plant['m'] = 'nafltr56'
-            plant['c'] = mth.quantize_coefs(plant['c'])
-            if plant['k'] not in self.plants_variants:
+        for plant_coded in plants_list:
+            variant, w, h, direction = plant_coded.split(' ')
+            template, texture, c1, c2, c3 = variant.split(':')
+            plant = {}
+            plant['k'] = variant
+            plant['m'] = template
+            plant['t'] = texture
+            plant['c'] = mth.quantize_coefs([float(c1), float(c2), float(c3)])
+            if variant not in self.plants_variants:
                 variant = dict(plant)
-                variant.pop('x', None)
-                variant.pop('y', None)
                 variant['so'] = None
                 self.plants_variants[plant['k']] = variant
-            int_w = int(plant['x'])
-            int_h = int(plant['y'])
-            shift_w = float(plant['x']) - float(int_w)
-            shift_h = float(plant['y']) - float(int_h)
+            int_w = int(float(w))
+            int_h = int(float(h))
+            shift_w = float(w) - float(int_w)
+            shift_h = float(h) - float(int_h)
             plant['w'] = int_w
             plant['h'] = int_h
             plant['sw'] = shift_w
             plant['sh'] = shift_h
-            plant['so'] = None
+            plant['d'] = direction
             if (int_w, int_h) not in self.plants_map_data:
                 self.plants_map_data[(int_w, int_h)] = []
             self.plants_map_data[(int_w, int_h)].append(plant)

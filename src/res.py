@@ -3,12 +3,14 @@ import json
 import struct
 import collections
 import numpy as np
+import requests
 from PIL import Image
 
 _Debug = True
 
 
 ENCODE = "cp1251"
+_buf = ""
 
 
 def read_byte(file, count=1):
@@ -494,7 +496,6 @@ def dicts(t):
     return {k: dicts(t[k]) for k in t}
 
 
-_buf = ""
 def generate_res_tree(t, depth = 0):
     global _buf
     for k in t.keys():
@@ -519,3 +520,26 @@ def build_res_yaml(filetree, f_name):
         res_tree_add(ftree, path)
     generate_res_tree(ftree)
     return _buf
+
+
+def download_res_file(destination_dir, file_name, parts):
+    dest_file_path = os.path.join(destination_dir, file_name)
+    if os.path.isfile(dest_file_path):
+        return dest_file_path
+    chunk_size = 4096
+    progress = 0
+    downloaded = 0
+    url_prefix = 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/eng2001/res/'
+    for part in parts:
+        document_url = url_prefix + part
+        with requests.get(document_url, stream=True) as r:
+            with open(dest_file_path, 'ab') as f:
+                for chunk in r.iter_content(chunk_size):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        progress += len(chunk)
+                        if progress >= 10 * 1024 * 1024:
+                            progress -= 10 * 1024 * 1024
+                            if _Debug:
+                                print(f"Downloading {file_name}: {downloaded} bytes")

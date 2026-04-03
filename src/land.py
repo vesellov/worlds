@@ -158,8 +158,8 @@ def read_json_file(json_file_path, output_width, output_height):
     # print(f'Rendered {rivers_count} rivers')
     render_heightmap(data, heightmap_draw, max_elevation, water_level=INPUT_WATER_LEVEL)
     heightmap_image = heightmap_image.filter(ImageFilter.GaussianBlur(radius=1))
-    biome_image.save('biome.png')
-    heightmap_image.save('heightmap.png')
+    biome_image.save('assets/biome.png')
+    heightmap_image.save('assets/heightmap.png')
     return biome_image, heightmap_image, biomes_colors
 
 
@@ -177,7 +177,7 @@ def plant_trees(data):
     }
     trees_registry = {}
     trees_variants = {}
-    for model_name, variants in json.loads(open('models.json', 'rt').read()).items():
+    for model_name, variants in json.loads(open('assets/models.json', 'rt').read()).items():
         for variant in variants:
             modl = variant['m']
             tex = variant['t']
@@ -229,9 +229,10 @@ def plant_trees(data):
         for p in random_points:
             t_variant = random.choice(tree_variants)
             t = dict(trees_variants[t_variant])
-            t['x'] = p.x
-            t['y'] = p.y
-            trees.append(t)
+            t['x'] = round(p.x, 2)
+            t['y'] = round(p.y, 2)
+            t['d'] = random.randint(0, 360)
+            trees.append(f'{t_variant} {t["x"]} {t["y"]} {t["d"]}')
     print(f"Planted {len(trees)} trees")
     return trees, trees_variants
 
@@ -241,7 +242,7 @@ def color_distance(c1, c2):
 
 
 def main():
-    catalog = json.loads(open('catalog.json', 'rt').read())
+    catalog = json.loads(open('assets/catalog.json', 'rt').read())
 
     singles = set()
     pairs = set()
@@ -649,7 +650,7 @@ def main():
             tile = tiles_map[(x, y)]
             tiles_image.putpixel((x, y), avarage_colors[tile])
             stats[tile] = stats.get(tile, 0) + 1
-    tiles_image.save('tiles.png')
+    tiles_image.save('assets/tiles.png')
 
     missing_links = {}
     for x in range(1, biome_image.width-1):
@@ -942,21 +943,21 @@ def main():
             catalog_id, rotate = tiles[(x, y)] if (x, y) in tiles else (None, None)
             if catalog_id is not None:
                 encoded_image.putpixel((x, y), (catalog_id % 256, catalog_id // 256, rotate // 90))
-    encoded_image.save('encoded.png')
+    encoded_image.save('assets/encoded.png')
 
-    fragment_image = Image.new("RGB", (fragment_width * 64, fragment_height * 64), "black")
-    for x in range(fragment_x, fragment_x + fragment_width):
-        for y in range(fragment_y, fragment_y + fragment_height):
-            catalog_id, rotate = tiles[(x, y)] if (x, y) in tiles else (None, None)
-            if catalog_id is not None:
-                catalog_image = Image.open(os.path.join('textures', 'land', f'{catalog_id:05d}.png'))
-                fragment_image.paste(catalog_image.rotate(rotate), ((x - fragment_x) * 64, (y - fragment_y) * 64))
-    fragment_image.save('fragment.png')
+    # fragment_image = Image.new("RGB", (fragment_width * 64, fragment_height * 64), "black")
+    # for x in range(fragment_x, fragment_x + fragment_width):
+    #     for y in range(fragment_y, fragment_y + fragment_height):
+    #         catalog_id, rotate = tiles[(x, y)] if (x, y) in tiles else (None, None)
+    #         if catalog_id is not None:
+    #             catalog_image = Image.open(os.path.join('textures', 'land', f'{catalog_id:05d}.png'))
+    #             fragment_image.paste(catalog_image.rotate(rotate), ((x - fragment_x) * 64, (y - fragment_y) * 64))
+    # fragment_image.save('fragment.png')
 
     data = read_full_json_file(sys.argv[1])
-    trees_list, trees_variants = plant_trees(data)
-    open('trees.json', 'w').write(json.dumps(trees_list, indent=2))
-    open('trees_variants.json', 'w').write(json.dumps(trees_variants, indent=2))
+    trees, trees_variants = plant_trees(data)
+    open('assets/trees.json', 'w').write(json.dumps(trees, indent=2))
+    open('assets/trees_variants.json', 'w').write(json.dumps(sorted(trees_variants.keys()), indent=2))
 
     different_biomes = list(stats.keys())
     different_biomes.sort(key=lambda i: stats[i], reverse=True)

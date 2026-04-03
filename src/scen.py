@@ -294,9 +294,9 @@ class Scene(object):
         _NextObjectID += 1
         if template not in self.models:
             m = dat.ModelData()
-            m.unpack_figure_data('figures.res', 'models', template=template)
+            m.unpack_figure_data('data/figures.res', 'models', template=template)
             if not os.path.isfile('textures/model/' + template + '.png'):
-                m.unpack_texture('textures.res', 'textures/model', template)
+                m.unpack_texture('data/textures.res', 'textures/model', template)
             self.add_model_template(template, m)
         m = self.models[template]
         ao = dat.ObjectData(name=template+'#'+str(_NextObjectID), static=False)
@@ -376,9 +376,9 @@ class Scene(object):
         _NextObjectID += 1
         if template not in self.models:
             m = dat.ModelData()
-            m.unpack_figure_data('figures.res', 'models', template=template)
+            m.unpack_figure_data('data/figures.res', 'models', template=template)
             if not os.path.isfile('textures/model/' + template + '.png'):
-                m.unpack_texture('textures.res', 'textures/model', template)
+                m.unpack_texture('data/textures.res', 'textures/model', template)
             self.add_model_template(template, m)
         m = self.models[template]
         so = dat.ObjectData(name=template+'#'+str(_NextObjectID), static=True)
@@ -883,10 +883,10 @@ class Scene(object):
     def place_animated_unit_on_land(self, template, map_w, map_h, shift_w=0.5, shift_h=0.5, direction=0, texture=None, coefs=[0, 0, 0]):
         if template not in self.models:
             m = dat.ModelData()
-            m.unpack_figure_data('figures.res', 'models', template=template)
+            m.unpack_figure_data('data/figures.res', 'models', template=template)
             if texture:
                 if not os.path.isfile('textures/model/' + texture + '.png'):
-                    m.unpack_texture('textures.res', 'textures/model', texture)
+                    m.unpack_texture('data/textures.res', 'textures/model', texture)
             self.add_model_template(template, m)
         else:
             m = self.models[template]

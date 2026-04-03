@@ -27,7 +27,7 @@ class AppRoot(App):
             template = template or 'unmogo'
             if template not in scene.models:
                 m = dat.ModelData()
-                m.unpack_figure_data('figures.res', 'models', template=template, save_json=save_json)
+                m.unpack_figure_data('data/figures.res', 'models', template=template, save_json=save_json)
                 scene.add_model_template(template, m)
             return scene.create_animated_object_from_model_data(
                 template=template,
@@ -40,7 +40,7 @@ class AppRoot(App):
             template = template or 'unmoba2'
             if template not in scene.models:
                 m = dat.ModelData()
-                m.unpack_figure_data('figures.res', 'models', template=template, save_json=save_json)
+                m.unpack_figure_data('data/figures.res', 'models', template=template, save_json=save_json)
                 scene.add_model_template(template, m)
             return scene.create_animated_object_from_model_data(
                 template=template,
@@ -90,7 +90,7 @@ class AppRoot(App):
             ]
             if template not in scene.models:
                 m = dat.ModelData()
-                m.unpack_figure_data('figures.res', 'models', template=template, selected_parts=selected_parts, selected_animations=selected_animations, save_json=save_json)
+                m.unpack_figure_data('data/figures.res', 'models', template=template, selected_parts=selected_parts, selected_animations=selected_animations, save_json=save_json)
                 scene.add_model_template(template, m)
             return scene.create_animated_object_from_model_data(
                 template=template,
@@ -111,9 +111,9 @@ class AppRoot(App):
             selected_animations = []
             if template not in scene.models:
                 m = dat.ModelData()
-                m.unpack_figure_data('figures.res', 'models', template=template, save_json=save_json)
+                m.unpack_figure_data('data/figures.res', 'models', template=template, save_json=save_json)
                 if not os.path.isfile('textures/model/' + model_data['t']+'.png'):
-                    m.unpack_texture('textures.res', 'textures/model', model_data['t'])
+                    m.unpack_texture('data/textures.res', 'textures/model', model_data['t'])
                 scene.add_model_template(template, m)
                 selected_parts = selected_parts or res.flat_tree(m.links[template]['ordered'])
                 selected_animations = selected_animations or list(m.animations.keys())
@@ -152,14 +152,14 @@ class AppRoot(App):
 
     def build(self):
         land = dat.LandData()
-        land.load_heightmap_file(heightmap_file_name='heightmap.png', sea_level=0.001)
-        land.load_tilemap_file(tilemap_file_name='encoded.png')
+        land.load_heightmap_file(heightmap_file_name='assets/heightmap.png', sea_level=0.001)
+        land.load_tilemap_file(tilemap_file_name='assets/encoded.png')
         land.load_cache_tiles_textures(textures_dir_path='textures/land')
-        land.load_plants_data(plants_data_file_name='trees.json')
+        land.load_plants_data(plants_data_file_name='assets/trees.json')
         # land.save_elevation_memmap('island4_heightmap', destination_dir='.')
         scene = scen.Scene(land=land)
         renderer = rend.Renderer(app_root=self, scene=scene)
-        self.known_templates = json.loads(open('models.json', 'rt').read())
+        self.known_templates = json.loads(open('assets/models.json', 'rt').read())
         scene.renderer = renderer
         self.test_id = 299
         # unit = self.prepare_test_unit(scene=scene, test=self.test_id)
@@ -173,8 +173,12 @@ class AppRoot(App):
         return renderer
 
 
-if __name__ == '__main__':
-    if not os.path.isfile('figures.res'):
-        print('Please copy "figures.res" file from Evil Islands Res folder into the current folder')
-        sys.exit(-1)
+def main():
+    res.download_res_file('data', 'figures.res', ['figures_res_0', 'figures_res_1', ])
+    res.download_res_file('data', 'textures.res', ['textures_res_0', 'textures_res_1', 'textures_res_2', ])
+    res.download_res_file('data', 'redress.res', ['redress_res_0', 'redress_res_1', ])
     AppRoot().run()
+
+
+if __name__ == '__main__':
+    main()

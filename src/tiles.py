@@ -12,6 +12,8 @@ from PIL import Image, ImageChops
 from PIL.Image import Transpose
 from skimage.metrics import structural_similarity  # @UnresolvedImport
 
+import res
+
 
 logging.getLogger("PIL").propagate = False
 
@@ -79,6 +81,8 @@ def image_hash(img, to_str=False, hash_type='phash'):
         h = imagehash.dhash(img, hash_size=hash_size)
     elif hash_type == 'whash':
         h = imagehash.whash(img, hash_size=hash_size)
+    elif hash_type == 'md5':
+        h = hashlib.md5(img.tobytes()).hexdigest()
     if to_str:
         return str(h)
     return h
@@ -1171,7 +1175,7 @@ def move_tiles_within_group_by_second_side_similarity(groups_dir, dest_dir, min_
                     # sample_side_average_color = average_color_in_memory(sample_side_image)
                     diff_score = images_diff_score_in_memory(tile_other_side_image, sample_side_image)
                     # diff_color = color_distance(tile_other_side_average_color, sample_side_average_color)
-                    # score = round(diff_score * (1.0 - (diff_color / color_distance_factor)), 3)
+                    # score = round(diff_score * (1.0 - (diff_color ', 'color_distance_factor)), 3)
                     score = round(diff_score, 3)
                     # print(f'{group_name}/{tile_name}/{tile_other_side}    {score} {sample} {sample_side} {rotation}')
                     if best_tile_side_score is None or score > best_tile_side_score:
@@ -2179,6 +2183,88 @@ def build_index(src_dir, dest_dir):
     print(f'indexed {len(index_by_hash)} unique tiles')
 
 
+def unpack_textures(dest_dir):
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir)
+    with open('textures.res', 'rb') as texture_file:
+        res_filetree_dict = res.read_res_filetree(texture_file, return_dict=True)
+        for k in res_filetree_dict.keys():
+            if k.endswith('.mmp'):
+                name = k[:-4].lower()
+                mmp_file_path = os.path.join(dest_dir, name + '.mmp')
+                png_file_path = os.path.join(dest_dir, name + '.png')
+                res.unpack_res_element(texture_file, res_filetree_dict[k], dest_file_name=mmp_file_path)
+                pil_img = res.read_mmp(mmp_file_path)
+                pil_img.save(png_file_path)
+                os.remove(mmp_file_path)
+                print(f'Unpacked {k} to {png_file_path}')
+
+
+def match_tiles(src_dir, textures_dir, dest_dir):
+    lst = sorted(os.listdir(src_dir))
+    map_names = [
+        'basegipat',
+        'bz2g', 'bz3g', 'bz4g', 'bz5g', 'bz6g', 'bz7g',
+        'bz8k', 'bz9k', 'bz10k', 'bz11k',
+        'bz13h', 'bz14h', 'bz15h', 'bz16h', 'bz18h', 'bz19h',
+        'zone1', 'zone2', 'zone4', 'zone6', 'zone7', 'zone8', 'zone9', 'zone10', 'zone11',
+        'zone12', 'zone13', 'zone14', 'zone15', 'zone16', 'zone17', 'zone18', 'zone19', 'zone20', 'zone25', 'zone26', 
+        'zone34', 'zone35', 'zone71',
+        'zone5_1', 'zone6_1', 'zone6_2', 'zone17_1', 'zone3obr',
+        'zonemainmenunew', 'zonefinal',
+    ]
+    cache = {}
+    cache_alt = {}
+    for map_name in map_names:
+        for map_part in range(8):
+            map_file_name = f'{map_name}{map_part:03d}.png'
+            map_file_path = os.path.join(textures_dir, map_file_name)
+            if not os.path.exists(map_file_path):
+                continue
+            map_image = Image.open(map_file_path)
+            map_image.load()
+            for h in range(8):
+                for w in range(8):
+                    one_tile_image, one_tile_hash = image_tile(map_image, w, h)
+                    cache[one_tile_hash] = (map_file_name, w, h)
+                    one_tile_hash_alt = image_hash(one_tile_image, to_str=True)
+                    cache_alt[one_tile_hash_alt] = (map_file_name, w, h)
+    print(f'Cached {len(cache)} tiles from map files')
+    tiles = {}
+    unmatched = []
+    for tile_file_name in lst:
+        if not tile_file_name.endswith('.png'):
+            continue
+        tile_name = tile_file_name.replace('.png','').rstrip('_')
+        tile_file_path = os.path.join(src_dir, tile_file_name)
+        tile_image = Image.open(tile_file_path)
+        tile_image.load()
+        found = False
+        for rotation in [0, 90, 180, 270, -1, -2]:
+            tile_rotated_image = get_rotated_image(tile_image, rotation)
+            tile_rotated_hash = image_hash(tile_rotated_image, hash_type='md5')
+            if tile_rotated_hash in cache:
+                map_file_name, w, h = cache[tile_rotated_hash]
+                tiles[tile_name] = f'{map_file_name[:-4]} {w} {h} {rotation}'
+                print(f'Matched tile {tile_name} to {map_file_name} at {w},{h} with rotation {rotation}')
+                found = True
+                break
+            tile_rotated_hash_alt = image_hash(tile_rotated_image, to_str=True, hash_type='phash')
+            if tile_rotated_hash_alt in cache_alt:
+                map_file_name, w, h = cache_alt[tile_rotated_hash_alt]
+                tiles[tile_name] = f'{map_file_name[:-4]} {w} {h} {rotation}'
+                print(f'Matched tile {tile_name} to {map_file_name} at {w},{h} with rotation {rotation} by alternative hash')
+                found = True
+                break
+        if not found:
+            unmatched.append((tile_name, tile_image))
+    print(f'Found {len(unmatched)} unmatched tiles')
+    for tile_name, tile_image in unmatched:
+        tile_image.save(os.path.join(dest_dir, f'{tile_name}.png'))
+        tiles[tile_name] = ''
+    open(os.path.join('tiles.json'), 'w').write(json.dumps(tiles, indent=2))
+
+
 def main():
     stage = sys.argv[1]
     if stage == 'stage1':
@@ -2213,6 +2299,10 @@ def main():
     elif stage == 'stage9':
         read_tile_types()
         merge_tiles(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], save_ready_tiles=True)
+    elif stage == 'unpack_textures':
+        unpack_textures(sys.argv[2])
+    elif stage == 'match_tiles':
+        match_tiles(sys.argv[2], sys.argv[3], sys.argv[4])
 
 
 if __name__ == '__main__':
