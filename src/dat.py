@@ -352,6 +352,7 @@ class LandData(object):
 
     def load_cache_tiles_textures(self, textures_dir_path):
         self.tiles_textures_dir_path = textures_dir_path
+        count = 0
         for file_name in os.listdir(self.tiles_textures_dir_path):
             if not file_name.endswith('.png'):
                 continue
@@ -362,6 +363,9 @@ class LandData(object):
                 if not _tex:
                     _tex = Image(file_path_source).texture
                     Cache.append('kv.texture', file_path, _tex)
+                    count += 1
+        if _Debug:
+            print(f'  cached {count} textures at {self.tiles_textures_dir_path} for land tiles')
 
     def load_plants_data(self, plants_data_file_name):
         plants_list = json.loads(open(plants_data_file_name, 'rt').read())

@@ -19,7 +19,7 @@ import scen
 
 class AppRoot(App):
 
-    known_templates = None
+    known_templates = {}
 
     def prepare_test_unit(self, scene, test=0, template=None, save_json=False):
         if test == -1:

@@ -6,6 +6,9 @@ import math
 import random
 import numpy as np
 
+from kivy.core.image import Image
+from kivy.cache import Cache
+from kivy.resources import resource_find
 from kivy.graphics import (
     RenderContext, Callback, BindTexture,
     ChangeState, PushState, PopState,
@@ -15,6 +18,7 @@ from kivy.graphics import (
 from kivy.graphics.transformation import Matrix  # @UnresolvedImport
 from kivy.graphics.instructions import InstructionGroup  # @UnresolvedImport
 from kivy.graphics.context_instructions import Transform  # @UnresolvedImport
+
 
 import res
 import mth
@@ -279,18 +283,29 @@ class Scene(object):
         #     print(f'  prepared mesh {name} with {idx} faces and texture {texture_filename}')
         return mesh
 
-    def create_object_data_from_model_data(self, template, coefs=[0, 0, 0], selected_parts=[], excluded_parts=[], selected_animations=None, textures={'*': 'default0'}):
+    def create_object_data_from_model_data(self, template, coefs=[0, 0, 0], selected_parts=[], excluded_parts=[], selected_animations=None, textures=None):
         global _NextObjectID
         _NextObjectID += 1
+        if textures is None:
+            textures = {'*': 'default0'}
         if template not in self.models:
             m = dat.ModelData()
             m.unpack_figure_data('data/figures.res', 'models', template=template)
             for texture in textures.values():
-                if not os.path.isfile('textures/model/' + texture + '.png'):
+                tex_file_path = 'textures/model/' + texture + '.png'
+                if not os.path.isfile(tex_file_path):
                     m.unpack_texture('data/textures.res', 'textures/model', texture)
+                tex_file_path_source = resource_find(tex_file_path)
+                if tex_file_path_source:
+                    _tex = Cache.get('kv.texture', tex_file_path)
+                    if not _tex:
+                        _tex = Image(tex_file_path_source).texture
+                        Cache.append('kv.texture', tex_file_path, _tex)
+                        if _Debug:
+                            print(f'  cached texture {texture} at {tex_file_path} for model {template}')
             self.add_model_template(template, m)
         m = self.models[template]
-        static = False if not selected_animations else True
+        static = False if selected_animations else True
         animated_static = 'static' if static else 'animated'
         o = dat.ObjectData(name=template+'#'+str(_NextObjectID), static=static)
         coefs = mth.quantize_coefs(coefs)
@@ -359,11 +374,11 @@ class Scene(object):
             if part_name == o.root_part_name:
                 o.root_mesh_name = mesh.name
                 o.root_mesh_center = mesh.center
-        if o.animations_loaded:
+        if static:
+            self.static_objects[o.name] = o
+        else:
             o.calculate_animations()
             self.animated_objects[o.name] = o
-        else:
-            self.static_objects[o.name] = o
         t2 = time.time()
         if _Debug:
             print(f'  {animated_static} object {o.name} with {len(selected_parts)} parts and {len(o.animations_loaded)} animations created in {t2 - t1} sec from template {template}')
@@ -771,12 +786,12 @@ class Scene(object):
                     self.segment_shift_w = self.segment_shift_w - self.LAND_MOVE_SPEED
                     self.update_land()
 
-    def place_animated_unit_on_land(self, template, map_w, map_h, shift_w=0.5, shift_h=0.5, direction=0, texture=None, coefs=[0, 0, 0]):
+    def place_animated_unit_on_land(self, template, map_w, map_h, shift_w=0.5, shift_h=0.5, direction=0, textures=None, coefs=[0, 0, 0]):
         ao = self.create_object_data_from_model_data(
             template=template,
             coefs=coefs,
             selected_animations='*',
-            textures={'*': texture},
+            textures=textures,
         )
         map_w = int(map_w)
         map_h = int(map_h)

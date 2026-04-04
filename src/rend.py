@@ -388,7 +388,7 @@ class Renderer(Widget):
                 shift_w=0.5,
                 shift_h=0.5,
                 direction=random.randint(0, 360),
-                texture=test_model_data['t'],
+                textures={'*': test_model_data['t'].lower()},
                 coefs=test_model_data['c'],
             )
             unit.max_speed = random.randint(5, 40) / 1000.0
