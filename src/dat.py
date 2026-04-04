@@ -202,6 +202,8 @@ class ModelData(object):
         return items
 
     def unpack_texture(self, texture_res_file_path, destination_dir, name):
+        if not os.path.isdir(destination_dir):
+            os.makedirs(destination_dir)
         with open(texture_res_file_path, 'rb') as texture_file:
             res_filetree_dict = res.read_res_filetree(texture_file, return_dict=True)
             for k in res_filetree_dict.keys():
@@ -212,6 +214,8 @@ class ModelData(object):
                     pil_img = res.read_mmp(mmp_file_path)
                     pil_img.save(png_file_path)
                     os.remove(mmp_file_path)
+                    if _Debug:
+                        print(f'unpacked texture {name} to {png_file_path}')
                     return png_file_path
         return None
 

@@ -148,16 +148,10 @@ class Scene(object):
         self.area_center_h = None
         self.segment_shift_w = None
         self.segment_shift_h = None
-        # self.land_area_left = 0
-        # self.land_area_top = 0
         self.land_area_mask = {}
         self.land_tiles_visible = {}
 
-    def coords_area2angles(self, w, h, as_area=True):
-        # if as_area:
-        #     angle_z = mth.w2lat_degrees(float(w) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.PLANET_EQUATOR_SEGMENTS)
-        #     angle_x = mth.h2lon_degrees(float(h) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.PLANET_EQUATOR_SEGMENTS)
-        # else:
+    def coords_area2angles(self, w, h):
         angle_z = mth.w2lat_degrees(float(w), self.PLANET_EQUATOR_SEGMENTS)
         angle_x = mth.h2lon_degrees(float(h), self.PLANET_EQUATOR_SEGMENTS)
         return angle_x, angle_z
@@ -194,10 +188,6 @@ class Scene(object):
         e_min = min(e00, e01, e10, e11)
         e_max = max(e00, e01, e10, e11)
         a = self.SEGMENT_ANGLE
-        # p00 = (0, 0, e01)
-        # p01 = (0, a, e11)
-        # p10 = (a, 0, e00)
-        # p11 = (a, a, e10)
         p00 = (0, 0, e00)
         p01 = (0, a, e01)
         p10 = (a, 0, e10)
@@ -213,7 +203,7 @@ class Scene(object):
     def add_model_template(self, template, model):
         self.models[template] = model
 
-    def create_mesh_from_fig_data(self, fig_data, prefix='', texture_filename=None, coefs=[0, 0, 0]):
+    def create_mesh_from_fig_data(self, fig_data, prefix='', texture=None, coefs=[0, 0, 0]):
         """
         fig_data fields list:
             0:"blocks",
@@ -241,7 +231,7 @@ class Scene(object):
         name = prefix + '_' + str(_NextMeshID)
         mesh = dat.MeshData(
             name=name,
-            material={'map_Kd': texture_filename} if texture_filename else None,
+            material={'map_Kd': 'textures/model/' + texture + '.png'} if texture else None,
         )
         mesh.coefs = coefs
         vert_buf = []
@@ -288,67 +278,72 @@ class Scene(object):
         # if _Debug:
         #     print(f'  prepared mesh {name} with {idx} faces and texture {texture_filename}')
         return mesh
-    
-    def create_animated_object_from_model_data(self, template, coefs=[0, 0, 0], selected_parts=[], excluded_parts=[], selected_animations=None, textures={'*': 'default.png'}):
+
+    def create_object_data_from_model_data(self, template, coefs=[0, 0, 0], selected_parts=[], excluded_parts=[], selected_animations=None, textures={'*': 'default0'}):
         global _NextObjectID
         _NextObjectID += 1
         if template not in self.models:
             m = dat.ModelData()
             m.unpack_figure_data('data/figures.res', 'models', template=template)
-            if not os.path.isfile('textures/model/' + template + '.png'):
-                m.unpack_texture('data/textures.res', 'textures/model', template)
+            for texture in textures.values():
+                if not os.path.isfile('textures/model/' + texture + '.png'):
+                    m.unpack_texture('data/textures.res', 'textures/model', texture)
             self.add_model_template(template, m)
         m = self.models[template]
-        ao = dat.ObjectData(name=template+'#'+str(_NextObjectID), static=False)
+        static = False if not selected_animations else True
+        animated_static = 'static' if static else 'animated'
+        o = dat.ObjectData(name=template+'#'+str(_NextObjectID), static=static)
         coefs = mth.quantize_coefs(coefs)
-        ao.template = template
-        ao.textures = textures
-        ao.parts_tree_ordered = m.links[template]['ordered']
-        ao.parts_tree = m.links[template]['tree']
-        ao.parts_parents = m.links[template]['parents']
-        ordered_parts_list = res.flat_tree(ao.parts_tree_ordered)
-        ao.animations_loaded = selected_animations
-        if not ao.animations_loaded:
-            ao.animations_loaded = list(m.animations.keys())
+        o.template = template
+        o.textures = textures
+        o.parts_tree_ordered = m.links[template]['ordered']
+        o.parts_tree = m.links[template]['tree']
+        o.parts_parents = m.links[template]['parents']
+        ordered_parts_list = res.flat_tree(o.parts_tree_ordered)
+        if selected_animations:
+            if selected_animations == '*':
+                o.animations_loaded = list(m.animations.keys())
+            else:
+                o.animations_loaded = selected_animations
         if not selected_parts:
             selected_parts = ordered_parts_list
         for exclude in excluded_parts:
             if exclude in selected_parts:
                 selected_parts.remove(exclude)
-        ao.root_part_name = selected_parts[0]
+        o.root_part_name = selected_parts[0]
         # if _Debug:
         #     print(f'about to prepare unit ({ao.name}) with {len(selected_parts)} parts and {len(ao.animations_loaded)} animations from model {{{template}}}')
         t1 = time.time()
         for part_name in selected_parts:
-            ao.parts.append(part_name)
+            o.parts.append(part_name)
             part_info = m.bones[part_name]
-            ao.bones[part_name] = mth.ei2xyz_list([
+            o.bones[part_name] = mth.ei2xyz_list([
                 mth.trilinear([part_info[i][0] for i in range(8)], coefs),
                 mth.trilinear([part_info[i][1] for i in range(8)], coefs),
                 mth.trilinear([part_info[i][2] for i in range(8)], coefs),
             ])
-            mesh_key = self.mesh_key(ao.template, part_name, coefs)
+            mesh_key = self.mesh_key(o.template, part_name, coefs)
             if mesh_key in self.meshes_index:
                 mesh = self.meshes[self.meshes_index[mesh_key]]
                 if _Debug:
-                    print(f'    reused mesh {mesh.name} for part {ao.name}:{part_name} with texture {mesh.material["map_Kd"]}')
+                    print(f'    reused mesh {mesh.name} for part {o.name}:{part_name} with texture {mesh.material["map_Kd"]}')
             else:
                 mesh = self.create_mesh_from_fig_data(
                     fig_data=m.figures[part_name],
-                    prefix=ao.template + '_' + part_name,
-                    texture_filename=ao.textures[part_name] if part_name in ao.textures else ao.textures['*'],
+                    prefix=o.template + '_' + part_name,
+                    texture=o.textures[part_name] if part_name in o.textures else o.textures['*'],
                     coefs=coefs,
                 )
-                mesh.object_name = ao.name
+                mesh.object_name = o.name
                 mesh.object_part_name = part_name
                 self.meshes_index[mesh_key] = mesh.name
-            ao.meshes[part_name] = mesh.name
-            for anim_name in ao.animations_loaded:
+            o.meshes[part_name] = mesh.name
+            for anim_name in o.animations_loaded:
                 if part_name not in m.animations[anim_name]:
                     continue
                 animation_info = m.animations[anim_name][part_name]
-                if anim_name not in ao.animations:
-                    ao.animations[anim_name] = dat.ObjectAnimationData(template, anim_name)
+                if anim_name not in o.animations:
+                    o.animations[anim_name] = dat.ObjectAnimationData(template, anim_name)
                 a = dat.ObjectPartAnimationData()
                 a.rotation_frames_input = [mth.ei2quad_list(quad) for quad in animation_info[1]]
                 a.translation_frames_input = [mth.ei2xyz_list(coord) for coord in animation_info[3]]
@@ -360,76 +355,19 @@ class Scene(object):
                             morphing_frames[0].append(mth.ei2xyz_list(value[i]))
                     a.morphing_frames_input = morphing_frames
                 a.frames = len(a.rotation_frames_input)
-                ao.animations[anim_name].parts[part_name] = a
-            if part_name == ao.root_part_name:
-                ao.root_mesh_name = mesh.name
-                ao.root_mesh_center = mesh.center
-        ao.calculate_animations()
-        self.animated_objects[ao.name] = ao
+                o.animations[anim_name].parts[part_name] = a
+            if part_name == o.root_part_name:
+                o.root_mesh_name = mesh.name
+                o.root_mesh_center = mesh.center
+        if o.animations_loaded:
+            o.calculate_animations()
+            self.animated_objects[o.name] = o
+        else:
+            self.static_objects[o.name] = o
         t2 = time.time()
         if _Debug:
-            print(f'  animated object {ao.name} with {len(selected_parts)} parts and {len(ao.animations_loaded)} animations created in {t2 - t1} sec from template {template}')
-        return ao
-
-    def create_static_object_from_model_data(self, template, coefs=[0, 0, 0], selected_parts=[], excluded_parts=[], textures={'*': 'default.png'}):
-        global _NextObjectID
-        _NextObjectID += 1
-        if template not in self.models:
-            m = dat.ModelData()
-            m.unpack_figure_data('data/figures.res', 'models', template=template)
-            if not os.path.isfile('textures/model/' + template + '.png'):
-                m.unpack_texture('data/textures.res', 'textures/model', template)
-            self.add_model_template(template, m)
-        m = self.models[template]
-        so = dat.ObjectData(name=template+'#'+str(_NextObjectID), static=True)
-        coefs = mth.quantize_coefs(coefs)
-        so.template = template
-        so.textures = textures
-        so.parts_tree_ordered = m.links[template]['ordered']
-        so.parts_tree = m.links[template]['tree']
-        so.parts_parents = m.links[template]['parents']
-        ordered_parts_list = res.flat_tree(so.parts_tree_ordered)
-        if not selected_parts:
-            selected_parts = ordered_parts_list
-        for exclude in excluded_parts:
-            if exclude in selected_parts:
-                selected_parts.remove(exclude)
-        so.root_part_name = selected_parts[0]
-        # if _Debug:
-        #     print(f'about to prepare static object ({so.name}) with {len(selected_parts)} parts from model {{{template}}}')
-        t1 = time.time()
-        for part_name in selected_parts:
-            so.parts.append(part_name)
-            part_info = m.bones[part_name]
-            so.bones[part_name] = mth.ei2xyz_list([
-                mth.trilinear([part_info[i][0] for i in range(8)], coefs),
-                mth.trilinear([part_info[i][1] for i in range(8)], coefs),
-                mth.trilinear([part_info[i][2] for i in range(8)], coefs),
-            ])
-            mesh_key = self.mesh_key(so.template, part_name, coefs)
-            if mesh_key in self.meshes_index:
-                mesh = self.meshes[self.meshes_index[mesh_key]]
-                if _Debug:
-                    print(f'      reused mesh {mesh.name} for part {so.name}:{part_name} with texture {mesh.material["map_Kd"]}')
-            else:
-                mesh = self.create_mesh_from_fig_data(
-                    fig_data=m.figures[part_name],
-                    prefix=so.template + '_' + part_name,
-                    texture_filename=so.textures[part_name] if part_name in so.textures else so.textures['*'],
-                    coefs=coefs,
-                )
-                mesh.object_name = so.name
-                mesh.object_part_name = part_name
-                self.meshes_index[mesh_key] = mesh.name
-            so.meshes[part_name] = mesh.name
-            if part_name == so.root_part_name:
-                so.root_mesh_name = mesh.name
-                so.root_mesh_center = mesh.center
-        self.static_objects[so.name] = so
-        t2 = time.time()
-        # if _Debug:
-        #     print(f'    static object {so.name} with {len(selected_parts)} parts created in {t2 - t1} sec from template {template}')
-        return so
+            print(f'  {animated_static} object {o.name} with {len(selected_parts)} parts and {len(o.animations_loaded)} animations created in {t2 - t1} sec from template {template}')
+        return o
 
     def construct_unit_from_object_data(self, container, object_name, angle_coords=None, shift_vector=None, direction=0, static=True):
         global _NextUnitID
@@ -581,9 +519,7 @@ class Scene(object):
         self.segment_shift_h = 0.5
         w = int(self.area_center_w)
         h = int(self.area_center_h)
-        # self.land_area_left = w - self.VISIBLE_AREA_SIZE_SEGMENTS_HALF
-        # self.land_area_top  = h - self.VISIBLE_AREA_SIZE_SEGMENTS_HALF
-        camera_shift_angle_x, camera_shift_angle_z = self.coords_area2angles(0.5-self.segment_shift_w, 0.5-self.segment_shift_h, as_area=False)
+        camera_shift_angle_x, camera_shift_angle_z = self.coords_area2angles(0.5-self.segment_shift_w, 0.5-self.segment_shift_h)
         elevation_at_center = self.land.get_elevation(w, h)
         planet_shift_y = self.PLANET_RADIUS + elevation_at_center * self.ELEVATION_FACTOR
         self.global_land_translate_before = Translate(0, -planet_shift_y, 0, group='land')
@@ -610,13 +546,6 @@ class Scene(object):
             if (w_t, h_t) not in self.land_tiles_visible:
                 self.add_land_segment(w_t, h_t, _w, _h)
                 added += 1
-        # for _w in range(0, self.VISIBLE_AREA_SIZE_SEGMENTS):
-        #     for _h in range(0, self.VISIBLE_AREA_SIZE_SEGMENTS):
-        #         w_t = self.land_area_left + _w
-        #         h_t = self.land_area_top + _h
-        #         if (w_t, h_t) not in self.land_tiles_visible:
-        #             self.add_land_segment(w_t, h_t, _w, _h)
-        #             added += 1
         if _Debug:
             print(f'prepare land area at {w} {h} with {added} segments planet angle x:0 z:0')
 
@@ -654,16 +583,12 @@ class Scene(object):
         planet_shift_y = e # self.PLANET_RADIUS + e * self.ELEVATION_FACTOR
         self.global_land_translate_before.y = -planet_shift_y
         self.global_land_translate_after.y = planet_shift_y
-        camera_shift_angle_x, camera_shift_angle_z = self.coords_area2angles(0.5-self.segment_shift_w, 0.5-self.segment_shift_h, as_area=False)
+        camera_shift_angle_x, camera_shift_angle_z = self.coords_area2angles(0.5-self.segment_shift_w, 0.5-self.segment_shift_h)
         self.global_land_rotate_x.angle = camera_shift_angle_x
         self.global_land_rotate_z.angle = camera_shift_angle_z
         added = 0
         removed = 0
         if wd != 0 or hd != 0:
-            # new_area_left = w_i - self.VISIBLE_AREA_SIZE_SEGMENTS_HALF
-            # new_area_top = h_i - self.VISIBLE_AREA_SIZE_SEGMENTS_HALF
-            # new_area_right = w_i + self.VISIBLE_AREA_SIZE_SEGMENTS_HALF - 1
-            # new_area_bottom = h_i + self.VISIBLE_AREA_SIZE_SEGMENTS_HALF - 1
             for unit_name in self.units.keys():
                 u = self.units[unit_name]
                 if u.static:
@@ -679,7 +604,6 @@ class Scene(object):
                 _h = h_t - h_i
                 area_w, area_h, segment_rotate_x, segment_rotate_z, static_units_at_segment = self.land_tiles_visible[(w_t, h_t)]
                 if (_w, _h) in self.land_area_mask:
-                # if new_area_left <= w_t and w_t <= new_area_right and new_area_top <= h_t and h_t <= new_area_bottom:
                     area_w -= wd
                     area_h -= hd
                     segment_angle_x, segment_angle_z = self.coords_area2angles(area_w, area_h)
@@ -702,39 +626,6 @@ class Scene(object):
                 if (w_t, h_t) not in self.land_tiles_visible:
                     self.add_land_segment(w_t, h_t, _w, _h)
                     added += 1
-            # for _w in range(0, self.VISIBLE_AREA_SIZE_SEGMENTS):
-            #     for _h in range(0, self.VISIBLE_AREA_SIZE_SEGMENTS):
-            #         w_t = new_area_left + _w
-            #         h_t = new_area_top + _h
-            #         if (w_t, h_t) not in self.land_tiles_visible:
-            #             self.add_land_segment(w_t, h_t, _w, _h)
-            #             added += 1
-            # self.land_area_left = new_area_left
-            # self.land_area_top = new_area_top
-            # if _Debug:
-            #     print(f'        updated land area at {w_i} {h_i}, moved by {wd},{hd} shift:{round(self.segment_shift_w, 2)},{round(self.segment_shift_h, 2)} segments added:{added} removed:{removed}')
-        # else:
-        #     # for u in self.units.values():
-        #     #     if u.static:
-        #     #         continue
-        #     #     segment_angle_z = mth.w2lat_degrees(float(u.area_w) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.PLANET_EQUATOR_SEGMENTS)
-        #     #     segment_angle_x = mth.h2lon_degrees(float(u.area_h) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.PLANET_EQUATOR_SEGMENTS)
-        #
-        #     for k in self.land_tiles_visible.keys():
-        #         w_t, h_t = k
-        #         area_w, area_h, segment_rotate_x, segment_rotate_z, static_units_at_segment = self.land_tiles_visible[(w_t, h_t)]
-        #         segment_angle_z = mth.w2lat_degrees(float(area_w) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.PLANET_EQUATOR_SEGMENTS)
-        #         segment_angle_x = mth.h2lon_degrees(float(area_h) - float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF), self.PLANET_EQUATOR_SEGMENTS)
-        #         segment_rotate_x.angle = segment_angle_x
-        #         segment_rotate_z.angle = segment_angle_z
-        #         self.land_tiles_visible[(w_t, h_t)][0] = area_w
-        #         self.land_tiles_visible[(w_t, h_t)][1] = area_h
-        #         for static_unit_name in static_units_at_segment:
-        #             static_unit = self.units[static_unit_name]
-        #             static_unit.rotate_axis_x.angle = segment_angle_x
-        #             static_unit.rotate_axis_z.angle = segment_angle_z
-            # if _Debug:
-            #     print(f'        updated land area at {w_i} {h_i}, shift:{round(self.segment_shift_w, 2)},{round(self.segment_shift_h, 2)}')
 
     def add_land_segment(self, map_w, map_h, area_w, area_h):
         # _get_elevation = self.land.get_elevation
@@ -818,10 +709,10 @@ class Scene(object):
                     if plant_variant['so']:
                         static_object_name = plant_variant['so']
                 if not static_object_name:
-                    so = self.create_static_object_from_model_data(
+                    so = self.create_object_data_from_model_data(
                         template=plant_variant['m'],
                         coefs=plant_variant['c'],
-                        textures={'*': 'textures/model/' + plant_variant['t'] + '.png', },
+                        textures={'*': plant_variant['t']},
                     )
                     static_object_name = so.name
                     if plant_key not in self.land.plants_variants:
@@ -881,29 +772,17 @@ class Scene(object):
                     self.update_land()
 
     def place_animated_unit_on_land(self, template, map_w, map_h, shift_w=0.5, shift_h=0.5, direction=0, texture=None, coefs=[0, 0, 0]):
-        if template not in self.models:
-            m = dat.ModelData()
-            m.unpack_figure_data('data/figures.res', 'models', template=template)
-            if texture:
-                if not os.path.isfile('textures/model/' + texture + '.png'):
-                    m.unpack_texture('data/textures.res', 'textures/model', texture)
-            self.add_model_template(template, m)
-        else:
-            m = self.models[template]
-        selected_parts = res.flat_tree(m.links[template]['ordered'])
-        selected_animations = list(m.animations.keys())   
-        ao = self.create_animated_object_from_model_data(
+        ao = self.create_object_data_from_model_data(
             template=template,
             coefs=coefs,
-            selected_parts=selected_parts,
-            selected_animations=selected_animations,
-            textures={'*': 'textures/model/' + texture + '.png', },
+            selected_animations='*',
+            textures={'*': texture},
         )
         map_w = int(map_w)
         map_h = int(map_h)
         area_w = map_w - int(self.area_center_w) 
         area_h = map_h - int(self.area_center_h)
-        e_correction = 0  # (e_max - e_min) * 0.2
+        e_correction = 0
         if ao.root_mesh_center:
             e_correction = ao.root_mesh_center[0][2]
         segment_angle_x, segment_angle_z = self.coords_area2angles(area_w, area_h)
