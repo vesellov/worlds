@@ -155,6 +155,7 @@ class Scene(object):
         self.segment_shift_h = None
         self.land_area_mask = {}
         self.land_tiles_visible = {}
+        self.land_vertices = {}
 
     def coords_area2angles(self, w, h):
         angle_z = mth.w2lat_degrees(float(w), self.PLANET_EQUATOR_SEGMENTS)
@@ -204,6 +205,29 @@ class Scene(object):
         else:
             e = mth.get_z_in_triangle(w_f, h_f, p11, p00, p10)
         return e, e_min, e_max
+
+    def calculate_land_vertices(self):
+        t1 = time.time()
+        for w, h in self.land.elevation_map_data.keys():
+            e00, e01, e10, e11 = self.get_segment_elevation(w, h)
+            e_min = min(e00, e01, e10, e11)
+            e_max = max(e00, e01, e10, e11)
+            y00 = e00 * self.SEGMENT_COS
+            y01 = e01 * self.SEGMENT_COS
+            y10 = e10 * self.SEGMENT_COS
+            y11 = e11 * self.SEGMENT_COS
+            c00 = e00 * self.SEGMENT_SIN
+            c01 = e01 * self.SEGMENT_SIN
+            c10 = e10 * self.SEGMENT_SIN
+            c11 = e11 * self.SEGMENT_SIN
+            v00 = (c00 * self.PI_4_SIN, y00, -c00 * self.PI_4_COS)
+            v01 = (c01 * self.PI_4_COS, y01, c01 * self.PI_4_SIN)
+            v10 = (-c10 * self.PI_4_COS, y10, -c10 * self.PI_4_SIN)
+            v11 = (-c11 * self.PI_4_SIN, y11, c11 * self.PI_4_COS)
+            self.land_vertices[(w, h)] = (v00, v01, v10, v11, e_min, e_max)
+        t2 = time.time()
+        if _Debug:
+            print(f'calculated land vertices for {len(self.land.elevation_map_data)} segments in {t2 - t1} sec')
 
     def add_model_template(self, template, model):
         self.models[template] = model
@@ -380,9 +404,9 @@ class Scene(object):
         else:
             o.calculate_animations()
             self.animated_objects[o.name] = o
-        t2 = time.time()
-        if _Debug:
-            print(f'  {animated_static} object {o.name} with {len(selected_parts)} parts and {len(o.animations_loaded)} animations created in {t2 - t1} sec from template {template}')
+        # t2 = time.time()
+        # if _Debug:
+        #     print(f'  {animated_static} object {o.name} with {len(selected_parts)} parts and {len(o.animations_loaded)} animations created in {t2 - t1} sec from template {template}')
         return o
 
     def construct_unit_from_object_data(self, container, object_name, angle_coords=None, shift_vector=None, direction=0, static=True):
@@ -650,47 +674,9 @@ class Scene(object):
         h_t = int(map_h)
         w = float(area_w)
         h = float(area_h)
-        e00, e01, e10, e11 = self.get_segment_elevation(w_t, h_t)
-        e_min = min(e00, e01, e10, e11)
-        e_max = max(e00, e01, e10, e11)
-        e_correction = (e_max - e_min) * 0.15
-        y00 = e00 * self.SEGMENT_COS
-        y01 = e01 * self.SEGMENT_COS
-        y10 = e10 * self.SEGMENT_COS
-        y11 = e11 * self.SEGMENT_COS
-        c00 = e00 * self.SEGMENT_SIN
-        c01 = e01 * self.SEGMENT_SIN
-        c10 = e10 * self.SEGMENT_SIN
-        c11 = e11 * self.SEGMENT_SIN
-        v00 = (c00 * self.PI_4_SIN, y00, -c00 * self.PI_4_COS)
-        v10 = (-c10 * self.PI_4_COS, y10, -c10 * self.PI_4_SIN)
-        v01 = (c01 * self.PI_4_COS, y01, c01 * self.PI_4_SIN)
-        v11 = (-c11 * self.PI_4_SIN, y11, c11 * self.PI_4_COS)
+        v00, v01, v10, v11, e_min, e_max = self.land_vertices[(w_t, h_t)]
+        e_correction = (e_max - e_min) * 0.18
         tex_file_path, tex_coord00, tex_coord01, tex_coord10, tex_coord11 = _get_texture(w_t, h_t)
-        # step = 1.0 / 8.0
-        # corr = 1.0 / ( 64.0 * 8.0 )
-        # tex_cell_x = ( mozaic_pos % 8 ) * step
-        # tex_cell_y = ( mozaic_pos // 8 ) * step
-        # if rotate == 270:
-        #     tex_coord00 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 1.0 / 8.0 - corr)
-        #     tex_coord01 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 1.0 / 8.0 - corr)
-        #     tex_coord10 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 0.0 / 8.0 + corr)
-        #     tex_coord11 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 0.0 / 8.0 + corr)
-        # elif rotate == 0:
-        #     tex_coord00 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 0.0 / 8.0 + corr)
-        #     tex_coord01 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 1.0 / 8.0 - corr)
-        #     tex_coord10 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 0.0 / 8.0 + corr)
-        #     tex_coord11 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 1.0 / 8.0 - corr)
-        # elif rotate == 90:
-        #     tex_coord00 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 0.0 / 8.0 + corr)
-        #     tex_coord01 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 0.0 / 8.0 + corr)
-        #     tex_coord10 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 1.0 / 8.0 - corr)
-        #     tex_coord11 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 1.0 / 8.0 - corr)
-        # elif rotate == 180:
-        #     tex_coord00 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 1.0 / 8.0 - corr)
-        #     tex_coord01 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 0.0 / 8.0 + corr)
-        #     tex_coord10 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 1.0 / 8.0 - corr)
-        #     tex_coord11 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 0.0 / 8.0 + corr)
         vert = [
             v00[0], v00[1], v00[2], 1, 0, 0, tex_coord00[0], tex_coord00[1],
             v01[0], v01[1], v01[2], 1, 0, 0, tex_coord01[0], tex_coord01[1],

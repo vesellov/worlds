@@ -375,12 +375,12 @@ class LandData(object):
         im = Image(heightmap_file_name, keep_data=True)
         self.width = im.width
         self.height = im.height
-        for x in range(self.width):
-            for y in range(self.height):
-                e = float(im.read_pixel(x, y)[0])
+        for w in range(self.width):
+            for h in range(self.height):
+                e = float(im.read_pixel(w, h)[0])
                 if e < sea_level:
                     e = sea_level
-                self.elevation_map_data[(x, y)] = e
+                self.elevation_map_data[(w, h)] = e
         return self.width, self.height
 
     def load_cache_tiles_textures(self, textures_dir_path):

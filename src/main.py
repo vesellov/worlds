@@ -136,6 +136,7 @@ class AppRoot(App):
         land.load_plants_data(plants_data_file_name='assets/trees.json')
         # land.save_elevation_memmap('island4_heightmap', destination_dir='.')
         scene = scen.Scene(land=land)
+        scene.calculate_land_vertices()
         renderer = rend.Renderer(app_root=self, scene=scene)
         self.known_templates = json.loads(open('assets/models.json', 'rt').read())
         scene.renderer = renderer
