@@ -424,6 +424,7 @@ class Scene(object):
         else:
             source_object = self.animated_objects[object_name]
             unit.animations_list = source_object.animations_loaded.copy()
+            unit.brightness = random.randint(0, 100) / 100.0
         unit.root_mesh_center = source_object.root_mesh_center
 
         def _visitor(part_name, parent_part_name):
@@ -464,57 +465,61 @@ class Scene(object):
         container.add(PushMatrix(group=unit.name))  # unit rotate
         container.add(unit.rotate_vertical)
 
-        if False and _Debug:
-            sz = 1.0
-            # container.add(PushMatrix(group=unit.name))  # border
-            # container.add(PushState(group=unit.name))
-            # container.add(Translate(shift_vector[0], shift_vector[1], shift_vector[2], group=unit.name))
-            container.add(ChangeState(line_color=(1., 0.5, 0.5, 1.), group=unit.name))
-            container.add(Mesh(
-                vertices=[
-                    -1 * sz, -1 * sz, -1 * sz,
-                    -1 * sz, -1 * sz, 1 * sz,
-                    -1 * sz, 1 * sz, 1 * sz,
-                    -1 * sz, 1 * sz, -1 * sz,
-                    1 * sz, -1 * sz, -1 * sz,
-                    1 * sz, -1 * sz, 1 * sz,
-                    1 * sz, 1 * sz, 1 * sz,
-                    1 * sz, 1 * sz, -1 * sz,
-                ],
-                indices=[0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7],
-                fmt=[(b'v_pos', 3, 'float'), ],
-                mode='lines',
-                group=unit.name,
-            ))
-            container.add(ChangeState(line_color=(1., 0., 0., 1.), group=unit.name))
-            container.add(Mesh(
-                vertices=[1 * sz, 0, 0, 0, 0, 0],
-                indices=[0, 1],
-                fmt=[(b'v_pos', 3, 'float'), ],
-                mode='lines',
-                group=unit.name,
-            ))
-            container.add(ChangeState(line_color=(0., 1., 0., 1.), group=unit.name))
-            container.add(Mesh(
-                vertices=[0, 1 * sz, 0, 0, 0, 0],
-                indices=[0, 1],
-                fmt=[(b'v_pos', 3, 'float'), ],
-                mode='lines',
-                group=unit.name,
-            ))
-            container.add(ChangeState(line_color=(0., 0., 1., 1.), group=unit.name))
-            container.add(Mesh(
-                vertices=[0, 0, 1 * sz, 0, 0, 0],
-                indices=[0, 1],
-                fmt=[(b'v_pos', 3, 'float'), ],
-                mode='lines',
-                group=unit.name,
-            ))
-            container.add(ChangeState(line_color=(1., 1., 1., 1.), group=unit.name))
-            # container.add(PopState(group=unit.name))
-            # container.add(PopMatrix(group=unit.name))  # border
+        # if False and _Debug:
+        #     sz = 1.0
+        #     # container.add(PushMatrix(group=unit.name))  # border
+        #     # container.add(PushState(group=unit.name))
+        #     # container.add(Translate(shift_vector[0], shift_vector[1], shift_vector[2], group=unit.name))
+        #     container.add(ChangeState(line_color=(1., 0.5, 0.5, 1.), group=unit.name))
+        #     container.add(Mesh(
+        #         vertices=[
+        #             -1 * sz, -1 * sz, -1 * sz,
+        #             -1 * sz, -1 * sz, 1 * sz,
+        #             -1 * sz, 1 * sz, 1 * sz,
+        #             -1 * sz, 1 * sz, -1 * sz,
+        #             1 * sz, -1 * sz, -1 * sz,
+        #             1 * sz, -1 * sz, 1 * sz,
+        #             1 * sz, 1 * sz, 1 * sz,
+        #             1 * sz, 1 * sz, -1 * sz,
+        #         ],
+        #         indices=[0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7],
+        #         fmt=[(b'v_pos', 3, 'float'), ],
+        #         mode='lines',
+        #         group=unit.name,
+        #     ))
+        #     container.add(ChangeState(line_color=(1., 0., 0., 1.), group=unit.name))
+        #     container.add(Mesh(
+        #         vertices=[1 * sz, 0, 0, 0, 0, 0],
+        #         indices=[0, 1],
+        #         fmt=[(b'v_pos', 3, 'float'), ],
+        #         mode='lines',
+        #         group=unit.name,
+        #     ))
+        #     container.add(ChangeState(line_color=(0., 1., 0., 1.), group=unit.name))
+        #     container.add(Mesh(
+        #         vertices=[0, 1 * sz, 0, 0, 0, 0],
+        #         indices=[0, 1],
+        #         fmt=[(b'v_pos', 3, 'float'), ],
+        #         mode='lines',
+        #         group=unit.name,
+        #     ))
+        #     container.add(ChangeState(line_color=(0., 0., 1., 1.), group=unit.name))
+        #     container.add(Mesh(
+        #         vertices=[0, 0, 1 * sz, 0, 0, 0],
+        #         indices=[0, 1],
+        #         fmt=[(b'v_pos', 3, 'float'), ],
+        #         mode='lines',
+        #         group=unit.name,
+        #     ))
+        #     container.add(ChangeState(line_color=(1., 1., 1., 1.), group=unit.name))
+        #     # container.add(PopState(group=unit.name))
+        #     # container.add(PopMatrix(group=unit.name))  # border
 
+        # if not static:
+        #     container.add(ChangeState(line_color=(unit.brightness, unit.brightness, unit.brightness, 1.0), group=unit.name))
         source_object.walk_parts_ordered(_visitor)
+        # if not static:
+        #     container.add(ChangeState(line_color=(1.0, 1.0, 1.0, 1.0), group=unit.name))
 
         container.add(PopMatrix(group=unit.name))  # unit rotate
         container.add(PopMatrix(group=unit.name))  # unit shift

@@ -83,10 +83,13 @@ varying vec2 tex_coord0;
 
 uniform sampler2D texture_id;
 uniform mat4 normal_mat;
-uniform vec4 line_color;
+uniform float brightness;
+uniform float contrast;
 
 void main (void) {
-    gl_FragColor = texture2D(texture_id, tex_coord0) * line_color;
+    vec4 color = texture2D(texture_id, tex_coord0).rgba;
+    vec3 new_color = (color.rgb - 0.5) * contrast + 0.5 + brightness;
+    gl_FragColor = vec4(new_color, color.a);
 }
 """
 
@@ -181,6 +184,8 @@ class Renderer(Widget):
         self.global_center_y = 0
         self.global_center_z = 0
         self.touches = []
+        self.brightness = 0.0
+        self.contrast = 1.0
         super(Renderer, self).__init__(**kwargs)
         with self.canvas:
             self.cb = Callback(self.on_setup_gl_context)
@@ -197,60 +202,60 @@ class Renderer(Widget):
         Clock.schedule_interval(self.scene.on_run_units, 1 / 60)
 
     def setup_scene(self):
-        if False:
-            ChangeState(
-                line_color=(1., 1., 1., 1.),
-                Kd=(0.0, 1.0, 0.0),
-                Ka=(1.0, 1.0, 0.0),
-                Ks=(0.3, 0.3, 0.3),
-                Tr=1.0,
-                Ns=1.0,
-                intensity=1.0,
-            )
+        # if False:
+        #     ChangeState(
+        #         line_color=(1., 1., 1., 1.),
+        #         Kd=(0.0, 1.0, 0.0),
+        #         Ka=(1.0, 1.0, 0.0),
+        #         Ks=(0.3, 0.3, 0.3),
+        #         Tr=1.0,
+        #         Ns=1.0,
+        #         intensity=1.0,
+        #     )
         PushMatrix()
         sz = 1
-        if False:
-            PushState()
-            Mesh(
-                vertices=[
-                    -1 * sz, -1 * sz, -1 * sz,
-                    -1 * sz, -1 * sz, 1 * sz,
-                    -1 * sz, 1 * sz, 1 * sz,
-                    -1 * sz, 1 * sz, -1 * sz,
-                    1 * sz, -1 * sz, -1 * sz,
-                    1 * sz, -1 * sz, 1 * sz,
-                    1 * sz, 1 * sz, 1 * sz,
-                    1 * sz, 1 * sz, -1 * sz,
-                ],
-                indices=[0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7],
-                fmt=[(b'v_pos', 3, 'float'), ],
-                mode='lines',
-            )
-            ChangeState(line_color=(1., 0., 0., 1.))
-            Mesh(
-                vertices=[1 * sz, 0, 0, 0, 0, 0],
-                indices=[0, 1],
-                fmt=[(b'v_pos', 3, 'float'), ],
-                mode='lines',
-            )
-            ChangeState(line_color=(0., 1., 0., 1.))
-            Mesh(
-                vertices=[0, 1 * sz, 0, 0, 0, 0],
-                indices=[0, 1],
-                fmt=[(b'v_pos', 3, 'float'), ],
-                mode='lines',
-            )
-            ChangeState(line_color=(0., 0., 1., 1.))
-            Mesh(
-                vertices=[0, 0, 1 * sz, 0, 0, 0],
-                indices=[0, 1],
-                fmt=[(b'v_pos', 3, 'float'), ],
-                mode='lines',
-            )
-            ChangeState(line_color=(1., 1., 1., 1.))
-            PopState()
-        if False:
-            Color(1, 1, 1)
+        # if False:
+        #     PushState()
+        #     Mesh(
+        #         vertices=[
+        #             -1 * sz, -1 * sz, -1 * sz,
+        #             -1 * sz, -1 * sz, 1 * sz,
+        #             -1 * sz, 1 * sz, 1 * sz,
+        #             -1 * sz, 1 * sz, -1 * sz,
+        #             1 * sz, -1 * sz, -1 * sz,
+        #             1 * sz, -1 * sz, 1 * sz,
+        #             1 * sz, 1 * sz, 1 * sz,
+        #             1 * sz, 1 * sz, -1 * sz,
+        #         ],
+        #         indices=[0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7],
+        #         fmt=[(b'v_pos', 3, 'float'), ],
+        #         mode='lines',
+        #     )
+        #     ChangeState(line_color=(1., 0., 0., 1.))
+        #     Mesh(
+        #         vertices=[1 * sz, 0, 0, 0, 0, 0],
+        #         indices=[0, 1],
+        #         fmt=[(b'v_pos', 3, 'float'), ],
+        #         mode='lines',
+        #     )
+        #     ChangeState(line_color=(0., 1., 0., 1.))
+        #     Mesh(
+        #         vertices=[0, 1 * sz, 0, 0, 0, 0],
+        #         indices=[0, 1],
+        #         fmt=[(b'v_pos', 3, 'float'), ],
+        #         mode='lines',
+        #     )
+        #     ChangeState(line_color=(0., 0., 1., 1.))
+        #     Mesh(
+        #         vertices=[0, 0, 1 * sz, 0, 0, 0],
+        #         indices=[0, 1],
+        #         fmt=[(b'v_pos', 3, 'float'), ],
+        #         mode='lines',
+        #     )
+        #     ChangeState(line_color=(1., 1., 1., 1.))
+        #     PopState()
+        # if False:
+        #     Color(1, 1, 1)
         # SCENE BEGIN
         self.scene.create_containers()
         # SCENE END
@@ -296,7 +301,9 @@ class Renderer(Widget):
         # self.canvas['Tr'] = 1.0
         # self.canvas['Ns'] = 1.0
         # self.canvas['intensity'] = 1.0
-        self.canvas['line_color'] = (1., 1., 1., 1.)
+        # self.canvas['line_color'] = (1.0, 1.0, 1.0, 1.0)
+        self.canvas['brightness'] = self.brightness
+        self.canvas['contrast'] = self.contrast
         # self.on_gl_error('step 2')
 
     def define_rotate_angle(self, touch):
@@ -324,14 +331,14 @@ class Renderer(Widget):
         #     self.camera_angle_y += 1.0
         # elif keycode[1] == 'k':
         #     self.camera_angle_y -= 1.0
-        # elif keycode[1] == 'u':
-        #     self.global_eye_y += 1.0
-        # elif keycode[1] == 'i':
-        #     self.global_eye_y -= 1.0
-        # elif keycode[1] == 'o':
-        #     self.global_eye_z += 1.0
-        # elif keycode[1] == 'p':
-        #     self.global_eye_z -= 1.0
+        elif keycode[1] == 'u':
+            self.contrast += 0.1
+        elif keycode[1] == 'i':
+            self.contrast -= 0.1
+        elif keycode[1] == 'o':
+            self.brightness += 0.1
+        elif keycode[1] == 'p':
+            self.brightness -= 0.1
         # elif keycode[1] == 'f':
         #     self.global_center_x += 1.0
         # elif keycode[1] == 'g':
