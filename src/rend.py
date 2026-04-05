@@ -355,8 +355,7 @@ class Renderer(Widget):
                 unit.animation_playing = unit.animations_list[current_animation_ind]
                 unit.animation_frame = 0
                 if _Debug:
-                    print(f'playing animation {unit.animation_playing} for ({unit.name})')
-                break
+                    print(f'playing next animation {unit.animation_playing} for unit {unit.name}')
         elif keycode[1] == 'x':
             for unit in self.scene.units.values():
                 if not unit.animations_list:
@@ -368,8 +367,7 @@ class Renderer(Widget):
                 unit.animation_playing = unit.animations_list[current_animation_ind]
                 unit.animation_frame = 0
                 if _Debug:
-                    print(f'playing animation {unit.animation_playing} for ({unit.name})')
-                break
+                    print(f'playing previous animation {unit.animation_playing} for unit {unit.name}')
         elif keycode[1] == 'c':
             animated_units_onstage = []
             for unit in self.scene.units.values():
@@ -379,7 +377,14 @@ class Renderer(Widget):
             # for name in animated_units_onstage:
             #     self.scene.remove_unit_from_stage(container=self.scene.container_animated_objects, unit_name=name)
             self.app_root.test_id += 1
+            if self.app_root.test_id >= len(self.app_root.known_templates):
+                self.app_root.test_id = 0
             template_name = sorted(self.app_root.known_templates.keys())[self.app_root.test_id]
+            while template_name in ['unhufe', 'unhuma', 'unorfe', 'unorma', 'unmoco2', 'efcu0']:
+                self.app_root.test_id += 1
+                if self.app_root.test_id >= len(self.app_root.known_templates):
+                    self.app_root.test_id = 0
+                template_name = sorted(self.app_root.known_templates.keys())[self.app_root.test_id]
             test_model_data = self.app_root.known_templates[template_name][0]
             unit = self.scene.place_animated_unit_on_land(
                 template=template_name,

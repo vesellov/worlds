@@ -356,8 +356,8 @@ def main():
         'Hot desert': 'sand2',
         'Cold desert': 'dirt1',
         'Savanna': 'dirt2',
-        'Grassland': 'soil3',
-        'Tropical seasonal forest': 'grass3',
+        'Grassland': 'grass3',
+        'Tropical seasonal forest': 'soil3',
         'Temperate deciduous forest': 'grass2',
         'Tropical rainforest': 'grass1',
         'Temperate rainforest': 'soil4',
@@ -377,9 +377,15 @@ def main():
         ('water5', 'sand4', None),
         ('soil1', 'dirt2', None),
     ]
+    inner_outer_transform_borders_list = [
+        ('soil4', 'grass2', 'dirt2'),
+        ('dirt4', 'grass2', 'dirt2'),
+        ('snow3', 'dirt2', 'dirt4'),
+        ('grass3', 'sand4', 'dirt2'),
+    ]
     biomes_map = {}
     tiles_map = {}
-    coast_line = set()
+    # coast_line = set()
 
     for x in range(biome_image.width):
         for y in range(biome_image.height):
@@ -432,136 +438,134 @@ def main():
             if replacing_list:
                 print(f"Placed border line between {inner} and {outer} with {outer} length: {len(replacing_list)}")
 
-    if False:
-        for x in range(1, biome_image.width-1):
-            for y in range(1, biome_image.height-1):
-                center = tiles_map[(x, y)]
-                if center != 'water5':
-                    continue
-                for neighbor in [
-                    tiles_map[(x-1, y-1)],
-                    tiles_map[(x-1, y)],
-                    tiles_map[(x-1, y+1)],
-                    tiles_map[(x, y-1)],
-                    tiles_map[(x, y+1)],
-                    tiles_map[(x+1, y-1)],
-                    tiles_map[(x+1, y)],
-                    tiles_map[(x+1, y+1)],                
-                ]:
-                    if neighbor != center:
-                        if (x, y) not in coast_line:
-                            coast_line.add((x, y))
-        for x, y in coast_line:
-            tiles_map[(x, y)] = 'sand4'
-        print(f"Coast line length: {len(coast_line)}")
+    # if False:
+    #     for x in range(1, biome_image.width-1):
+    #         for y in range(1, biome_image.height-1):
+    #             center = tiles_map[(x, y)]
+    #             if center != 'water5':
+    #                 continue
+    #             for neighbor in [
+    #                 tiles_map[(x-1, y-1)],
+    #                 tiles_map[(x-1, y)],
+    #                 tiles_map[(x-1, y+1)],
+    #                 tiles_map[(x, y-1)],
+    #                 tiles_map[(x, y+1)],
+    #                 tiles_map[(x+1, y-1)],
+    #                 tiles_map[(x+1, y)],
+    #                 tiles_map[(x+1, y+1)],                
+    #             ]:
+    #                 if neighbor != center:
+    #                     if (x, y) not in coast_line:
+    #                         coast_line.add((x, y))
+    #     for x, y in coast_line:
+    #         tiles_map[(x, y)] = 'sand4'
+    #     print(f"Coast line length: {len(coast_line)}")
 
-    if False:
-        # diff = float(max_elevation - INPUT_WATER_LEVEL)
-        coast_max_height = BEACH_COAST_LINE_HEIGHT_MAX
-        print(f"Coast line max height: {coast_max_height} (for coast line input height {coast_max_height})")
-        beach_area = set()
-        cycles = 3
-        progress = 1
-        while progress and cycles:
-            cycles -= 1
-            progress = 0
-            for x in range(1, biome_image.width-1):
-                for y in range(1, biome_image.height-1):
-                    tile = tiles_map[(x, y)]
-                    if tile == 'water5':
-                        continue
-                    height = int(tuple(heightmap_image.getpixel((x, y)))[0])
-                    if height > coast_max_height:
-                        continue
-                    for dx, dy in [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]:
-                        xn = x + dx
-                        yn = y + dy
-                        if (xn, yn) in coast_line or (xn, yn) in beach_area:
-                            if (x, y) not in coast_line and (x, y) not in beach_area:
-                                beach_area.add((x, y))
-                                progress += 1
-                                break
-            print(f"Detecting beach area, progress: {progress} pixels added")
-    
-        for x in range(1, biome_image.width-1):
-            for y in range(1, biome_image.height-1):
-                if (x, y) not in coast_line:
-                    continue
-                for xn, yn in [
-                    (x-1, y-1),
-                    (x-1, y),
-                    (x-1, y+1),
-                    (x,   y-1),
-                    (x,   y+1),
-                    (x+1, y-1),
-                    (x+1, y),
-                    (x+1, y+1),
-                ]:
-                    neighbor_tile = tiles_map[(xn, yn)]
-                    if neighbor_tile == 'water5':
-                        continue
-                    if (xn, yn) in beach_area:
-                        continue
-                    if (xn, yn) in coast_line:
-                        continue
-                    beach_area.add((xn, yn))
-        for x, y in beach_area:
-            tiles_map[(x, y)] = 'sand4'
-        print(f"Beach area pixels total: {len(beach_area)}")
+    # if False:
+    #     coast_max_height = BEACH_COAST_LINE_HEIGHT_MAX
+    #     print(f"Coast line max height: {coast_max_height} (for coast line input height {coast_max_height})")
+    #     beach_area = set()
+    #     cycles = 3
+    #     progress = 1
+    #     while progress and cycles:
+    #         cycles -= 1
+    #         progress = 0
+    #         for x in range(1, biome_image.width-1):
+    #             for y in range(1, biome_image.height-1):
+    #                 tile = tiles_map[(x, y)]
+    #                 if tile == 'water5':
+    #                     continue
+    #                 height = int(tuple(heightmap_image.getpixel((x, y)))[0])
+    #                 if height > coast_max_height:
+    #                     continue
+    #                 for dx, dy in [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]:
+    #                     xn = x + dx
+    #                     yn = y + dy
+    #                     if (xn, yn) in coast_line or (xn, yn) in beach_area:
+    #                         if (x, y) not in coast_line and (x, y) not in beach_area:
+    #                             beach_area.add((x, y))
+    #                             progress += 1
+    #                             break
+    #         print(f"Detecting beach area, progress: {progress} pixels added")
+    #     for x in range(1, biome_image.width-1):
+    #         for y in range(1, biome_image.height-1):
+    #             if (x, y) not in coast_line:
+    #                 continue
+    #             for xn, yn in [
+    #                 (x-1, y-1),
+    #                 (x-1, y),
+    #                 (x-1, y+1),
+    #                 (x,   y-1),
+    #                 (x,   y+1),
+    #                 (x+1, y-1),
+    #                 (x+1, y),
+    #                 (x+1, y+1),
+    #             ]:
+    #                 neighbor_tile = tiles_map[(xn, yn)]
+    #                 if neighbor_tile == 'water5':
+    #                     continue
+    #                 if (xn, yn) in beach_area:
+    #                     continue
+    #                 if (xn, yn) in coast_line:
+    #                     continue
+    #                 beach_area.add((xn, yn))
+    #     for x, y in beach_area:
+    #         tiles_map[(x, y)] = 'sand4'
+    #     print(f"Beach area pixels total: {len(beach_area)}")
 
-    if False:
-        progress = 1
-        attempts = 0
-        while progress:
-            attempts += 1
-            if attempts > 10:
-                break
-            progress = 0
-            for x in range(1, biome_image.width-1):
-                for y in range(1, biome_image.height-1):
-                    center = tiles_map[(x, y)]
-                    neighbors_counts = {center: 1}
-                    neighbors_tiles = {(0, 0): center}
-                    for xd, yd in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]:
-                        xn = x + xd
-                        yn = y + yd
-                        neighbor = tiles_map[(xn, yn)]
-                        if neighbor not in neighbors_counts:
-                            neighbors_counts[neighbor] = 0
-                        neighbors_counts[neighbor] += 1
-                        neighbors_tiles[(xd, yd)] = neighbor
-                    if len(neighbors_counts) < 4:
-                        continue
-                    neighbors_sorted = sorted(neighbors_counts.keys(), key=lambda n: neighbors_counts[n], reverse=True)
-                    tile1 = neighbors_sorted[0]
-                    if tile1 != center:
-                        tiles_map[(x, y)] = tile1
-                        progress += 1
-            print(f"Smoothing 4-adjacent neighbors, attempt #{attempts} with {progress} changes")
+    # if False:
+    #     progress = 1
+    #     attempts = 0
+    #     while progress:
+    #         attempts += 1
+    #         if attempts > 10:
+    #             break
+    #         progress = 0
+    #         for x in range(1, biome_image.width-1):
+    #             for y in range(1, biome_image.height-1):
+    #                 center = tiles_map[(x, y)]
+    #                 neighbors_counts = {center: 1}
+    #                 neighbors_tiles = {(0, 0): center}
+    #                 for xd, yd in [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]:
+    #                     xn = x + xd
+    #                     yn = y + yd
+    #                     neighbor = tiles_map[(xn, yn)]
+    #                     if neighbor not in neighbors_counts:
+    #                         neighbors_counts[neighbor] = 0
+    #                     neighbors_counts[neighbor] += 1
+    #                     neighbors_tiles[(xd, yd)] = neighbor
+    #                 if len(neighbors_counts) < 4:
+    #                     continue
+    #                 neighbors_sorted = sorted(neighbors_counts.keys(), key=lambda n: neighbors_counts[n], reverse=True)
+    #                 tile1 = neighbors_sorted[0]
+    #                 if tile1 != center:
+    #                     tiles_map[(x, y)] = tile1
+    #                     progress += 1
+    #         print(f"Smoothing 4-adjacent neighbors, attempt #{attempts} with {progress} changes")
 
-    if False:
-        coast_line.clear()
-        for x in range(1, biome_image.width-1):
-            for y in range(1, biome_image.height-1):
-                center = tiles_map[(x, y)]
-                if center != 'water5':
-                    continue
-                for neighbor in [
-                    tiles_map[(x-1, y-1)],
-                    tiles_map[(x-1, y)],
-                    tiles_map[(x-1, y+1)],
-                    tiles_map[(x, y-1)],
-                    tiles_map[(x, y+1)],
-                    tiles_map[(x+1, y-1)],
-                    tiles_map[(x+1, y)],
-                    tiles_map[(x+1, y+1)],                
-                ]:
-                    if neighbor != center:
-                        if (x, y) not in coast_line:
-                            coast_line.add((x, y))
-        for x, y in coast_line:
-            tiles_map[(x, y)] = 'sand4'
-        print(f"Coast line length in second round: {len(coast_line)}")
+    # if False:
+    #     coast_line.clear()
+    #     for x in range(1, biome_image.width-1):
+    #         for y in range(1, biome_image.height-1):
+    #             center = tiles_map[(x, y)]
+    #             if center != 'water5':
+    #                 continue
+    #             for neighbor in [
+    #                 tiles_map[(x-1, y-1)],
+    #                 tiles_map[(x-1, y)],
+    #                 tiles_map[(x-1, y+1)],
+    #                 tiles_map[(x, y-1)],
+    #                 tiles_map[(x, y+1)],
+    #                 tiles_map[(x+1, y-1)],
+    #                 tiles_map[(x+1, y)],
+    #                 tiles_map[(x+1, y+1)],                
+    #             ]:
+    #                 if neighbor != center:
+    #                     if (x, y) not in coast_line:
+    #                         coast_line.add((x, y))
+    #     for x, y in coast_line:
+    #         tiles_map[(x, y)] = 'sand4'
+    #     print(f"Coast line length in second round: {len(coast_line)}")
 
     cycles = 3
     progress = 1
@@ -570,7 +574,6 @@ def main():
         attempts += 1
         cycles -= 1
         progress = 0
-
         changes = 0
         for x in range(0, biome_image.width-1):
             for y in range(0, biome_image.height-1):
@@ -614,11 +617,7 @@ def main():
                     progress += 1
         print(f"Smoothing 2-adjacent diagonal neighbors with {changes} changes")
 
-        for inner, outer, transform in [
-            ('soil4', 'grass2', 'dirt2'),
-            ('dirt4', 'grass2', 'dirt2'),
-            ('snow3', 'dirt2', 'dirt4'),
-        ]:
+        for inner, outer, transform in inner_outer_transform_borders_list:
             transform_list = set()
             for x in range(1, biome_image.width-1):
                 for y in range(1, biome_image.height-1):
@@ -699,10 +698,10 @@ def main():
                 if len(diag1) == 1 and len(diag2) == 1:
                     raise Exception(f"Found neighboring tiles with 2 different types in diagonal at ({x}, {y}): {list(neighbors_counts.keys())}")
 
-    fragment_x = 595
-    fragment_y = 672
-    fragment_width = 64
-    fragment_height = 64
+    # fragment_x = 595
+    # fragment_y = 672
+    # fragment_width = 64
+    # fragment_height = 64
 
     tiles = {}
     for xb in range(0, biome_image.width-1):
@@ -760,10 +759,6 @@ def main():
                 else:
                     if len(diag1) == 1 and len(diag2) == 1:
                         raise Exception(f"Found neighboring tiles with 2 different types in diagonal at ({x}, {y})")
-                        # if coords[t1].count((0, 0)):
-                        #     shape = 'top_left_bottom_right'
-                        # else:
-                        #     shape = 'top_right_bottom_left'
                     else:
                         if coords[t1].count((0, 0)):
                             if len(col1) == 1:
@@ -937,27 +932,26 @@ def main():
             else:
                 raise Exception(f"Did not found a shape for {samples_all} at ({x}, {y})")
 
+    water_catalog_id = catalog['water5'][0]
     encoded_image = Image.new("RGB", (biome_image.size[0], biome_image.size[1]), "black")
-    for x in range(0, encoded_image.width-1):
-        for y in range(0, encoded_image.height-1):
-            catalog_id, rotate = tiles[(x, y)] if (x, y) in tiles else (None, None)
+    catalog_stats = {}
+    for x in range(0, encoded_image.width):
+        for y in range(0, encoded_image.height):
+            catalog_id, rotate = tiles[(x, y)] if (x, y) in tiles else (water_catalog_id, 0)
+            catalog_id = int(catalog_id)
+            rotate = int(rotate)
             if catalog_id is not None:
                 encoded_image.putpixel((x, y), (catalog_id % 256, catalog_id // 256, rotate // 90))
+                catalog_stats[catalog_id] = catalog_stats.get(catalog_id, 0) + 1
     encoded_image.save('assets/encoded.png')
 
-    # fragment_image = Image.new("RGB", (fragment_width * 64, fragment_height * 64), "black")
-    # for x in range(fragment_x, fragment_x + fragment_width):
-    #     for y in range(fragment_y, fragment_y + fragment_height):
-    #         catalog_id, rotate = tiles[(x, y)] if (x, y) in tiles else (None, None)
-    #         if catalog_id is not None:
-    #             catalog_image = Image.open(os.path.join('textures', 'land', f'{catalog_id:05d}.png'))
-    #             fragment_image.paste(catalog_image.rotate(rotate), ((x - fragment_x) * 64, (y - fragment_y) * 64))
-    # fragment_image.save('fragment.png')
+    catalog_ids_sorted = sorted(catalog_stats.keys(), key=lambda k: catalog_stats[k], reverse=True)
 
     data = read_full_json_file(sys.argv[1])
     trees, trees_variants = plant_trees(data)
     open('assets/trees.json', 'w').write(json.dumps(trees, indent=2))
     open('assets/trees_variants.json', 'w').write(json.dumps(sorted(trees_variants.keys()), indent=2))
+    open('assets/catalog_stats.json', 'w').write(json.dumps(catalog_ids_sorted, indent=2))
 
     different_biomes = list(stats.keys())
     different_biomes.sort(key=lambda i: stats[i], reverse=True)

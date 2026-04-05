@@ -61,13 +61,14 @@ class Unit(object):
         self.max_speed = 0.0
 
     def run(self, scene):
-        # return
         self.speed += self.acceleration
         if self.speed > self.max_speed:
             self.speed = self.max_speed
         self.direction += 1.0
         if self.direction > 360.0:
-            self.direction -= 360.0
+            self.direction = random.randint(0, 360)
+            self.max_speed = random.randint(5, 40) / 1000.0
+            self.acceleration = random.randint(1, 10) / 1000.0
         self.rotate_vertical.angle = self.direction + 90
         self.shift_w += self.speed * math.cos(math.radians(self.direction))
         self.shift_h += self.speed * math.sin(math.radians(self.direction))
@@ -665,27 +666,31 @@ class Scene(object):
         v10 = (-c10 * self.PI_4_COS, y10, -c10 * self.PI_4_SIN)
         v01 = (c01 * self.PI_4_COS, y01, c01 * self.PI_4_SIN)
         v11 = (-c11 * self.PI_4_SIN, y11, c11 * self.PI_4_COS)
-        tex_source, rotate = _get_texture(w_t, h_t)
-        if rotate == 270:
-            tex_coord00 = (0.0, 1.0)
-            tex_coord01 = (1.0, 1.0)
-            tex_coord10 = (0.0, 0.0)
-            tex_coord11 = (1.0, 0.0)
-        elif rotate == 0:
-            tex_coord00 = (0.0, 0.0)
-            tex_coord01 = (0.0, 1.0)
-            tex_coord10 = (1.0, 0.0)
-            tex_coord11 = (1.0, 1.0)
-        elif rotate == 90:
-            tex_coord00 = (1.0, 0.0)
-            tex_coord01 = (0.0, 0.0)
-            tex_coord10 = (1.0, 1.0)
-            tex_coord11 = (0.0, 1.0)
-        elif rotate == 180:
-            tex_coord00 = (1.0, 1.0)
-            tex_coord01 = (1.0, 0.0)
-            tex_coord10 = (0.0, 1.0)
-            tex_coord11 = (0.0, 0.0)
+        tex_file_path, tex_coord00, tex_coord01, tex_coord10, tex_coord11 = _get_texture(w_t, h_t)
+        # step = 1.0 / 8.0
+        # corr = 1.0 / ( 64.0 * 8.0 )
+        # tex_cell_x = ( mozaic_pos % 8 ) * step
+        # tex_cell_y = ( mozaic_pos // 8 ) * step
+        # if rotate == 270:
+        #     tex_coord00 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 1.0 / 8.0 - corr)
+        #     tex_coord01 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 1.0 / 8.0 - corr)
+        #     tex_coord10 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 0.0 / 8.0 + corr)
+        #     tex_coord11 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 0.0 / 8.0 + corr)
+        # elif rotate == 0:
+        #     tex_coord00 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 0.0 / 8.0 + corr)
+        #     tex_coord01 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 1.0 / 8.0 - corr)
+        #     tex_coord10 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 0.0 / 8.0 + corr)
+        #     tex_coord11 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 1.0 / 8.0 - corr)
+        # elif rotate == 90:
+        #     tex_coord00 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 0.0 / 8.0 + corr)
+        #     tex_coord01 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 0.0 / 8.0 + corr)
+        #     tex_coord10 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 1.0 / 8.0 - corr)
+        #     tex_coord11 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 1.0 / 8.0 - corr)
+        # elif rotate == 180:
+        #     tex_coord00 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 1.0 / 8.0 - corr)
+        #     tex_coord01 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 0.0 / 8.0 + corr)
+        #     tex_coord10 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 1.0 / 8.0 - corr)
+        #     tex_coord11 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 0.0 / 8.0 + corr)
         vert = [
             v00[0], v00[1], v00[2], 1, 0, 0, tex_coord00[0], tex_coord00[1],
             v01[0], v01[1], v01[2], 1, 0, 0, tex_coord01[0], tex_coord01[1],
@@ -704,7 +709,7 @@ class Scene(object):
         # if _Debug:
         #     if map_w == self.area_center_w and map_h == self.area_center_h:
         #         tex_source = None
-        self.container_land_tiles.add(BindTexture(source=tex_source, index=1, group=segment_group_name))
+        self.container_land_tiles.add(BindTexture(source=tex_file_path, index=1, group=segment_group_name))
         self.container_land_tiles.add(Mesh(
             vertices=vert,
             indices=[0, 1, 2, 1, 2, 3],
@@ -850,6 +855,12 @@ class Scene(object):
                 # if _Debug:
                 #     print(f'restarting unit ({unit.name}) animation {unit.animation_playing} after frame {unit.animation_frame}')
                 unit.animation_frame = 0
+                current_animation = unit.animations_list.index(unit.animation_playing)
+                current_animation += 1
+                if current_animation >= len(unit.animations_list):
+                    current_animation = 0
+                unit.animation_playing = unit.animations_list[current_animation]
+                animation = ao.animations[unit.animation_playing]
             frame = unit.animation_frame
             for part_name in ao.parts:
                 if part_name not in animation.parts:

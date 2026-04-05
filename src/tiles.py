@@ -1944,7 +1944,7 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                     ready_top_right_tile_name = f'{counter:05d}.png'
                     top_right_image.save(os.path.join(ready_dir, ready_top_right_tile_name))
                     catalog[key]['c'].append(counter)
-        open('catalog.json', 'w').write(json.dumps(catalog, indent=2))
+        open('assets/catalog.json', 'w').write(json.dumps(catalog, indent=2))
     for pair in pairs:
         pair2 = (pair[1], pair[0])
         if pair2 not in pairs:
@@ -2128,7 +2128,7 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                 ready_tile_name = f'{counter:05d}.png'
                 ready_image.save(os.path.join(ready_dir, ready_tile_name))
                 catalog[key].append(counter)
-        open('catalog.json', 'w').write(json.dumps(catalog, indent=2))
+        open('assets/catalog.json', 'w').write(json.dumps(catalog, indent=2))
 
 
 def build_index(src_dir, dest_dir):
@@ -2179,14 +2179,14 @@ def build_index(src_dir, dest_dir):
                 count += 1
         print(f'read {count} tiles from {file_path}')
     print(f'processed {processed} source images, generated {total_tiles} tiles')
-    open('index.json', 'w').write(json.dumps(index_by_hash, indent=2))
+    # open('index.json', 'w').write(json.dumps(index_by_hash, indent=2))
     print(f'indexed {len(index_by_hash)} unique tiles')
 
 
 def unpack_textures(dest_dir):
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
-    with open('textures.res', 'rb') as texture_file:
+    with open('data/textures.res', 'rb') as texture_file:
         res_filetree_dict = res.read_res_filetree(texture_file, return_dict=True)
         for k in res_filetree_dict.keys():
             if k.endswith('.mmp'):
@@ -2200,69 +2200,52 @@ def unpack_textures(dest_dir):
                 print(f'Unpacked {k} to {png_file_path}')
 
 
-def match_tiles(src_dir, textures_dir, dest_dir):
+def pack_tiles(src_dir, dest_dir):
+    catalog_ids_sorted = json.loads(open('assets/catalog_stats.json').read())
+    tiles = []
+    images = {}
     lst = sorted(os.listdir(src_dir))
-    map_names = [
-        'basegipat',
-        'bz2g', 'bz3g', 'bz4g', 'bz5g', 'bz6g', 'bz7g',
-        'bz8k', 'bz9k', 'bz10k', 'bz11k',
-        'bz13h', 'bz14h', 'bz15h', 'bz16h', 'bz18h', 'bz19h',
-        'zone1', 'zone2', 'zone4', 'zone6', 'zone7', 'zone8', 'zone9', 'zone10', 'zone11',
-        'zone12', 'zone13', 'zone14', 'zone15', 'zone16', 'zone17', 'zone18', 'zone19', 'zone20', 'zone25', 'zone26', 
-        'zone34', 'zone35', 'zone71',
-        'zone5_1', 'zone6_1', 'zone6_2', 'zone17_1', 'zone3obr',
-        'zonemainmenunew', 'zonefinal',
-    ]
-    cache = {}
-    cache_alt = {}
-    for map_name in map_names:
-        for map_part in range(8):
-            map_file_name = f'{map_name}{map_part:03d}.png'
-            map_file_path = os.path.join(textures_dir, map_file_name)
-            if not os.path.exists(map_file_path):
-                continue
-            map_image = Image.open(map_file_path)
-            map_image.load()
-            for h in range(8):
-                for w in range(8):
-                    one_tile_image, one_tile_hash = image_tile(map_image, w, h)
-                    cache[one_tile_hash] = (map_file_name, w, h)
-                    one_tile_hash_alt = image_hash(one_tile_image, to_str=True)
-                    cache_alt[one_tile_hash_alt] = (map_file_name, w, h)
-    print(f'Cached {len(cache)} tiles from map files')
-    tiles = {}
-    unmatched = []
     for tile_file_name in lst:
         if not tile_file_name.endswith('.png'):
             continue
-        tile_name = tile_file_name.replace('.png','').rstrip('_')
+        tile_name = tile_file_name.replace('.png', '')
         tile_file_path = os.path.join(src_dir, tile_file_name)
         tile_image = Image.open(tile_file_path)
         tile_image.load()
-        found = False
-        for rotation in [0, 90, 180, 270, -1, -2]:
-            tile_rotated_image = get_rotated_image(tile_image, rotation)
-            tile_rotated_hash = image_hash(tile_rotated_image, hash_type='md5')
-            if tile_rotated_hash in cache:
-                map_file_name, w, h = cache[tile_rotated_hash]
-                tiles[tile_name] = f'{map_file_name[:-4]} {w} {h} {rotation}'
-                print(f'Matched tile {tile_name} to {map_file_name} at {w},{h} with rotation {rotation}')
-                found = True
-                break
-            tile_rotated_hash_alt = image_hash(tile_rotated_image, to_str=True, hash_type='phash')
-            if tile_rotated_hash_alt in cache_alt:
-                map_file_name, w, h = cache_alt[tile_rotated_hash_alt]
-                tiles[tile_name] = f'{map_file_name[:-4]} {w} {h} {rotation}'
-                print(f'Matched tile {tile_name} to {map_file_name} at {w},{h} with rotation {rotation} by alternative hash')
-                found = True
-                break
-        if not found:
-            unmatched.append((tile_name, tile_image))
-    print(f'Found {len(unmatched)} unmatched tiles')
-    for tile_name, tile_image in unmatched:
-        tile_image.save(os.path.join(dest_dir, f'{tile_name}.png'))
-        tiles[tile_name] = ''
-    open(os.path.join('tiles.json'), 'w').write(json.dumps(tiles, indent=2))
+        tiles.append(tile_name)
+        images[tile_name] = tile_image
+    remaining = list(tiles)
+    current_mozaic_image = None
+    current_mozaic_num = 0
+    current_mozaic_id = 0
+    registry = []
+    for catalog_id in catalog_ids_sorted:
+        tile_name = f'{catalog_id:05d}'
+        tile_image = images[tile_name]
+        if not current_mozaic_image:
+            current_mozaic_image = Image.new("RGB", (TILE_SIZE * 8, TILE_SIZE * 8), "black")
+        if current_mozaic_id >= 64:
+            current_mozaic_image.save(os.path.join(dest_dir, f'{current_mozaic_num}.png'))
+            current_mozaic_num += 1
+            current_mozaic_image = Image.new("RGB", (TILE_SIZE * 8, TILE_SIZE * 8), "black")
+            current_mozaic_id = 0
+        current_mozaic_image.paste(tile_image, ((current_mozaic_id % 8) * TILE_SIZE, (current_mozaic_id // 8) * TILE_SIZE))
+        remaining.remove(tile_name)
+        registry.append(f'{int(tile_name)} {current_mozaic_num} {current_mozaic_id}')
+        current_mozaic_id += 1
+    for tile_name in remaining:
+        tile_image = images[tile_name]
+        if not current_mozaic_image:
+            current_mozaic_image = Image.new("RGB", (TILE_SIZE * 8, TILE_SIZE * 8), "black")
+        if current_mozaic_id >= 64:
+            current_mozaic_image.save(os.path.join(dest_dir, f'{current_mozaic_num}.png'))
+            current_mozaic_num += 1
+            current_mozaic_image = Image.new("RGB", (TILE_SIZE * 8, TILE_SIZE * 8), "black")
+            current_mozaic_id = 0
+        current_mozaic_image.paste(tile_image, ((current_mozaic_id % 8) * TILE_SIZE, (current_mozaic_id // 8) * TILE_SIZE))
+        registry.append(f'{int(tile_name)} {current_mozaic_num} {current_mozaic_id}')
+        current_mozaic_id += 1
+    open(os.path.join('assets/tiles.json'), 'w').write(json.dumps(registry, indent=2))
 
 
 def main():
@@ -2301,8 +2284,8 @@ def main():
         merge_tiles(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], save_ready_tiles=True)
     elif stage == 'unpack_textures':
         unpack_textures(sys.argv[2])
-    elif stage == 'match_tiles':
-        match_tiles(sys.argv[2], sys.argv[3], sys.argv[4])
+    elif stage == 'pack_tiles':
+        pack_tiles(sys.argv[2], sys.argv[3])
 
 
 if __name__ == '__main__':

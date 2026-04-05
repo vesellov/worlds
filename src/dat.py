@@ -305,13 +305,19 @@ class LandData(object):
     def __init__(self):
         self.width = None
         self.height = None
+        self.tiles_textures_dir_path = None
         self.elevation_map_data = {}
         self.tiles_map_data = {}
-        self.tiles_textures_dir_path = None
+        self.tiles_files = {}
         self.plants_map_data = {}
         self.plants_variants = {}
 
     def load_tilemap_file(self, tilemap_file_name):
+        tiles_list = json.loads(open('assets/tiles.json', 'rt').read())
+        tiles_registry = {}
+        for tile_info in tiles_list:
+            catalog_id, mozaic_id, mozaic_pos = [int(i) for i in tile_info.split(' ')]
+            tiles_registry[catalog_id] = (mozaic_id, mozaic_pos)
         im = Image(tilemap_file_name, keep_data=True)
         if self.width is not None and self.width != im.width:
             raise ValueError(f'land width mismatch: expected {self.width}, got {im.width}')
@@ -319,6 +325,8 @@ class LandData(object):
             raise ValueError(f'land height mismatch: expected {self.height}, got {im.height}')
         data = im.image._data[0]
         size = 3 if data.fmt in ('rgb', 'bgr') else 4
+        step = 1.0 / 8.0
+        corr = 1.0 / ( 64.0 * 8.0 )
         for x in range(self.width):
             for y in range(self.height):
                 index = y * data.width * size + x * size
@@ -335,7 +343,32 @@ class LandData(object):
                     color[0], color[2] = color[2], color[0]
                 catalog_id = color[0] + color[1] * 256
                 rotate = color[2] * 90
-                self.tiles_map_data[(x, y)] = (catalog_id, rotate)
+                if catalog_id == 0:
+                    import pdb; pdb.set_trace()
+                mozaic_id, mozaic_pos = tiles_registry[catalog_id]
+                tex_cell_x = ( mozaic_pos % 8 ) * step
+                tex_cell_y = ( mozaic_pos // 8 ) * step
+                if rotate == 270:
+                    tex_coord00 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 1.0 / 8.0 - corr)
+                    tex_coord01 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 1.0 / 8.0 - corr)
+                    tex_coord10 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 0.0 / 8.0 + corr)
+                    tex_coord11 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 0.0 / 8.0 + corr)
+                elif rotate == 0:
+                    tex_coord00 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 0.0 / 8.0 + corr)
+                    tex_coord01 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 1.0 / 8.0 - corr)
+                    tex_coord10 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 0.0 / 8.0 + corr)
+                    tex_coord11 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 1.0 / 8.0 - corr)
+                elif rotate == 90:
+                    tex_coord00 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 0.0 / 8.0 + corr)
+                    tex_coord01 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 0.0 / 8.0 + corr)
+                    tex_coord10 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 1.0 / 8.0 - corr)
+                    tex_coord11 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 1.0 / 8.0 - corr)
+                elif rotate == 180:
+                    tex_coord00 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 1.0 / 8.0 - corr)
+                    tex_coord01 = (tex_cell_x + 1.0 / 8.0 - corr, tex_cell_y + 0.0 / 8.0 + corr)
+                    tex_coord10 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 1.0 / 8.0 - corr)
+                    tex_coord11 = (tex_cell_x + 0.0 / 8.0 + corr, tex_cell_y + 0.0 / 8.0 + corr)
+                self.tiles_map_data[(x, y)] = (mozaic_id, tex_coord00, tex_coord01, tex_coord10, tex_coord11)
         return self.width, self.height
 
     def load_heightmap_file(self, heightmap_file_name, sea_level=0.0):
@@ -364,6 +397,7 @@ class LandData(object):
                     _tex = Image(file_path_source).texture
                     Cache.append('kv.texture', file_path, _tex)
                     count += 1
+                    self.tiles_files[int(file_name[:-4])] = file_path
         if _Debug:
             print(f'  cached {count} textures at {self.tiles_textures_dir_path} for land tiles')
 
@@ -425,9 +459,8 @@ class LandData(object):
             _h = h + self.height
         if h >= self.height:
             _h = h - self.height
-        catalog_id, rotate = self.tiles_map_data[(_w, _h)]
-        texture_file_path = os.path.join(self.tiles_textures_dir_path, f'{catalog_id:05d}.png')
-        return texture_file_path, rotate
+        mozaic_id, tex_coord00, tex_coord01, tex_coord10, tex_coord11 = self.tiles_map_data[(_w, _h)]
+        return self.tiles_files[mozaic_id], tex_coord00, tex_coord01, tex_coord10, tex_coord11
 
 
 def main():
