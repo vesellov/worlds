@@ -10,6 +10,7 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.uix.widget import Widget
+from kivy.resources import resource_find
 from kivy.graphics.transformation import Matrix  # @UnresolvedImport
 from kivy.graphics.opengl import (
     glGetError, glEnable, glDisable, GL_BLEND, GL_DEPTH_TEST,
@@ -42,17 +43,47 @@ uniform mat4 modelview_mat;
 uniform mat4 projection_mat;
 
 varying vec2 tex_coord0;
-varying vec4 normal_vec;
-varying vec4 vertex_pos;
+// varying vec4 normal_vec;
+varying vec4 world_pos;
 
 void main (void) {
     vec4 pos = modelview_mat * vec4(v_pos, 1.0);
-    vertex_pos = pos;
-    normal_vec = vec4(v_normal, 0.0);
-    gl_Position = projection_mat * pos;
+    world_pos = pos;
+    gl_Position = projection_mat * world_pos;
     tex_coord0 = v_tex_coord;
+    // normal_vec = vec4(v_normal, 0.0);
 }
 """
+
+fragment_shader_src = """
+#ifdef GL_ES
+    precision highp float;
+#endif
+
+varying vec4 world_pos;
+// varying vec4 normal_vec;
+varying vec2 tex_coord0;
+
+uniform sampler2D texture_id;
+// uniform mat4 normal_mat;
+uniform float brightness;
+uniform float contrast;
+uniform float fog_density;
+uniform vec3 fog_color;
+
+void main (void) {
+    vec4 tex_color = texture2D(texture_id, tex_coord0).rgba;
+    vec3 camera_pos = vec3(0.0, 0.0, 0.0);
+    float camera_distance = length(camera_pos - world_pos.xyz);
+    // float camera_distance = 5.0;
+    float fog_factor = 1.0 / exp(camera_distance * fog_density);
+    fog_factor = clamp(fog_factor, 0.0, 1.0);
+    vec3 tex_color_with_fog = mix(fog_color, tex_color.rgb, fog_factor);
+    vec3 result_color = (tex_color_with_fog - 0.5) * contrast + 0.5 + brightness;
+    gl_FragColor = vec4(result_color, tex_color.a);
+}
+"""
+
 
 # fragment_shader_src = """
 # #ifdef GL_ES
@@ -70,28 +101,6 @@ void main (void) {
 #     gl_FragColor = texture2D(texture_id, tex_coord0);
 # }
 # """
-
-
-fragment_shader_src = """
-#ifdef GL_ES
-    precision highp float;
-#endif
-
-varying vec4 normal_vec;
-varying vec4 vertex_pos;
-varying vec2 tex_coord0;
-
-uniform sampler2D texture_id;
-uniform mat4 normal_mat;
-uniform float brightness;
-uniform float contrast;
-
-void main (void) {
-    vec4 color = texture2D(texture_id, tex_coord0).rgba;
-    vec3 new_color = (color.rgb - 0.5) * contrast + 0.5 + brightness;
-    gl_FragColor = vec4(new_color, color.a);
-}
-"""
 
 
 # vertex_shader_src = """
@@ -170,8 +179,7 @@ class Renderer(Widget):
         self.app_root = app_root
         self.scene = scene
         self.canvas = RenderContext(compute_normal_mat=True)
-        self.canvas.shader.fs = fragment_shader_src
-        self.canvas.shader.vs = vertex_shader_src
+        self.canvas.shader.source = resource_find('assets/shader.glsl')
         self.camera_distance_scale_factor = self.SCALE_INITIAL
         self.camera_distance_to_center = self.CAMERA_DISTANCE_TO_CENTER_INITIAL
         self.camera_angle_y = float(self.ROTATE_VERTICAL_INITIAL)
@@ -183,6 +191,9 @@ class Renderer(Widget):
         self.global_center_x = 0
         self.global_center_y = 0
         self.global_center_z = 0
+        self.fog_center_x = 0.0
+        self.fog_center_y = 0.0
+        self.fog_center_z = 0.0
         self.touches = []
         self.brightness = 0.0
         self.contrast = 1.0
@@ -213,7 +224,8 @@ class Renderer(Widget):
         #         intensity=1.0,
         #     )
         PushMatrix()
-        sz = 1
+        Color(1, 1, 1, 1)
+        # sz = 1
         # if False:
         #     PushState()
         #     Mesh(
@@ -257,18 +269,9 @@ class Renderer(Widget):
         # if False:
         #     Color(1, 1, 1)
         # SCENE BEGIN
-        self.scene.create_containers()
+        self.scene.create_container()
         # SCENE END
         # if False:
-        #     self.scene.container_land.add(ChangeState(
-        #         line_color=(1., 1., 1., 1.),
-        #         Kd=(0.0, 1.0, 0.0),
-        #         Ka=(1.0, 1.0, 0.0),
-        #         Ks=(0.3, 0.3, 0.3),
-        #         Tr=1.0,
-        #         Ns=1.0,
-        #         intensity=1.0,
-        #     ))
         #     self.scene.container.add(ChangeState(
         #         line_color=(1., 1., 1., 1.),
         #         Kd=(0.0, 1.0, 0.0),
@@ -280,7 +283,7 @@ class Renderer(Widget):
         #     ))
         PopMatrix()
 
-    def setup_canvas(self):
+    def update_canvas(self):
         asp = self.width / float(self.height)
         # self.on_gl_error('step 1')
         # self.canvas['texture_id'] = 1
@@ -293,17 +296,17 @@ class Renderer(Widget):
             self.global_center_x, self.global_center_y, self.global_center_z,
             0, 1, 0,  # up vector
         )
-        # self.canvas['diffuse_light'] = (1.0, 1.0, 1.0)
-        # self.canvas['ambient_light'] = (0.1, 0.1, 0.1)
-        # self.canvas['Kd'] = (0.0, 1.0, 0.0)
-        # self.canvas['Ka'] = (1.0, 1.0, 0.0)
-        # self.canvas['Ks'] = (0.3, 0.3, 0.3)
-        # self.canvas['Tr'] = 1.0
-        # self.canvas['Ns'] = 1.0
-        # self.canvas['intensity'] = 1.0
-        # self.canvas['line_color'] = (1.0, 1.0, 1.0, 1.0)
+        self.canvas['center_point'] = (0.0, 0.0, - float(self.camera_distance_scale_factor) * float(self.camera_distance_to_center))
+        # if _Debug:
+        #     print(f'updating canvas center_point={self.canvas["center_point"]}')
         self.canvas['brightness'] = self.brightness
         self.canvas['contrast'] = self.contrast
+        self.canvas['fog_density'] = 0.01
+        # self.canvas['fog_color'] = (0, 0, 0)
+        self.canvas['fog_color'] = (1.0, 1.0, 1.0)
+        # self.canvas['fog_color'] = (0.0, 0.0, 0.0)
+        self.canvas['segment_fog_factor'] = 1.0
+        self.canvas['dist_to_center'] = 0.0
         # self.on_gl_error('step 2')
 
     def define_rotate_angle(self, touch):
@@ -339,18 +342,30 @@ class Renderer(Widget):
             self.brightness += 0.1
         elif keycode[1] == 'p':
             self.brightness -= 0.1
-        # elif keycode[1] == 'f':
-        #     self.global_center_x += 1.0
-        # elif keycode[1] == 'g':
-        #     self.global_center_x -= 1.0
-        # elif keycode[1] == 'h':
-        #     self.global_center_y += 1.0
-        # elif keycode[1] == 'j':
-        #     self.global_center_y -= 1.0
-        # elif keycode[1] == 'k':
-        #     self.global_center_z += 1.0
-        # elif keycode[1] == 'l':
-        #     self.global_center_z -= 1.0
+        elif keycode[1] == 'f':
+            self.fog_center_x += 1.0
+            if _Debug:
+                print(f'fog center is now {self.fog_center_x} {self.fog_center_y} {self.fog_center_z}')
+        elif keycode[1] == 'g':
+            self.fog_center_x -= 1.0
+            if _Debug:
+                print(f'fog center is now {self.fog_center_x} {self.fog_center_y} {self.fog_center_z}')
+        elif keycode[1] == 'h':
+            self.fog_center_y += 1.0
+            if _Debug:
+                print(f'fog center is now {self.fog_center_x} {self.fog_center_y} {self.fog_center_z}')
+        elif keycode[1] == 'j':
+            self.fog_center_y -= 1.0
+            if _Debug:
+                print(f'fog center is now {self.fog_center_x} {self.fog_center_y} {self.fog_center_z}')
+        elif keycode[1] == 'k':
+            self.fog_center_z += 1.0
+            if _Debug:
+                print(f'fog center is now {self.fog_center_x} {self.fog_center_y} {self.fog_center_z}')
+        elif keycode[1] == 'l':
+            self.fog_center_z -= 1.0
+            if _Debug:
+                print(f'fog center is now {self.fog_center_x} {self.fog_center_y} {self.fog_center_z}')
         elif keycode[1] == 'z':
             for unit in self.scene.units.values():
                 if not unit.animations_list:
@@ -405,7 +420,7 @@ class Renderer(Widget):
             )
             unit.max_speed = random.randint(5, 40) / 1000.0
             unit.acceleration = random.randint(1, 10) / 1000.0
-        elif keycode[1] == 'l':
+        elif keycode[1] == 'v':
             animated_units_onstage = []
             for unit in self.scene.units.values():
                 if unit.static:
@@ -443,8 +458,8 @@ class Renderer(Widget):
                 factor = factor * (1.0 + self.SCALE_SPEED_FACTOR)
             if factor >= self.SCALE_MIN and factor <= self.SCALE_MAX:
                 self.camera_distance_scale_factor = factor
-                # if _Debug:
-                #     print(f'new scale factor is {self.camera_distance_scale_factor}')
+                if _Debug:
+                    print(f'new scale factor is {self.camera_distance_scale_factor}, camera distance to center is {float(self.camera_distance_scale_factor) * self.camera_distance_to_center}')
 
     @ignore_undertouch
     def on_touch_up(self, touch):
@@ -489,4 +504,4 @@ class Renderer(Widget):
             sys.exit(0)
 
     def on_update_glsl(self, delta):
-        self.setup_canvas()
+        self.update_canvas()

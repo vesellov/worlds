@@ -46,15 +46,19 @@ class Unit(object):
         self.area_w = None
         self.area_h = None
         self.static = None
-        self.animations_list = []
-        self.animation_playing = None
-        self.animation_frame = 0
+        self.onstage = False
+        self.parts = []
         self.meshes_transforms = {}
+        self.meshes_names = {}
         self.root_mesh_center = None
         self.rotate_axis_x = None
         self.rotate_axis_z = None
         self.rotate_vertical = None
         self.translate_shift = None
+        self.context_state = None
+        self.animations_list = []
+        self.animation_playing = None
+        self.animation_frame = 0
         self.direction = 0.0
         self.acceleration = 0.0
         self.speed = 0.0
@@ -103,6 +107,23 @@ class Unit(object):
             segment_angle_x, segment_angle_z = scene.coords_area2angles(self.area_w, self.area_h)
             self.rotate_axis_x.angle = segment_angle_x
             self.rotate_axis_z.angle = segment_angle_z
+            _w = int(self.w) - int(scene.area_center_w)
+            _h = int(self.h) - int(scene.area_center_h)
+            if self.onstage:
+                if (_w, _h) in scene.land_area_mask:
+                    dist_to_center = scene.land_area_mask[(_w, _h)]
+                    segment_fog_factor = 1.0 - dist_to_center / float(scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF)
+                    self.context_state.changes['segment_fog_factor'] = segment_fog_factor
+                    self.context_state.changes['dist_to_center'] = dist_to_center
+                else:
+                    scene.hide_unit(container=scene.container_animated_objects, unit_name=self.name)
+            else:
+                if (_w, _h) in scene.land_area_mask:
+                    scene.show_unit(container=scene.container_animated_objects, unit_name=self.name)
+                    dist_to_center = scene.land_area_mask[(_w, _h)]
+                    segment_fog_factor = 1.0 - dist_to_center / float(scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF)
+                    self.context_state.changes['segment_fog_factor'] = segment_fog_factor
+                    self.context_state.changes['dist_to_center'] = dist_to_center
 
 
 class Scene(object):
@@ -124,7 +145,7 @@ class Scene(object):
     ELEVATION_FACTOR = PLANET_RADIUS / 6.0
     VISIBLE_AREA_SIZE_SEGMENTS = 48
     VISIBLE_AREA_SIZE_SEGMENTS_HALF = int(VISIBLE_AREA_SIZE_SEGMENTS / 2.0)
-    LAND_MOVE_SPEED = 0.5
+    LAND_MOVE_SPEED = 0.1
 
     def __init__(self, land):
         self.land = land
@@ -138,15 +159,14 @@ class Scene(object):
         self.animating_units = set()
         self.visible_animating_units = set()
         self.container = None
-        self.container_land = None
         self.container_land_tiles = None
         self.container_static_objects = None
         self.container_animated_objects = None
-        self.global_land_translate_before = None
-        self.global_land_translate_after = None
-        self.global_land_rotate_x = None
-        self.global_land_rotate_y = None
-        self.global_land_rotate_z = None
+        self.global_translate_before = None
+        self.global_translate_after = None
+        self.global_rotate_x = None
+        self.global_rotate_y = None
+        self.global_rotate_z = None
         self.map_width = None
         self.map_height = None
         self.area_center_w = None
@@ -174,9 +194,56 @@ class Scene(object):
             c * self.PI_4_COS * ((shift_h - 0.5) * 2.0),
         )
 
-    def create_containers(self):
+    def create_container(self):
         self.container = InstructionGroup()
-        self.container_land = InstructionGroup()
+
+    def init_scene(self, map_center_w, map_center_h, map_width, map_height):
+        for _w in range(-self.VISIBLE_AREA_SIZE_SEGMENTS_HALF, self.VISIBLE_AREA_SIZE_SEGMENTS_HALF):
+            for _h in range(-self.VISIBLE_AREA_SIZE_SEGMENTS_HALF, self.VISIBLE_AREA_SIZE_SEGMENTS_HALF):
+                dist = int(math.sqrt(_w * _w + _h * _h))
+                if dist < self.VISIBLE_AREA_SIZE_SEGMENTS_HALF:
+                    self.land_area_mask[(_w, _h)] = dist
+        self.global_rotate_x = Rotate(0, 1, 0, 0, group='land')
+        self.global_rotate_y = Rotate(0, 0, 1, 0, group='land')
+        self.global_rotate_z = Rotate(0, 0, 0, 1, group='land')
+        self.map_width = map_width
+        self.map_height = map_height
+        self.area_center_w = int(map_center_w)
+        self.area_center_h = int(map_center_h)
+        self.segment_shift_w = 0.5
+        self.segment_shift_h = 0.5
+        w = int(self.area_center_w)
+        h = int(self.area_center_h)
+        camera_shift_angle_x, camera_shift_angle_z = self.coords_area2angles(0.5-self.segment_shift_w, 0.5-self.segment_shift_h)
+        elevation_at_center = self.land.get_elevation(w, h)
+        planet_shift_y = self.PLANET_RADIUS + elevation_at_center * self.ELEVATION_FACTOR
+        self.global_translate_before = Translate(0, -planet_shift_y, 0, group='land')
+        self.global_translate_after = Translate(0, planet_shift_y, 0, group='land')
+        self.global_rotate_x.angle = camera_shift_angle_x
+        self.global_rotate_z.angle = camera_shift_angle_z
+        self.container.add(PushMatrix(group='land'))
+        self.container.add(self.global_translate_before)
+        self.container.add(self.global_rotate_x)
+        self.container.add(self.global_rotate_y)
+        self.container.add(self.global_rotate_z)
+        self.container_animated_objects = InstructionGroup()
+        self.container_static_objects = InstructionGroup()
+        self.container_land_tiles = InstructionGroup()
+        self.container.add(self.container_animated_objects)
+        self.container.add(self.container_land_tiles)
+        self.container.add(self.container_static_objects)
+        self.container.add(self.global_translate_after)
+        self.container.add(PopMatrix(group='land'))
+        added = 0
+        for k, dist_to_center in self.land_area_mask.items():
+            _w, _h = k
+            w_t = w + _w
+            h_t = h + _h
+            if (w_t, h_t) not in self.land_tiles_visible:
+                self.add_land_segment(w_t, h_t, _w, _h, dist_to_center)
+                added += 1
+        if _Debug:
+            print(f'prepare land area at {w} {h} with {added} segments planet angle x:0 z:0')
 
     def mesh_key(self, template, part_name, coefs):
         c = mth.quantize_coefs(coefs)
@@ -409,7 +476,7 @@ class Scene(object):
         #     print(f'  {animated_static} object {o.name} with {len(selected_parts)} parts and {len(o.animations_loaded)} animations created in {t2 - t1} sec from template {template}')
         return o
 
-    def construct_unit_from_object_data(self, container, object_name, angle_coords=None, shift_vector=None, direction=0, static=True):
+    def construct_unit_from_object_data(self, container, object_name, angle_coords, static=True, onstage=True, shift_vector=None, direction=0, w=0, h=0, shift_w=0, shift_h=0, area_w=0, area_h=0):
         global _NextUnitID
         _source_dict = self.static_objects if static else self.animated_objects
         if object_name not in _source_dict:
@@ -419,13 +486,21 @@ class Scene(object):
         _NextUnitID += 1
         unit = Unit(name=object_name+'#'+str(_NextUnitID), object_name=object_name)
         unit.static = static
+        unit.onstage = onstage
         if static:
             source_object = self.static_objects[object_name]
         else:
             source_object = self.animated_objects[object_name]
             unit.animations_list = source_object.animations_loaded.copy()
-            unit.brightness = random.randint(0, 100) / 100.0
+            # unit.brightness = random.randint(0, 100) / 100.0
         unit.root_mesh_center = source_object.root_mesh_center
+        unit.direction = direction
+        unit.w = w
+        unit.h = h
+        unit.shift_w = shift_w
+        unit.shift_h = shift_h
+        unit.area_w = area_w
+        unit.area_h = area_h
 
         def _visitor(part_name, parent_part_name):
             mesh_name = source_object.meshes[part_name]
@@ -436,34 +511,48 @@ class Scene(object):
             mesh_transform.part_translate = Transform(group=unit.name)
             mesh_transform.part_rotate = Transform(group=unit.name)
             unit.meshes_transforms[part_name] = mesh_transform
-            container.add(PushMatrix(group=unit.name))
-            container.add(mesh_transform.part_translate)
-            container.add(PushMatrix(group=unit.name))
-            container.add(mesh_transform.part_rotate)
-            # TODO: check if we can pass texture data directly to Mesh instruction as a parameter
-            container.add(BindTexture(source=mesh.material['map_Kd'], index=1, group=unit.name))
-            container.add(Mesh(
-                vertices=mesh.vertices,
-                indices=mesh.indices,
-                fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
-                mode='triangles',
-                group=unit.name,
-                # texture=<already loaded Texture>,
-            ))
-            container.add(PopMatrix(group=unit.name))  # part_rotate
-            container.add(PopMatrix(group=unit.name))  # part_translate
+            unit.parts.append(part_name)
+            unit.meshes_names[part_name] = mesh_name
+            if onstage:
+                container.add(PushMatrix(group=unit.name))
+                container.add(mesh_transform.part_translate)
+                container.add(PushMatrix(group=unit.name))
+                container.add(mesh_transform.part_rotate)
+                # TODO: check if we can pass texture data directly to Mesh instruction as a parameter
+                container.add(BindTexture(source=mesh.material['map_Kd'], index=1, group=unit.name))
+                container.add(Mesh(
+                    vertices=mesh.vertices,
+                    indices=mesh.indices,
+                    fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+                    mode='triangles',
+                    group=unit.name,
+                    # texture=<already loaded Texture>,
+                ))
+                container.add(PopMatrix(group=unit.name))  # part_rotate
+                container.add(PopMatrix(group=unit.name))  # part_translate
 
         unit.rotate_axis_x = Rotate(angle_coords[0], 1, 0, 0, group=unit.name)
         unit.rotate_axis_z = Rotate(angle_coords[1], 0, 0, 1, group=unit.name)
         unit.rotate_vertical = Rotate(direction + 90, 0, 1, 0, group=unit.name)
         unit.translate_shift = Translate(shift_vector[0], shift_vector[1], shift_vector[2], group=unit.name)
-        container.add(PushMatrix(group=unit.name))  # unit
-        container.add(unit.rotate_axis_x)
-        container.add(unit.rotate_axis_z)
-        container.add(PushMatrix(group=unit.name))  # unit shift
-        container.add(unit.translate_shift)
-        container.add(PushMatrix(group=unit.name))  # unit rotate
-        container.add(unit.rotate_vertical)
+        unit.context_state = ChangeState(segment_fog_factor=1.0, dist_to_center=0.0, group=unit.name)
+        if onstage:
+            container.add(PushMatrix(group=unit.name))  # unit
+            container.add(unit.rotate_axis_x)
+            container.add(unit.rotate_axis_z)
+            container.add(PushMatrix(group=unit.name))  # unit shift
+            container.add(unit.translate_shift)
+            container.add(PushMatrix(group=unit.name))  # unit rotate
+            container.add(unit.rotate_vertical)
+            if (unit.area_w, unit.area_h) in self.land_area_mask:
+                dist_to_center = self.land_area_mask[(unit.area_w, unit.area_h)]
+                segment_fog_factor = 1.0 - dist_to_center / float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF)
+            else:
+                dist_to_center = float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF)
+                segment_fog_factor = 0.0
+            unit.context_state.changes['segment_fog_factor'] = segment_fog_factor
+            unit.context_state.changes['dist_to_center'] = dist_to_center
+            container.add(unit.context_state)
 
         # if False and _Debug:
         #     sz = 1.0
@@ -521,13 +610,15 @@ class Scene(object):
         # if not static:
         #     container.add(ChangeState(line_color=(1.0, 1.0, 1.0, 1.0), group=unit.name))
 
-        container.add(PopMatrix(group=unit.name))  # unit rotate
-        container.add(PopMatrix(group=unit.name))  # unit shift
-        container.add(PopMatrix(group=unit.name))  # unit
+        if onstage:
+            container.add(ChangeState(segment_fog_factor=1.0, dist_to_center=0.0, group=unit.name))
+            container.add(PopMatrix(group=unit.name))  # unit rotate
+            container.add(PopMatrix(group=unit.name))  # unit shift
+            container.add(PopMatrix(group=unit.name))  # unit
         self.units[unit.name] = unit
-        if static is False:
-            if _Debug:
-                print(f'created animated unit at {angle_coords} with shift {shift_vector} from object {object_name} and placed on scene')
+        # if static is False:
+        #     if _Debug:
+        #         print(f'created animated unit at {angle_coords} with shift {shift_vector} from object {object_name} and placed on scene')
         # if _Debug:
         #     print(f'  constructed unit ({unit.name}) from object {object_name} and placed on scene')
         return unit
@@ -547,52 +638,72 @@ class Scene(object):
         # if _Debug:
         #     print(f'  removed unit {unit.name} from scene')
 
-    def prepare_land(self, map_center_w, map_center_h, map_width, map_height):
-        for _w in range(-self.VISIBLE_AREA_SIZE_SEGMENTS_HALF, self.VISIBLE_AREA_SIZE_SEGMENTS_HALF):
-            for _h in range(-self.VISIBLE_AREA_SIZE_SEGMENTS_HALF, self.VISIBLE_AREA_SIZE_SEGMENTS_HALF):
-                dist = int(math.sqrt(_w * _w + _h * _h))
-                if dist < self.VISIBLE_AREA_SIZE_SEGMENTS_HALF:
-                    self.land_area_mask[(_w, _h)] = dist
-        self.global_land_rotate_x = Rotate(0, 1, 0, 0, group='land')
-        self.global_land_rotate_y = Rotate(0, 0, 1, 0, group='land')
-        self.global_land_rotate_z = Rotate(0, 0, 0, 1, group='land')
-        self.map_width = map_width
-        self.map_height = map_height
-        self.area_center_w = int(map_center_w)
-        self.area_center_h = int(map_center_h)
-        self.segment_shift_w = 0.5
-        self.segment_shift_h = 0.5
-        w = int(self.area_center_w)
-        h = int(self.area_center_h)
-        camera_shift_angle_x, camera_shift_angle_z = self.coords_area2angles(0.5-self.segment_shift_w, 0.5-self.segment_shift_h)
-        elevation_at_center = self.land.get_elevation(w, h)
-        planet_shift_y = self.PLANET_RADIUS + elevation_at_center * self.ELEVATION_FACTOR
-        self.global_land_translate_before = Translate(0, -planet_shift_y, 0, group='land')
-        self.global_land_translate_after = Translate(0, planet_shift_y, 0, group='land')
-        self.global_land_rotate_x.angle = camera_shift_angle_x
-        self.global_land_rotate_z.angle = camera_shift_angle_z
-        self.container_land.add(PushMatrix(group='land'))
-        self.container_land.add(self.global_land_translate_before)
-        self.container_land.add(self.global_land_rotate_x)
-        self.container_land.add(self.global_land_rotate_y)
-        self.container_land.add(self.global_land_rotate_z)
-        self.container_animated_objects = InstructionGroup()
-        self.container_static_objects = InstructionGroup()
-        self.container_land_tiles = InstructionGroup()
-        self.container_land.add(self.container_animated_objects)
-        self.container_land.add(self.container_land_tiles)
-        self.container_land.add(self.container_static_objects)
-        self.container_land.add(self.global_land_translate_after)
-        self.container_land.add(PopMatrix(group='land'))
-        added = 0
-        for _w, _h in self.land_area_mask.keys():
-            w_t = w + _w
-            h_t = h + _h
-            if (w_t, h_t) not in self.land_tiles_visible:
-                self.add_land_segment(w_t, h_t, _w, _h)
-                added += 1
+    def hide_unit(self, container, unit_name):
+        if unit_name not in self.units:
+            raise Exception(f'Unit {unit_name} is not on the stage at the moment')
+        unit = self.units[unit_name]
+        if not unit.onstage:
+            raise Exception(f'Unit {unit_name} is already hidden')
+        container.remove_group(unit.name)
+        unit.onstage = False
         if _Debug:
-            print(f'prepare land area at {w} {h} with {added} segments planet angle x:0 z:0')
+            print(f'  unit {unit.name} was hidden')
+
+    def show_unit(self, container, unit_name):
+        if unit_name not in self.units:
+            raise Exception(f'Unit {unit_name} is not on the stage at the moment')
+        unit = self.units[unit_name]
+        if unit.onstage:
+            raise Exception(f'Unit {unit_name} is already visible')
+        source_object = self.static_objects[unit.object_name] if unit.static else self.animated_objects[unit.object_name]
+
+        def _visitor(part_name, parent_part_name):
+            mesh_name = unit.meshes_names[part_name]
+            mesh = self.meshes[mesh_name]
+            mesh_transform = unit.meshes_transforms[part_name]
+            container.add(PushMatrix(group=unit.name))
+            container.add(mesh_transform.part_translate)
+            container.add(PushMatrix(group=unit.name))
+            container.add(mesh_transform.part_rotate)
+            # TODO: check if we can pass texture data directly to Mesh instruction as a parameter
+            container.add(BindTexture(source=mesh.material['map_Kd'], index=1, group=unit.name))
+            container.add(Mesh(
+                vertices=mesh.vertices,
+                indices=mesh.indices,
+                fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+                mode='triangles',
+                group=unit.name,
+                # texture=<already loaded Texture>,
+            ))
+            container.add(PopMatrix(group=unit.name))  # part_rotate
+            container.add(PopMatrix(group=unit.name))  # part_translate
+
+        container.add(PushMatrix(group=unit.name))  # unit
+        container.add(unit.rotate_axis_x)
+        container.add(unit.rotate_axis_z)
+        container.add(PushMatrix(group=unit.name))  # unit shift
+        container.add(unit.translate_shift)
+        container.add(PushMatrix(group=unit.name))  # unit rotate
+        container.add(unit.rotate_vertical)
+        if (unit.area_w, unit.area_h) in self.land_area_mask:
+            dist_to_center = self.land_area_mask[(unit.area_w, unit.area_h)]
+            segment_fog_factor = 1.0 - dist_to_center / float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF)
+        else:
+            dist_to_center = float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF)
+            segment_fog_factor = 0.0
+        unit.context_state.changes['segment_fog_factor'] = segment_fog_factor
+        unit.context_state.changes['dist_to_center'] = dist_to_center
+        container.add(unit.context_state)
+
+        source_object.walk_parts_ordered(_visitor)
+
+        container.add(ChangeState(segment_fog_factor=1.0, dist_to_center=0.0, group=unit.name))
+        container.add(PopMatrix(group=unit.name))  # unit rotate
+        container.add(PopMatrix(group=unit.name))  # unit shift
+        container.add(PopMatrix(group=unit.name))  # unit
+        unit.onstage = True
+        if _Debug:
+            print(f'  unit {unit.name} was shown')
 
     def update_land(self, new_position=None):
         if new_position:
@@ -626,29 +737,41 @@ class Scene(object):
         # if _Debug:
         #     print(f'  map from {w0},{h0} shift:{w0shift},{h0shift} to {w_i},{h_i} with e:{e} new shift is {self.segment_shift_w},{self.segment_shift_h}')
         planet_shift_y = e # self.PLANET_RADIUS + e * self.ELEVATION_FACTOR
-        self.global_land_translate_before.y = -planet_shift_y
-        self.global_land_translate_after.y = planet_shift_y
+        self.global_translate_before.y = -planet_shift_y
+        self.global_translate_after.y = planet_shift_y
         camera_shift_angle_x, camera_shift_angle_z = self.coords_area2angles(0.5-self.segment_shift_w, 0.5-self.segment_shift_h)
-        self.global_land_rotate_x.angle = camera_shift_angle_x
-        self.global_land_rotate_z.angle = camera_shift_angle_z
+        self.global_rotate_x.angle = camera_shift_angle_x
+        self.global_rotate_z.angle = camera_shift_angle_z
         added = 0
         removed = 0
         if wd != 0 or hd != 0:
             for unit_name in self.units.keys():
-                u = self.units[unit_name]
-                if u.static:
+                unit = self.units[unit_name]
+                if unit.static:
                     continue
-                u.area_w -= wd
-                u.area_h -= hd
-                segment_angle_x, segment_angle_z = self.coords_area2angles(u.area_w, u.area_h)
-                u.rotate_axis_x.angle = segment_angle_x
-                u.rotate_axis_z.angle = segment_angle_z
+                if not unit.onstage:
+                    continue
+                unit.area_w = unit.w - w_i
+                unit.area_h = unit.h - h_i
+                segment_angle_x, segment_angle_z = self.coords_area2angles(unit.area_w, unit.area_h)
+                unit.rotate_axis_x.angle = segment_angle_x
+                unit.rotate_axis_z.angle = segment_angle_z
+                if (unit.area_w, unit.area_h) in self.land_area_mask:
+                    dist_to_center = self.land_area_mask[(unit.area_w, unit.area_h)]
+                    segment_fog_factor = 1.0 - dist_to_center / float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF)
+                else:
+                    dist_to_center = float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF)
+                    segment_fog_factor = 0.0
+                unit.context_state.changes['segment_fog_factor'] = segment_fog_factor
+                unit.context_state.changes['dist_to_center'] = dist_to_center
             to_remove = []
             for w_t, h_t in self.land_tiles_visible.keys():
                 _w = w_t - w_i
                 _h = h_t - h_i
-                area_w, area_h, segment_rotate_x, segment_rotate_z, static_units_at_segment = self.land_tiles_visible[(w_t, h_t)]
+                area_w, area_h, segment_rotate_x, segment_rotate_z, static_units_at_segment, segment_state = self.land_tiles_visible[(w_t, h_t)]
                 if (_w, _h) in self.land_area_mask:
+                    dist_to_center = self.land_area_mask[(_w, _h)]
+                    segment_fog_factor = 1.0 - dist_to_center / float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF)
                     area_w -= wd
                     area_h -= hd
                     segment_angle_x, segment_angle_z = self.coords_area2angles(area_w, area_h)
@@ -656,23 +779,39 @@ class Scene(object):
                     segment_rotate_z.angle = segment_angle_z
                     self.land_tiles_visible[(w_t, h_t)][0] = area_w
                     self.land_tiles_visible[(w_t, h_t)][1] = area_h
+                    segment_state.changes['segment_fog_factor'] = segment_fog_factor
+                    segment_state.changes['dist_to_center'] = dist_to_center
                     for static_unit_name in static_units_at_segment:
                         static_unit = self.units[static_unit_name]
                         static_unit.rotate_axis_x.angle = segment_angle_x
                         static_unit.rotate_axis_z.angle = segment_angle_z
+                        static_unit.area_w = area_w
+                        static_unit.area_h = area_h
+                        static_unit.context_state.changes['segment_fog_factor'] = segment_fog_factor
+                        static_unit.context_state.changes['dist_to_center'] = dist_to_center
                 else:
                     to_remove.append((w_t, h_t))
             for w_t, h_t in to_remove:
                 self.remove_land_segment(w_t, h_t)
                 removed += 1
-            for _w, _h in self.land_area_mask.keys():
+            for unit in self.units.values():
+                if unit.static:
+                    continue
+                if not unit.onstage:
+                    continue
+                _w = unit.w - w_i
+                _h = unit.h - h_i
+                if (_w, _h) not in self.land_area_mask:
+                    self.hide_unit(container=self.container_animated_objects, unit_name=unit.name)
+            for k, dist_to_center in self.land_area_mask.items():
+                _w, _h = k
                 w_t = w_i + _w
                 h_t = h_i + _h
                 if (w_t, h_t) not in self.land_tiles_visible:
-                    self.add_land_segment(w_t, h_t, _w, _h)
+                    self.add_land_segment(w_t, h_t, _w, _h, dist_to_center)
                     added += 1
 
-    def add_land_segment(self, map_w, map_h, area_w, area_h):
+    def add_land_segment(self, map_w, map_h, area_w, area_h, dist_to_center):
         # _get_elevation = self.land.get_elevation
         _get_texture = self.land.get_texture
         w_t = int(map_w)
@@ -688,7 +827,7 @@ class Scene(object):
             v10[0], v10[1], v10[2], 1, 0, 0, tex_coord10[0], tex_coord10[1],
             v11[0], v11[1], v11[2], 1, 0, 0, tex_coord11[0], tex_coord11[1],
         ]
-        segment_group_name = f'land_{map_w}_{map_h}'
+        segment_group_name = f'l_{map_w}_{map_h}'
         segment_rotate_x = Rotate(0, 1, 0, 0, group=segment_group_name)
         segment_rotate_z = Rotate(0, 0, 0, 1, group=segment_group_name)
         segment_angle_x, segment_angle_z = self.coords_area2angles(w, h)
@@ -700,6 +839,9 @@ class Scene(object):
         # if _Debug:
         #     if map_w == self.area_center_w and map_h == self.area_center_h:
         #         tex_source = None
+        segment_fog_factor = 1.0 - dist_to_center / float(self.VISIBLE_AREA_SIZE_SEGMENTS_HALF)
+        segment_state = ChangeState(segment_fog_factor=segment_fog_factor, dist_to_center=dist_to_center, group=segment_group_name)
+        self.container_land_tiles.add(segment_state)
         self.container_land_tiles.add(BindTexture(source=tex_file_path, index=1, group=segment_group_name))
         self.container_land_tiles.add(Mesh(
             vertices=vert,
@@ -745,18 +887,33 @@ class Scene(object):
                         segment_angle_z,
                     ),
                     shift_vector=shift_vector,
-                    direction=45,  # random.randint(0, 360),
+                    direction=random.randint(0, 360),
                     static=True,
+                    onstage=True,
+                    w=map_w,
+                    h=map_h,
+                    shift_w=plant['sw'],
+                    shift_h=plant['sh'],
+                    area_w=area_w,
+                    area_h=area_h,
                 )
                 static_units_at_segment.append(unit.name)
+        for unit in self.units.values():
+            if unit.static:
+                continue
+            if unit.onstage:
+                continue
+            if int(unit.w) == w_t and int(unit.h) == h_t:
+                self.show_unit(container=self.container_animated_objects, unit_name=unit.name)
+        self.container_land_tiles.add(ChangeState(segment_fog_factor=1.0, dist_to_center=0.0, group=segment_group_name))
         self.container_land_tiles.add(PopMatrix(group=segment_group_name))
-        self.land_tiles_visible[(w_t, h_t)] = [area_w, area_h, segment_rotate_x, segment_rotate_z, static_units_at_segment]
+        self.land_tiles_visible[(w_t, h_t)] = [area_w, area_h, segment_rotate_x, segment_rotate_z, static_units_at_segment, segment_state]
         # if _Debug:
         #     print(f'     added land segment at w:{map_w} h:{map_h} area_w:{area_w} area_h:{area_h} e_min:{e_min} with {len(static_units_at_segment)} static units')
 
     def remove_land_segment(self, w_t, h_t):
-        tile_group_name = f'land_{w_t}_{h_t}'
-        _, _, _, _, static_units_at_segment = self.land_tiles_visible[(w_t, h_t)]
+        tile_group_name = f'l_{w_t}_{h_t}'
+        _, _, _, _, static_units_at_segment, segment_state = self.land_tiles_visible[(w_t, h_t)]
         for static_unit_name in static_units_at_segment:
             self.remove_unit_from_stage(container=self.container_static_objects, unit_name=static_unit_name)
         self.container_land_tiles.remove_group(tile_group_name)
@@ -808,28 +965,26 @@ class Scene(object):
             shift_vector=shift_vector,
             direction=direction,
             static=False,
+            w=map_w,
+            h=map_h,
+            shift_w=shift_w,
+            shift_h=shift_h,
+            area_w=area_w,
+            area_h=area_h,
         )
-        unit.w = map_w
-        unit.h = map_h
-        unit.shift_w = shift_w
-        unit.shift_h = shift_h
-        unit.area_w = area_w
-        unit.area_h = area_h
-        unit.direction = direction
         if unit.animations_list:
             unit.animation_playing = unit.animations_list[0]
         return unit
 
     def on_run_units(self, delta):
-        new_land_pos = None
+        if self.renderer.camera_unit_lock:
+            u = self.units.get(self.renderer.camera_unit_lock)
+            if u:
+                self.update_land(new_position=(u.w, u.h, u.shift_w, u.shift_h))
         for unit in self.units.values():
             if unit.static:
                 continue
             unit.run(self)
-            if self.renderer.camera_unit_lock and unit.name == self.renderer.camera_unit_lock:
-                new_land_pos = (unit.w, unit.h, unit.shift_w, unit.shift_h)
-        if new_land_pos:
-            self.update_land(new_position=new_land_pos)
 
     def on_update_animations(self, delta):
         # return
