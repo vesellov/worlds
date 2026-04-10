@@ -6,11 +6,14 @@ import random
 _Debug = True
 
 
+from kivy.base import EventLoop
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.uix.widget import Widget
+from kivy.uix.image import Image
 from kivy.resources import resource_find
+from kivy.properties import ObjectProperty  # @UnresolvedImport
 from kivy.graphics.transformation import Matrix  # @UnresolvedImport
 from kivy.graphics.opengl import (
     glGetError, glEnable, glDisable, GL_BLEND, GL_DEPTH_TEST,
@@ -23,7 +26,7 @@ from kivy.graphics import (
     ChangeState, PushState, PopState,
     PushMatrix, PopMatrix,
     # Scale,
-    Color, Translate, Rotate, Mesh,
+    Color, Translate, Rotate, Mesh, Line,
     # UpdateNormalMatrix,
 )
 
@@ -161,21 +164,25 @@ def ignore_undertouch(func):
 
 class Renderer(Widget):
 
-    CAMERA_DISTANCE_TO_CENTER_INITIAL = 5.0
-    CAMERA_VIEW_CLIP_NEAR = 1.0
-    CAMERA_VIEW_CLIP_FAR = 200.0
+    CAMERA_DISTANCE_TO_CENTER_INITIAL = 10.0
+    CAMERA_VIEW_CLIP_NEAR = 2.0
+    CAMERA_VIEW_CLIP_FAR = 720.0
 
-    SCALE_INITIAL = 2.0
-    SCALE_MIN = 0.5
-    SCALE_MAX = 12.0
-    SCALE_SPEED_FACTOR = 0.2
+    SCALE_INITIAL = 10.0
+    SCALE_MIN = 1.0
+    SCALE_MAX = 21.0
+    SCALE_SPEED_FACTOR = 0.25
 
     ROTATE_SPEED = 1.0
-    ROTATE_VERTICAL_MIN = 1
-    ROTATE_VERTICAL_MAX = 79
+    ROTATE_VERTICAL_MIN = 5
+    ROTATE_VERTICAL_MAX = 85
     ROTATE_VERTICAL_INITIAL = 45
 
+    sky_background_texture = ObjectProperty(None)
+
     def __init__(self, app_root, scene, **kwargs):
+        # Make sure opengl context exists
+        EventLoop.ensure_window()
         self.app_root = app_root
         self.scene = scene
         self.canvas = RenderContext(compute_normal_mat=True)
@@ -194,25 +201,78 @@ class Renderer(Widget):
         self.fog_center_x = 0.0
         self.fog_center_y = 0.0
         self.fog_center_z = 0.0
+        self.sky_background_rotate_x = None
+        self.sky_background_rotate_y = None
+        self.sky_background_rotate_z = None
+        self.sky_background_translate = None
+        self.sky_background_image = None
         self.touches = []
         self.brightness = 0.0
         self.contrast = 1.0
         super(Renderer, self).__init__(**kwargs)
         with self.canvas:
             self.cb = Callback(self.on_setup_gl_context)
+            # Color(1, 1, 1, 1)
+            # BindTexture(source='sky00.png')
+            # vertices = [
+            #     -1, -1, -1, 0, 0,  1, -1, -1, 1, 0,
+            #      1,  1, -1, 1, 1, -1,  1, -1, 0, 1,
+            # ]
+            # indices = [0, 1, 2, 2, 3, 0]
+            # Mesh(
+            #     vertices=[
+            #         -1 * sz, -1 * sz, -1 * sz,
+            #         -1 * sz, -1 * sz, 1 * sz,
+            #         -1 * sz, 1 * sz, 1 * sz,
+            #         -1 * sz, 1 * sz, -1 * sz,
+            #     ],
+            #     indices=[0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7],
+            #     fmt=[(b'v_pos', 3, 'float'), ],
+            #     mode='lines',
+            # )
+            # Mesh(vertices=vertices, indices=indices, 
+            #                  fmt=[(b'v_pos', 3, 'float'), (b'v_tex', 2, 'float')],
+            #                  mode='triangles')            
+            # BindTexture(source='sky00.png', index=1)
+            # Mesh(
+            #     vertices=mesh.vertices,
+            #     indices=mesh.indices,
+            #     fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+            #     mode='triangles',
+            #     group=unit.name,
+            #     # texture=<already loaded Texture>,
+            # )
             PushMatrix()
+            # BindTexture(source='sky00.png', index=1)
             # UpdateNormalMatrix()
-            self.setup_scene()
+            # self.setup_scene()
+            self.create_sky_background()
+            self.scene.create_container()
+            # BindTexture(source='sky00.png', index=1)
+            # Mesh(
+            #     vertices=[
+            #         -1 * sz,  1 * sz, deep, 1, 0, 0, 0.0, 0.0,
+            #         1 * sz,   1 * sz, deep, 1, 0, 0, 1.0, 0.0,
+            #         -1 * sz, -1 * sz, deep, 1, 0, 0, 0.0, 1.0,
+            #         1 * sz,  -1 * sz, deep, 1, 0, 0, 1.0, 1.0,               
+            #     ],
+            #     indices=[0, 1, 2, 1, 2, 3],
+            #     fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+            #     mode='triangles',
+            # )            
             PopMatrix()
+            # Color(1, 1, 1, 1)
+            # Line(points=[100, 100, 200, 100, 100, 200], width=10)
             self.cb = Callback(self.on_reset_gl_context)
         self.canvas['texture_id'] = 1
+        # self.canvas['background_texture_id'] = 2
         self.keyboard_handler = Window.request_keyboard(self.on_keyboard_closed, self)
         self.keyboard_handler.bind(on_key_down=self.on_keyboard_down)
         Clock.schedule_interval(self.on_update_glsl, 1 / 60)
         Clock.schedule_interval(self.scene.on_update_animations, 1 / 25)
         Clock.schedule_interval(self.scene.on_run_units, 1 / 60)
 
-    def setup_scene(self):
+    # def setup_scene(self):
         # if False:
         #     ChangeState(
         #         line_color=(1., 1., 1., 1.),
@@ -223,8 +283,8 @@ class Renderer(Widget):
         #         Ns=1.0,
         #         intensity=1.0,
         #     )
-        PushMatrix()
-        Color(1, 1, 1, 1)
+        # PushMatrix()
+        # Color(1, 1, 1, 1)
         # sz = 1
         # if False:
         #     PushState()
@@ -269,7 +329,7 @@ class Renderer(Widget):
         # if False:
         #     Color(1, 1, 1)
         # SCENE BEGIN
-        self.scene.create_container()
+        # self.scene.create_container()
         # SCENE END
         # if False:
         #     self.scene.container.add(ChangeState(
@@ -281,33 +341,80 @@ class Renderer(Widget):
         #         Ns=1.0,
         #         intensity=1.0,
         #     ))
+        # PopMatrix()
+
+    def create_sky_background(self):
+        PushMatrix()
+        sz_w = self.CAMERA_VIEW_CLIP_FAR * 2.0
+        sz_h = self.CAMERA_VIEW_CLIP_FAR * 0.8
+        shift_down = self.CAMERA_VIEW_CLIP_FAR * 0.3
+        self.sky_background_rotate_z = Rotate(0, 0, 0, 1, group='land')
+        self.sky_background_rotate_y = Rotate(0, 0, 1, 0, group='land')
+        self.sky_background_rotate_x = Rotate(0, 1, 0, 0, group='land')
+        self.sky_background_translate = Translate(0, 0, 0, group='land')
+        ChangeState(material_density=1.0)
+        self.sky_background_image = Image(source='assets/sky00.png')
+        self.sky_background_texture = self.sky_background_image.texture
+        self.sky_background_texture.wrap = 'repeat'
+        # self.sky_background_texture.uvpos = (0.5, 1.0)
+        BindTexture(texture=self.sky_background_texture, index=1)
+        Mesh(
+            vertices=[
+                # -1 * sz_w / 2,  sz_h - shift_down, 0, 1, 0, 0, 0.0, 0.0,
+                # 1 * sz_w / 2,   sz_h - shift_down, 0, 1, 0, 0, 1.0, 0.0,
+                # 1 * sz_w / 2,   - shift_down,      0, 1, 0, 0, 1.0, 1.0,
+                # - 1 * sz_w / 2, - shift_down,      0, 1, 0, 0, 0.0, 1.0,               
+                -1 * sz_w / 2,  sz_h - shift_down, 0, 1, 0, 0, 0.0, 1.0,
+                1 * sz_w / 2,   sz_h - shift_down, 0, 1, 0, 0, 1.0, 1.0,
+                1 * sz_w / 2,   - shift_down,      0, 1, 0, 0, 1.0, 0.0,
+                - 1 * sz_w / 2, - shift_down,      0, 1, 0, 0, 0.0, 0.0,               
+            ],
+            indices=[0, 1, 2, 0, 2, 3],
+            fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+            mode='triangles',
+        )
+        ChangeState(material_density=0.0)
         PopMatrix()
 
     def update_canvas(self):
         asp = self.width / float(self.height)
+        if asp > 2.0:
+            asp = 2.0
+        if asp < 0.5:
+            asp = 0.5
         # self.on_gl_error('step 1')
         # self.canvas['texture_id'] = 1
         self.global_eye_x = float(self.camera_distance_scale_factor) * self.camera_distance_to_center * math.sin(math.radians(self.camera_angle_y)) * math.sin(math.radians(self.camera_angle_z))
         self.global_eye_y = float(self.camera_distance_scale_factor) * self.camera_distance_to_center * math.cos(math.radians(self.camera_angle_y))
         self.global_eye_z = float(self.camera_distance_scale_factor) * self.camera_distance_to_center * math.sin(math.radians(self.camera_angle_y)) * math.cos(math.radians(self.camera_angle_z))
+        self.sky_background_rotate_x.angle = 90 - self.camera_angle_y
+        self.sky_background_rotate_y.angle = 180 + self.camera_angle_z
+        self.sky_background_translate.z = self.CAMERA_VIEW_CLIP_FAR - 0.5 - self.camera_distance_scale_factor * self.camera_distance_to_center
         self.canvas['projection_mat'] = Matrix().view_clip(-asp, asp, -1, 1, self.CAMERA_VIEW_CLIP_NEAR, self.CAMERA_VIEW_CLIP_FAR, 1)
         self.canvas['modelview_mat'] = Matrix().look_at(
             self.global_eye_x, self.global_eye_y, self.global_eye_z,
             self.global_center_x, self.global_center_y, self.global_center_z,
             0, 1, 0,  # up vector
         )
+        # self.canvas['camera_distance'] = float(self.camera_distance_scale_factor) * float(self.camera_distance_to_center)
         self.canvas['center_point'] = (0.0, 0.0, - float(self.camera_distance_scale_factor) * float(self.camera_distance_to_center))
         # if _Debug:
-        #     print(f'updating canvas center_point={self.canvas["center_point"]}')
+        #     print(f'updating canvas center_point={self.canvas["center_point"]} asp={asp}')
         self.canvas['brightness'] = self.brightness
         self.canvas['contrast'] = self.contrast
         self.canvas['fog_density'] = 0.01
-        # self.canvas['fog_color'] = (0, 0, 0)
-        self.canvas['fog_color'] = (1.0, 1.0, 1.0)
+        self.canvas['fog_radius'] = 250.0
+        self.canvas['material_density'] = 0.0
+        # self.canvas['fog_color'] = (1.0, 1.0, 1.0)
         # self.canvas['fog_color'] = (0.0, 0.0, 0.0)
-        self.canvas['segment_fog_factor'] = 1.0
-        self.canvas['dist_to_center'] = 0.0
+        # self.canvas['segment_fog_factor'] = 1.0
+        # self.canvas['dist_to_center'] = 0.0
         # self.on_gl_error('step 2')
+        # self.sky_background_texture.uvpos = (
+        #    self.sky_background_texture.uvpos[0] + 1, self.sky_background_texture.uvpos[1],
+        # )
+        # texture = self.property('sky_background_texture')
+        # texture.dispatch(self)
 
     def define_rotate_angle(self, touch):
         x_angle = (touch.dx / self.width) * 360.0 * self.ROTATE_SPEED
@@ -420,6 +527,9 @@ class Renderer(Widget):
             )
             unit.max_speed = random.randint(5, 40) / 1000.0
             unit.acceleration = random.randint(1, 10) / 1000.0
+        elif keycode[1] == 'b':
+            if self.camera_unit_lock:
+                self.camera_unit_lock = None
         elif keycode[1] == 'v':
             animated_units_onstage = []
             for unit in self.scene.units.values():
@@ -456,10 +566,14 @@ class Renderer(Widget):
                 factor = factor * (1.0 - self.SCALE_SPEED_FACTOR)
             if touch.button == "scrollup":
                 factor = factor * (1.0 + self.SCALE_SPEED_FACTOR)
-            if factor >= self.SCALE_MIN and factor <= self.SCALE_MAX:
+            if factor < self.SCALE_MIN:
+                factor = self.SCALE_MIN
+            if factor > self.SCALE_MAX:
+                factor = self.SCALE_MAX
+            if factor != self.camera_distance_scale_factor:
                 self.camera_distance_scale_factor = factor
-                if _Debug:
-                    print(f'new scale factor is {self.camera_distance_scale_factor}, camera distance to center is {float(self.camera_distance_scale_factor) * self.camera_distance_to_center}')
+                # if _Debug:
+                #     print(f'new scale factor is {self.camera_distance_scale_factor}, camera distance to center is {float(self.camera_distance_scale_factor) * self.camera_distance_to_center}')
 
     @ignore_undertouch
     def on_touch_up(self, touch):
@@ -472,12 +586,12 @@ class Renderer(Widget):
         if touch in self.touches and touch.grab_current == self:
             if len(self.touches) == 1:
                 ax, ay = self.define_rotate_angle(touch)
-                new_global_rotate_x_angle = self.camera_angle_y - ay
-                if new_global_rotate_x_angle < self.ROTATE_VERTICAL_MIN:
-                    new_global_rotate_x_angle = self.ROTATE_VERTICAL_MIN
-                if new_global_rotate_x_angle > self.ROTATE_VERTICAL_MAX:
-                    new_global_rotate_x_angle = self.ROTATE_VERTICAL_MAX
-                self.camera_angle_y = new_global_rotate_x_angle
+                new_global_rotate_angle = self.camera_angle_y - ay
+                if new_global_rotate_angle < self.ROTATE_VERTICAL_MIN:
+                    new_global_rotate_angle = self.ROTATE_VERTICAL_MIN
+                if new_global_rotate_angle > self.ROTATE_VERTICAL_MAX:
+                    new_global_rotate_angle = self.ROTATE_VERTICAL_MAX
+                self.camera_angle_y = new_global_rotate_angle
                 self.camera_angle_z -= ax
                 # if _Debug:
                 #     print(f'new camera angle y:{self.camera_angle_y} z:{self.camera_angle_z}')
