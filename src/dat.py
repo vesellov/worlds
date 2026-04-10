@@ -405,6 +405,8 @@ class LandData(object):
         plants_list = json.loads(open(plants_data_file_name, 'rt').read())
         for plant_coded in plants_list:
             variant, w, h, direction = plant_coded.split(' ')
+            w = float(w) / 2.0
+            h = float(h) / 2.0
             template, texture, c1, c2, c3 = variant.split(':')
             plant = {}
             plant['k'] = variant
@@ -427,6 +429,7 @@ class LandData(object):
             if (int_w, int_h) not in self.plants_map_data:
                 self.plants_map_data[(int_w, int_h)] = []
             self.plants_map_data[(int_w, int_h)].append(plant)
+            break
 
     def save_elevation_memmap(self, file_name_prefix, destination_dir):
         file_path = os.path.join(destination_dir, f'{file_name_prefix}.{self.width}.{self.height}.memmap')

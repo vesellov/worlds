@@ -65,14 +65,19 @@ class Unit(object):
         self.max_speed = 0.0
 
     def run(self, scene):
-        self.speed += self.acceleration
         if self.speed > self.max_speed:
-            self.speed = self.max_speed
+            self.speed -= self.acceleration
+        else:
+            self.speed += self.acceleration
+        # if self.speed > self.max_speed:
+        #     self.speed = self.max_speed
         self.direction += 1.0
         if self.direction > 360.0:
-            self.direction = random.randint(0, 360)
-            self.max_speed = float(random.randint(1, 100)) / 1000.0
-            self.acceleration = float(random.randint(1, 5)) / 1000.0
+            # self.direction = random.randint(0, 360)
+            # self.max_speed = float(random.randint(1, 100)) / 10000.0
+            # self.acceleration = float(random.randint(1, 2)) / 10000.0
+            self.max_speed = random.randint(5, 50) / 10000.0
+            self.acceleration = random.randint(1, 5) / 10000.0
         self.rotate_vertical.angle = self.direction + 90
         self.shift_w += self.speed * math.cos(math.radians(self.direction))
         self.shift_h += self.speed * math.sin(math.radians(self.direction))
@@ -121,8 +126,8 @@ class Unit(object):
 
 class Scene(object):
 
-    SEGMENT_SIZE = 25.0
-    PLANET_EQUATOR_SEGMENTS = 180
+    SEGMENT_SIZE = 5.0
+    PLANET_EQUATOR_SEGMENTS = 360
     PLANET_EQUATOR_LENGTH = SEGMENT_SIZE * PLANET_EQUATOR_SEGMENTS
     PLANET_RADIUS = PLANET_EQUATOR_LENGTH / (2.0 * math.pi)    
     SEGMENT_ANGLE = 360.0 / PLANET_EQUATOR_SEGMENTS
@@ -137,7 +142,7 @@ class Scene(object):
     PI_4_COS = math.cos(math.pi / 4.0)
     ELEVATION_FACTOR = PLANET_RADIUS / 4.0
     ELEVATION_CORRECTION = 2.0
-    VISIBLE_AREA_SIZE_SEGMENTS = 38
+    VISIBLE_AREA_SIZE_SEGMENTS = 40
     VISIBLE_AREA_SIZE_SEGMENTS_HALF = int(VISIBLE_AREA_SIZE_SEGMENTS / 2.0)
     LAND_MOVE_SPEED = 0.2
 
@@ -160,8 +165,8 @@ class Scene(object):
         self.global_translate_after = None
         self.global_rotate_x = None
         self.global_rotate_z = None
-        self.map_width = None
-        self.map_height = None
+        self.map_width = int(self.land.width / 2)
+        self.map_height = int(self.land.height / 2)
         self.area_center_w = None
         self.area_center_h = None
         self.segment_shift_w = None
@@ -190,7 +195,7 @@ class Scene(object):
     def create_container(self):
         self.container = InstructionGroup()
 
-    def init_scene(self, map_center_w, map_center_h, map_width, map_height):
+    def init_scene(self, map_center_w, map_center_h):
         for _w in range(-self.VISIBLE_AREA_SIZE_SEGMENTS_HALF, self.VISIBLE_AREA_SIZE_SEGMENTS_HALF):
             for _h in range(-self.VISIBLE_AREA_SIZE_SEGMENTS_HALF, self.VISIBLE_AREA_SIZE_SEGMENTS_HALF):
                 dist = int(math.sqrt(_w * _w + _h * _h))
@@ -198,8 +203,6 @@ class Scene(object):
                     self.land_area_mask[(_w, _h)] = dist
         self.global_rotate_x = Rotate(0, 1, 0, 0, group='land')
         self.global_rotate_z = Rotate(0, 0, 0, 1, group='land')
-        self.map_width = map_width
-        self.map_height = map_height
         self.area_center_w = int(map_center_w)
         self.area_center_h = int(map_center_h)
         self.segment_shift_w = 0.5
@@ -207,7 +210,7 @@ class Scene(object):
         w = int(self.area_center_w)
         h = int(self.area_center_h)
         camera_shift_angle_x, camera_shift_angle_z = self.coords_area2angles(0.5-self.segment_shift_w, 0.5-self.segment_shift_h)
-        elevation_at_center = self.land.get_elevation(w, h)
+        elevation_at_center = self.land.get_elevation(w * 2, h * 2)
         planet_shift_y = self.PLANET_RADIUS + elevation_at_center * self.ELEVATION_FACTOR + self.ELEVATION_CORRECTION
         self.global_translate_before = Translate(0, -planet_shift_y, 0, group='land')
         self.global_translate_after = Translate(0, planet_shift_y, 0, group='land')
@@ -240,22 +243,53 @@ class Scene(object):
         c = mth.quantize_coefs(coefs)
         return f'{template}_{part_name}_{c[0]}_{c[1]}_{c[2]}'
 
+    # def get_segment_elevation(self, map_w, map_h):
+    #     e00 = self.PLANET_RADIUS + self.land.get_elevation(map_w, map_h) * self.ELEVATION_FACTOR
+    #     e01 = self.PLANET_RADIUS + self.land.get_elevation(map_w, map_h + 1) * self.ELEVATION_FACTOR
+    #     e10 = self.PLANET_RADIUS + self.land.get_elevation(map_w + 1, map_h) * self.ELEVATION_FACTOR
+    #     e11 = self.PLANET_RADIUS + self.land.get_elevation(map_w + 1, map_h + 1) * self.ELEVATION_FACTOR
+    #     return e00, e01, e10, e11
+
     def get_segment_elevation(self, map_w, map_h):
-        e00 = self.PLANET_RADIUS + self.land.get_elevation(map_w, map_h) * self.ELEVATION_FACTOR
-        e01 = self.PLANET_RADIUS + self.land.get_elevation(map_w, map_h + 1) * self.ELEVATION_FACTOR
-        e10 = self.PLANET_RADIUS + self.land.get_elevation(map_w + 1, map_h) * self.ELEVATION_FACTOR
-        e11 = self.PLANET_RADIUS + self.land.get_elevation(map_w + 1, map_h + 1) * self.ELEVATION_FACTOR
-        return e00, e01, e10, e11
+        e00 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2 - 1, map_h * 2 - 1) * self.ELEVATION_FACTOR
+        e01 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2 - 1, map_h * 2 + 0) * self.ELEVATION_FACTOR
+        e02 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2 - 1, map_h * 2 + 1) * self.ELEVATION_FACTOR
+        e10 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 0, map_h * 2 - 1) * self.ELEVATION_FACTOR
+        e11 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 0, map_h * 2 + 0) * self.ELEVATION_FACTOR
+        e12 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 0, map_h * 2 + 1) * self.ELEVATION_FACTOR
+        e20 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 1, map_h * 2 - 1) * self.ELEVATION_FACTOR
+        e21 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 1, map_h * 2 + 0) * self.ELEVATION_FACTOR
+        e22 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 1, map_h * 2 + 1) * self.ELEVATION_FACTOR
+        return e00, e01, e02, e10, e11, e12, e20, e21, e22
 
     def calculate_elevation(self, w_i, h_i, shift_w, shift_h):
-        e00, e01, e10, e11 = self.get_segment_elevation(w_i, h_i)
-        e_min = min(e00, e01, e10, e11)
-        e_max = max(e00, e01, e10, e11)
+        # e00, e01, e10, e11 = self.get_segment_elevation(w_i, h_i)
+        e00, e01, e02, e10, e11, e12, e20, e21, e22 = self.get_segment_elevation(w_i, h_i)
+        e_min = min(e00, e01, e02, e10, e11, e12, e20, e21, e22)
+        e_max = max(e00, e01, e02, e10, e11, e12, e20, e21, e22)
         a = self.SEGMENT_ANGLE
-        p00 = (0, 0, e00)
-        p01 = (0, a, e01)
-        p10 = (a, 0, e10)
-        p11 = (a, a, e11)
+        if shift_w < 0.5:
+            if shift_h < 0.5:
+                p00 = (0, 0, e00)
+                p01 = (0, a, e01)
+                p10 = (a, 0, e10)
+                p11 = (a, a, e11)
+            else:
+                p00 = (0, 0, e01)
+                p01 = (0, a, e02)
+                p10 = (a, 0, e11)
+                p11 = (a, a, e12)
+        else:
+            if shift_h < 0.5:
+                p00 = (0, 0, e10)
+                p01 = (0, a, e11)
+                p10 = (a, 0, e20)
+                p11 = (a, a, e21)
+            else:
+                p00 = (0, 0, e11)
+                p01 = (0, a, e12)
+                p10 = (a, 0, e21)
+                p11 = (a, a, e22)
         w_f = shift_w * a
         h_f = shift_h * a
         if mth.point_line_left_or_right(w_f, h_f, p00[0], p00[1], p11[0], p11[1]) == -1:
@@ -266,23 +300,39 @@ class Scene(object):
 
     def calculate_land_vertices(self):
         t1 = time.time()
-        for w, h in self.land.elevation_map_data.keys():
-            e00, e01, e10, e11 = self.get_segment_elevation(w, h)
-            e_min = min(e00, e01, e10, e11)
-            e_max = max(e00, e01, e10, e11)
-            y00 = e00 * self.SEGMENT_COS
-            y01 = e01 * self.SEGMENT_COS
-            y10 = e10 * self.SEGMENT_COS
-            y11 = e11 * self.SEGMENT_COS
-            c00 = e00 * self.SEGMENT_SIN
-            c01 = e01 * self.SEGMENT_SIN
-            c10 = e10 * self.SEGMENT_SIN
-            c11 = e11 * self.SEGMENT_SIN
-            v00 = (c00 * self.PI_4_SIN, y00, -c00 * self.PI_4_COS)
-            v01 = (c01 * self.PI_4_COS, y01, c01 * self.PI_4_SIN)
-            v10 = (-c10 * self.PI_4_COS, y10, -c10 * self.PI_4_SIN)
-            v11 = (-c11 * self.PI_4_SIN, y11, c11 * self.PI_4_COS)
-            self.land_vertices[(w, h)] = (v00, v01, v10, v11, e_min, e_max)
+        for w in range(1, self.map_width-1):
+            for h in range(1, self.map_height-1):
+                e00, e01, e02, e10, e11, e12, e20, e21, e22 = self.get_segment_elevation(w, h)
+                e_min = min(e00, e01, e02, e10, e11, e12, e20, e21, e22)
+                e_max = max(e00, e01, e02, e10, e11, e12, e20, e21, e22)
+                y00 = e00 * self.SEGMENT_COS
+                y01 = e01 * self.SEGMENT_COS
+                y02 = e02 * self.SEGMENT_COS
+                y10 = e10 * self.SEGMENT_COS
+                y11 = e11 * self.SEGMENT_COS
+                y12 = e12 * self.SEGMENT_COS
+                y20 = e20 * self.SEGMENT_COS
+                y21 = e21 * self.SEGMENT_COS
+                y22 = e22 * self.SEGMENT_COS
+                c00 = e00 * self.SEGMENT_SIN
+                c01 = e01 * self.SEGMENT_SIN
+                c02 = e02 * self.SEGMENT_SIN
+                c10 = e10 * self.SEGMENT_SIN
+                c11 = e11 * self.SEGMENT_SIN
+                c12 = e12 * self.SEGMENT_SIN
+                c20 = e20 * self.SEGMENT_SIN
+                c21 = e21 * self.SEGMENT_SIN
+                c22 = e22 * self.SEGMENT_SIN
+                v00 = (c00 * self.PI_4_SIN, y00, -c00 * self.PI_4_COS)
+                v01 = (c01 * self.PI_4_COS, y01, c01 * 0)
+                v02 = (c02 * self.PI_4_COS, y02, c02 * self.PI_4_SIN)
+                v10 = (c10 * 0, y10, -c10 * self.PI_4_COS)
+                v11 = (c11 * 0, y11, c11 * 0)
+                v12 = (c12 * 0, y12, c12 * self.PI_4_SIN)
+                v20 = (-c20 * self.PI_4_COS, y20, -c20 * self.PI_4_SIN)
+                v21 = (-c21 * self.PI_4_COS, y21, c21 * 0)
+                v22 = (-c22 * self.PI_4_SIN, y22, c22 * self.PI_4_COS)
+                self.land_vertices[(w, h)] = (v00, v01, v02, v10, v11, v12, v20, v21, v22, e_min, e_max)
         t2 = time.time()
         if _Debug:
             print(f'calculated land vertices for {len(self.land.elevation_map_data)} segments in {t2 - t1} sec')
@@ -718,14 +768,35 @@ class Scene(object):
         h_t = int(map_h)
         w = float(area_w)
         h = float(area_h)
-        v00, v01, v10, v11, e_min, e_max = self.land_vertices[(w_t, h_t)]
+        v00, v01, v02, v10, v11, v12, v20, v21, v22, e_min, e_max = self.land_vertices[(w_t, h_t)]
         e_correction = (e_max - e_min) * 0.18
-        tex_file_path, tex_coord00, tex_coord01, tex_coord10, tex_coord11 = _get_texture(w_t, h_t)
-        vert = [
-            v00[0], v00[1], v00[2], 1, 0, 0, tex_coord00[0], tex_coord00[1],
-            v01[0], v01[1], v01[2], 1, 0, 0, tex_coord01[0], tex_coord01[1],
-            v10[0], v10[1], v10[2], 1, 0, 0, tex_coord10[0], tex_coord10[1],
-            v11[0], v11[1], v11[2], 1, 0, 0, tex_coord11[0], tex_coord11[1],
+        tex00_file_path, tex00_coord00, tex00_coord01, tex00_coord10, tex00_coord11 = _get_texture(w_t*2, h_t*2)
+        tex01_file_path, tex01_coord00, tex01_coord01, tex01_coord10, tex01_coord11 = _get_texture(w_t*2, h_t*2+1)
+        tex10_file_path, tex10_coord00, tex10_coord01, tex10_coord10, tex10_coord11 = _get_texture(w_t*2+1, h_t*2)
+        tex11_file_path, tex11_coord00, tex11_coord01, tex11_coord10, tex11_coord11 = _get_texture(w_t*2+1, h_t*2+1)
+        vert00 = [
+            v00[0], v00[1], v00[2], 1, 0, 0, tex00_coord00[0], tex00_coord00[1],
+            v01[0], v01[1], v01[2], 1, 0, 0, tex00_coord01[0], tex00_coord01[1],
+            v10[0], v10[1], v10[2], 1, 0, 0, tex00_coord10[0], tex00_coord10[1],
+            v11[0], v11[1], v11[2], 1, 0, 0, tex00_coord11[0], tex00_coord11[1],
+        ]
+        vert01 = [
+            v01[0], v01[1], v01[2], 1, 0, 0, tex01_coord00[0], tex01_coord00[1],
+            v02[0], v02[1], v02[2], 1, 0, 0, tex01_coord01[0], tex01_coord01[1],
+            v11[0], v11[1], v11[2], 1, 0, 0, tex01_coord10[0], tex01_coord10[1],
+            v12[0], v12[1], v12[2], 1, 0, 0, tex01_coord11[0], tex01_coord11[1],
+        ]
+        vert10 = [
+            v10[0], v10[1], v10[2], 1, 0, 0, tex10_coord00[0], tex10_coord00[1],
+            v11[0], v11[1], v11[2], 1, 0, 0, tex10_coord01[0], tex10_coord01[1],
+            v20[0], v20[1], v20[2], 1, 0, 0, tex10_coord10[0], tex10_coord10[1],
+            v21[0], v21[1], v21[2], 1, 0, 0, tex10_coord11[0], tex10_coord11[1],
+        ]
+        vert11 = [
+            v11[0], v11[1], v11[2], 1, 0, 0, tex11_coord00[0], tex11_coord00[1],
+            v12[0], v12[1], v12[2], 1, 0, 0, tex11_coord01[0], tex11_coord01[1],
+            v21[0], v21[1], v21[2], 1, 0, 0, tex11_coord10[0], tex11_coord10[1],
+            v22[0], v22[1], v22[2], 1, 0, 0, tex11_coord11[0], tex11_coord11[1],
         ]
         segment_group_name = f'l_{map_w}_{map_h}'
         segment_rotate_x = Rotate(0, 1, 0, 0, group=segment_group_name)
@@ -741,9 +812,33 @@ class Scene(object):
         #         tex_source = None
         segment_state = ChangeState(material_density=1.0, group=segment_group_name)
         self.container_land_tiles.add(segment_state)
-        self.container_land_tiles.add(BindTexture(source=tex_file_path, index=1, group=segment_group_name))
+        self.container_land_tiles.add(BindTexture(source=tex00_file_path, index=1, group=segment_group_name))
         self.container_land_tiles.add(Mesh(
-            vertices=vert,
+            vertices=vert00,
+            indices=[0, 1, 2, 1, 2, 3],
+            fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+            mode='triangles',
+            group=segment_group_name,
+        ))
+        self.container_land_tiles.add(BindTexture(source=tex01_file_path, index=1, group=segment_group_name))
+        self.container_land_tiles.add(Mesh(
+            vertices=vert01,
+            indices=[0, 1, 2, 1, 2, 3],
+            fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+            mode='triangles',
+            group=segment_group_name,
+        ))
+        self.container_land_tiles.add(BindTexture(source=tex10_file_path, index=1, group=segment_group_name))
+        self.container_land_tiles.add(Mesh(
+            vertices=vert10,
+            indices=[0, 1, 2, 1, 2, 3],
+            fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+            mode='triangles',
+            group=segment_group_name,
+        ))
+        self.container_land_tiles.add(BindTexture(source=tex11_file_path, index=1, group=segment_group_name))
+        self.container_land_tiles.add(Mesh(
+            vertices=vert11,
             indices=[0, 1, 2, 1, 2, 3],
             fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
             mode='triangles',
@@ -900,7 +995,7 @@ class Scene(object):
                 #     print(f'restarting unit ({unit.name}) animation {unit.animation_playing} after frame {unit.animation_frame}')
                 unit.animation_frame = 0
                 current_animation = unit.animations_list.index(unit.animation_playing)
-                current_animation += 1
+                # current_animation += 1
                 if current_animation >= len(unit.animations_list):
                     current_animation = 0
                 unit.animation_playing = unit.animations_list[current_animation]

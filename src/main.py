@@ -147,7 +147,7 @@ class AppRoot(App):
         #         unit.animation_playing = unit.animations_loaded[0]
         #     renderer.add_unit(unit.name)
         # self.prepare_trees(scene)
-        scene.init_scene(277, 829, land.width, land.height) # int(land.width / 2), int(land.height / 2),
+        scene.init_scene(278 / 2, 828 / 2)
         return renderer
 
 

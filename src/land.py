@@ -165,15 +165,15 @@ def read_json_file(json_file_path, output_width, output_height):
 
 def plant_trees(data):
     trees_biomes_mapping = {
-        'Tropical seasonal forest': (10.0, ['hills',]),
-        'Temperate deciduous forest': (10.0, ['hills', 'fields',]),
-        'Tropical rainforest': (20.0, ['hills',]),
-        'Temperate rainforest': (10.0, ['coast',]),
-        'Taiga': (1.0, ['hills']),
-        'Hot desert': (1.0, ['desert',]),
+        'Tropical seasonal forest': (50.0, ['hills',]),
+        'Temperate deciduous forest': (50.0, ['hills', 'fields',]),
+        'Tropical rainforest': (100.0, ['hills',]),
+        'Temperate rainforest': (50.0, ['coast',]),
+        'Taiga': (10.0, ['hills']),
+        'Hot desert': (5.0, ['desert',]),
         'Glacier': (1.0, ['winter',]),
         'Cold desert': (1.0, ['winter',]),
-        'Grassland': (1.0, ['fields',]),
+        'Grassland': (5.0, ['hills', 'fields',]),
     }
     trees_registry = {}
     trees_variants = {}
@@ -200,12 +200,6 @@ def plant_trees(data):
                         trees_registry[land_type] = []
                     if tree_variant_key not in trees_registry[land_type]:
                         trees_registry[land_type].append(tree_variant_key)
-                    # trees_registry[land_type].append({
-                    #     'm': model_name,
-                    #     'c': coefs,
-                    #     't': tex,
-                    #     'k': tree_variant_key,
-                    # })
     cells = data['pack']['cells']
     vertices = data['pack']['vertices']
     biomes_names = data['biomesData']['name']
