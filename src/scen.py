@@ -7,6 +7,7 @@ import random
 import numpy as np
 
 from kivy.core.image import Image
+from kivy.clock import Clock
 from kivy.cache import Cache
 from kivy.resources import resource_find
 from kivy.graphics import (
@@ -34,8 +35,8 @@ _NextMeshID = 0
 
 class Scene(object):
 
-    SEGMENT_SIZE = 5.0
-    PLANET_EQUATOR_SEGMENTS = 180
+    SEGMENT_SIZE = 10.0
+    PLANET_EQUATOR_SEGMENTS = 360
     PLANET_EQUATOR_LENGTH = SEGMENT_SIZE * PLANET_EQUATOR_SEGMENTS
     PLANET_RADIUS = PLANET_EQUATOR_LENGTH / (2.0 * math.pi)    
     SEGMENT_ANGLE = 360.0 / PLANET_EQUATOR_SEGMENTS
@@ -48,7 +49,7 @@ class Scene(object):
     SEGMENT_COS = math.cos(SEGMENT_ANGLE_RADIANS)  
     PI_4_SIN = math.sin(math.pi / 4.0)
     PI_4_COS = math.cos(math.pi / 4.0)
-    ELEVATION_FACTOR = PLANET_RADIUS / 20.0
+    ELEVATION_FACTOR = PLANET_RADIUS / 10.0
     ELEVATION_CORRECTION = 2.0
     VISIBLE_AREA_SIZE_SEGMENTS = 30
     VISIBLE_AREA_SIZE_SEGMENTS_HALF = int(VISIBLE_AREA_SIZE_SEGMENTS / 2.0)
@@ -79,9 +80,12 @@ class Scene(object):
         self.area_center_h = None
         self.segment_shift_w = None
         self.segment_shift_h = None
+        self.land_vertices = {}
         self.land_area_mask = {}
         self.land_tiles_visible = {}
-        self.land_vertices = {}
+        self.land_segments_waiting = set()
+        self.land_render_queue = []
+        self.land_cleanup_queue = []
 
     def coords_area2angles(self, w, h):
         angle_z = mth.w2lat_degrees(float(w), self.PLANET_EQUATOR_SEGMENTS)
@@ -144,10 +148,13 @@ class Scene(object):
             w_t = w + _w
             h_t = h + _h
             if (w_t, h_t) not in self.land_tiles_visible:
-                self.add_land_segment(w_t, h_t, _w, _h, dist_to_center)
-                added += 1
+                if (w_t, h_t) not in self.land_segments_waiting:
+                    self.land_render_queue.append((w_t, h_t, _w, _h, dist_to_center))
+                    self.land_segments_waiting.add((w_t, h_t))
+                    added += 1
         if _Debug:
             print(f'prepare land area at {w} {h} with {added} segments planet angle x:0 z:0')
+        self.update_segments()
 
     def mesh_key(self, template, part_name, coefs):
         c = mth.quantize_coefs(coefs)
@@ -453,6 +460,8 @@ class Scene(object):
             container.add(PopMatrix(group=unit.name))  # unit shift
             container.add(PopMatrix(group=unit.name))  # unit
         self.units[unit.name] = unit
+        if not static:
+            self.animating_units.add(unit.name)
         # if static is False:
         #     if _Debug:
         #         print(f'created animated unit at {angle_coords} with shift {shift_vector} from object {object_name} and placed on scene')
@@ -471,6 +480,8 @@ class Scene(object):
         unit.meshes_transforms.clear()
         unit.rotate_x_axis = None
         unit.rotate_z_axis = None
+        if not unit.static:
+            self.animating_units.discard(unit.name)
         self.units.pop(unit_name)
         # if _Debug:
         #     print(f'  removed unit {unit.name} from scene')
@@ -572,45 +583,39 @@ class Scene(object):
         self.global_rotate_z.angle = camera_shift_angle_z
         added = 0
         removed = 0
-        if wd != 0 or hd != 0:
+        if new_position or wd != 0 or hd != 0:
             for unit_name in self.units.keys():
                 unit = self.units[unit_name]
-                if unit.static:
-                    continue
-                if not unit.onstage:
-                    continue
                 unit.area_w = unit.w - w_i
                 unit.area_h = unit.h - h_i
                 segment_angle_x, segment_angle_z = self.coords_area2angles(unit.area_w, unit.area_h)
                 unit.rotate_axis_x.angle = segment_angle_x
                 unit.rotate_axis_z.angle = segment_angle_z
-            to_remove = []
             for w_t, h_t in self.land_tiles_visible.keys():
                 _w = w_t - w_i
                 _h = h_t - h_i
                 area_w, area_h, segment_rotate_x, segment_rotate_z, static_units_at_segment, _ = self.land_tiles_visible[(w_t, h_t)]
-                if (_w, _h) in self.land_area_mask:
-                    area_w -= wd
-                    area_h -= hd
-                    segment_angle_x, segment_angle_z = self.coords_area2angles(area_w, area_h)
-                    segment_rotate_x.angle = segment_angle_x
-                    segment_rotate_z.angle = segment_angle_z
-                    self.land_tiles_visible[(w_t, h_t)][0] = area_w
-                    self.land_tiles_visible[(w_t, h_t)][1] = area_h
-                    for static_unit_name in static_units_at_segment:
-                        static_unit = self.units[static_unit_name]
-                        static_unit.rotate_axis_x.angle = segment_angle_x
-                        static_unit.rotate_axis_z.angle = segment_angle_z
-                        static_unit.area_w = area_w
-                        static_unit.area_h = area_h
-                else:
-                    to_remove.append((w_t, h_t))
-            for w_t, h_t in to_remove:
-                self.remove_land_segment(w_t, h_t)
-                removed += 1
-            for unit in self.units.values():
-                if unit.static:
-                    continue
+                area_w -= wd
+                area_h -= hd
+                segment_angle_x, segment_angle_z = self.coords_area2angles(area_w, area_h)
+                segment_rotate_x.angle = segment_angle_x
+                segment_rotate_z.angle = segment_angle_z
+                self.land_tiles_visible[(w_t, h_t)][0] = area_w
+                self.land_tiles_visible[(w_t, h_t)][1] = area_h
+                # for unit_name in static_units_at_segment:
+                #     unit = self.units[unit_name]
+                #     if not unit.onstage:
+                #         continue
+                #     unit.area_w = area_w
+                #     unit.area_h = area_h
+                #     unit.rotate_axis_x.angle = segment_angle_x
+                #     unit.rotate_axis_z.angle = segment_angle_z
+                if (_w, _h) not in self.land_area_mask:
+                    if (w_t, h_t) not in self.land_cleanup_queue:
+                        self.land_cleanup_queue.append((w_t, h_t))
+                        removed += 1
+            for unit_name in self.animating_units:
+                unit = self.units[unit_name]
                 if not unit.onstage:
                     continue
                 _w = unit.w - w_i
@@ -622,8 +627,48 @@ class Scene(object):
                 w_t = w_i + _w
                 h_t = h_i + _h
                 if (w_t, h_t) not in self.land_tiles_visible:
-                    self.add_land_segment(w_t, h_t, _w, _h, dist_to_center)
-                    added += 1
+                    if (w_t, h_t) not in self.land_segments_waiting:
+                        self.land_render_queue.append((w_t, h_t, _w, _h, dist_to_center))
+                        self.land_segments_waiting.add((w_t, h_t))
+                        added += 1
+        self.update_segments()
+
+    def update_segments(self, dt=None):
+        if not self.land_render_queue and not self.land_cleanup_queue:
+            return
+        added = 0
+        self.land_render_queue.sort(key=lambda x: -x[4])
+        chunk = 10
+        while chunk and self.land_render_queue:
+            chunk -= 1
+            w_t, h_t, _w, _h, dist_to_center = self.land_render_queue.pop()
+            self.land_segments_waiting.discard((w_t, h_t))
+            self.add_land_segment(w_t, h_t, _w, _h, dist_to_center)
+            added += 1
+        removed = 0
+        if not added:
+            w_i = self.area_center_w
+            h_i = self.area_center_h
+            for w_t, h_t in self.land_tiles_visible.keys():
+                _w = w_t - w_i
+                _h = h_t - h_i
+                if (_w, _h) not in self.land_area_mask:
+                    if (w_t, w_t) not in self.land_cleanup_queue:
+                        self.land_cleanup_queue.append((w_t, h_t))
+            chunk = 10
+            while chunk and self.land_cleanup_queue:
+                chunk -= 1
+                w_t, h_t = self.land_cleanup_queue.pop()
+                if (w_t, h_t) in self.land_tiles_visible:
+                    _w = w_t - w_i
+                    _h = h_t - h_i
+                    if (_w, _h) not in self.land_area_mask:
+                        self.remove_land_segment(w_t, h_t)
+                        removed += 1
+        if self.land_render_queue or self.land_cleanup_queue:
+            Clock.schedule_once(self.update_segments, 0.5 * (1.0 / 60.0))
+        if _Debug:
+            print(f'land segments updated added:{added} removed:{removed} visible:{len(self.land_tiles_visible)}')
 
     def add_land_segment(self, map_w, map_h, area_w, area_h, dist_to_center):
         _get_texture = self.land.get_texture
@@ -652,7 +697,7 @@ class Scene(object):
         # if _Debug:
         #     if map_w == self.area_center_w and map_h == self.area_center_h:
         #         tex_source = None
-        segment_state = ChangeState(material_density=1.0, group=segment_group_name)
+        segment_state = ChangeState(material_density=0.0, group=segment_group_name)
         self.container_land_tiles.add(segment_state)
         self.container_land_tiles.add(BindTexture(source=tex_file_path, index=1, group=segment_group_name))
         self.container_land_tiles.add(Mesh(

@@ -48,7 +48,7 @@ class Renderer(Widget):
     CAMERA_VIEW_CLIP_FAR = 720.0
 
     SCALE_INITIAL = 5.0
-    SCALE_MIN = 1.0
+    SCALE_MIN = 0.5
     SCALE_MAX = 10.0
     SCALE_SPEED_FACTOR = 0.25
 
@@ -167,8 +167,8 @@ class Renderer(Widget):
         #     print(f'updating canvas center_point={self.canvas["center_point"]} asp={asp}')
         self.canvas['brightness'] = self.brightness
         self.canvas['contrast'] = self.contrast
-        self.canvas['fog_density'] = 0.01
-        self.canvas['fog_radius'] = 250.0
+        self.canvas['fog_density'] = 0.04
+        self.canvas['fog_radius'] = (self.scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF - 5) * self.scene.SEGMENT_SIZE
         self.canvas['material_density'] = 0.0
         # self.on_gl_error('step 2')
 
