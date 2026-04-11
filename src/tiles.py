@@ -17,7 +17,8 @@ import res
 
 logging.getLogger("PIL").propagate = False
 
-TILE_SIZE = 64
+# TILE_SIZE = 64
+TILE_SIZE = 256   # High quality tiles
 CORNER_SIZE = 8
 hash_size = 8
 
@@ -39,8 +40,8 @@ DIFF_CACHE = {}
 HASH_DIFF_CACHE = {}
 
 
-def image_tile(source_image, w, h):
-    tile_image = source_image.crop((w * 64, h * 64, (w + 1) * 64, (h + 1) * 64))
+def image_tile(source_image, w, h, tile_size=TILE_SIZE):
+    tile_image = source_image.crop((w * tile_size, h * tile_size, (w + 1) * tile_size, (h + 1) * tile_size))
     return tile_image, hashlib.md5(tile_image.tobytes()).hexdigest()
 
 
@@ -577,7 +578,7 @@ def find_similar_images():
                     print(f'For {map_name} moved {tile_name}.png to group {group_id}')
 
 
-def read_tile_types(corner_size=None):
+def read_tile_types(corner_size=None, samples_dir='samples_hq'):
     global tile_types
     global tile_average_colors
     global tile_types_images
@@ -587,13 +588,14 @@ def read_tile_types(corner_size=None):
     global tile_types_variants
     if corner_size is None:
         corner_size = CORNER_SIZE
-    for tile_file_name in os.listdir('samples'):
+    average_colors = {}
+    for tile_file_name in os.listdir(samples_dir):
         if not tile_file_name.endswith('.png'):
             continue
         tile_type = tile_file_name.replace('.png','')
         tile_variant = tile_type[-1]
         tile_type = tile_type[:-1]
-        tile_file_path = os.path.join('samples', tile_file_name)
+        tile_file_path = os.path.join(samples_dir, tile_file_name)
         tile_types[tile_type] = tile_file_path
         if tile_type not in tile_types_variants:
             tile_types_variants[tile_type] = []
@@ -601,6 +603,7 @@ def read_tile_types(corner_size=None):
         if tile_type not in tile_average_colors:
             tile_average_colors[tile_type] = {}
         tile_average_colors[tile_type][tile_variant] = average_color(tile_file_path)
+        average_colors[tile_type] = average_color(tile_file_path)
         # print((tile_type, tile_average_colors[tile_type][tile_variant]))
         if tile_type not in tile_types_images:
             tile_types_images[tile_type] = {}
@@ -638,6 +641,7 @@ def read_tile_types(corner_size=None):
                 if rotation not in tile_types_sides[tile_type][tile_variant]:
                     tile_types_sides[tile_type][tile_variant][rotation] = {}
                 tile_types_sides[tile_type][tile_variant][rotation][side] = side_image
+    pprint.pprint(average_colors)
 
 
 def move_tiles_by_type_1(tiles_dir, groups_dir, min_score, remove_original=False):
@@ -2096,7 +2100,7 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
 
                 except:
                     print(f'Error merging tile_sample1={tile_sample1} tile_sample2={tile_sample2} tile_sample3={tile_sample3} for tile {tile_id} with side {tile_side}')
-                    raise
+                    continue
                 quadruples.add(q1)
                 quadruples.add(q2)
                 merged_tile_name = f'{q1[0]}_{q1[1]}_{q1[2]}_{q1[3]}_{tile_id}.png'
@@ -2148,7 +2152,7 @@ def build_index(src_dir, dest_dir):
         file_path = os.path.join(src_dir, file_name)
         source_image = Image.open(file_path)
         source_image.load()
-        if source_image.width != 512 or source_image.height != 512:
+        if source_image.width != TILE_SIZE * 8 or source_image.height != TILE_SIZE * 8:
             print(f'Skipping {file_path}, wrong dimensions: {source_image.width}x{source_image.height}')
             continue
         count = 0
@@ -2248,18 +2252,94 @@ def pack_tiles(src_dir, dest_dir):
     open(os.path.join('assets/tiles.json'), 'w').write(json.dumps(registry, indent=2))
 
 
+def match_tiles(src_dir, maps_dir):
+    tiles_hash = {}
+    processed = 0
+    for map_file_name in sorted(os.listdir(maps_dir)):
+        if not map_file_name.endswith('.png'):
+            continue
+        map_name = map_file_name[:-7]  # ending with "000.png" 
+        processed += 1
+        img_name = map_file_name.replace('.png', '')
+        map_name = img_name[:-3]
+        map_image_variant = int(img_name[-3:])
+        map_file_path = os.path.join(maps_dir, map_file_name)
+        map_source_image = Image.open(map_file_path)
+        map_source_image.load()
+        if map_source_image.width != TILE_SIZE * 8 or map_source_image.height != TILE_SIZE * 8:
+            print(f'Skipping {map_file_path}, wrong dimensions: {map_source_image.width}x{map_source_image.height}')
+            continue
+        count = 0
+        for h in range(8):
+            for w in range(8):
+                tile_texture, tile_hash = image_tile(map_source_image, w, h)
+                if tile_hash not in tiles_hash:
+                    tiles_hash[tile_hash] = []
+                tiles_hash[tile_hash].append((map_name, map_image_variant, w, h, 0))
+                for rotation in [90, 180, 270, -1, -2]:
+                    tile_texture_rotated = get_rotated_image(tile_texture, rotation)
+                    tile_hash_rotated = hashlib.md5(tile_texture_rotated.tobytes()).hexdigest()
+                    if tile_hash_rotated not in tiles_hash:
+                        tiles_hash[tile_hash_rotated] = []
+                    tiles_hash[tile_hash_rotated].append((map_name, map_image_variant, w, h, rotation))
+                count += 1
+        print(f'Cached {map_file_path}')
+    unmatched = []
+    matched = {}
+    for tile_file_name in sorted(os.listdir(src_dir)):
+        if not tile_file_name.endswith('.png'):
+            continue
+        tile_name = tile_file_name.replace('.png', '')
+        tile_file_path = os.path.join(src_dir, tile_file_name)
+        tile_image = Image.open(tile_file_path)
+        tile_image.load()
+        if tile_image.width != TILE_SIZE or tile_image.height != TILE_SIZE:
+            print(f'Skipping {tile_file_path}, wrong dimensions: {tile_image.width}x{tile_image.height}')
+            continue
+        tile_hash = hashlib.md5(tile_image.tobytes()).hexdigest()
+        if tile_hash in tiles_hash:
+            matched[tile_name] = tiles_hash[tile_hash]
+            print(f'Matched {tile_file_name} to {len(tiles_hash[tile_hash])} variants')
+        else:
+            unmatched.append(tile_name)
+            print(f'No match found for {tile_file_name}')
+    print(f'Processed {processed} maps, found {len(matched)} matching tiles and {len(unmatched)} unmatched tiles:')
+    pprint.pprint(unmatched)
+    open(os.path.join('matched_tiles.json'), 'w').write(json.dumps(matched, indent=2))
+
+
+def copy_matched_tiles(maps_dir, dest_dir):
+    matched = json.loads(open('matched_tiles.json').read())
+    for tile_name, variants in matched.items():
+        for variant in variants:
+            map_name, map_image_variant, w, h, rotation = variant
+            map_file_path = os.path.join(maps_dir, f'{map_name}{map_image_variant:03d}.png')
+            if not os.path.exists(map_file_path):
+                print(f'Warning: map file {map_file_path} not found for tile {tile_name}, trying next variant')
+                continue
+            map_source_image = Image.open(map_file_path)
+            map_source_image.load()
+            tile_texture, tile_hash = image_tile(map_source_image, w, h, tile_size=256)
+            if rotation != 0:
+                tile_texture = get_rotated_image(tile_texture, rotation)
+            tile_file_path = os.path.join(dest_dir, f'{tile_name}.png')
+            tile_texture.save(tile_file_path)
+            print(f'Copied matched tile {tile_name} to {tile_file_path}')
+            break
+
+
 def main():
     stage = sys.argv[1]
-    if stage == 'stage1':
+    if stage == 'split_tiles' or stage == 'stage1':
         build_index(sys.argv[2], sys.argv[3])
     elif stage == 'stage2':
         read_tile_types()
         detected_tile_types = move_tiles_by_type(sys.argv[2], sys.argv[3], float(sys.argv[4]))
         print(','.join(sorted(list(detected_tile_types))))
-    elif stage == 'stage3':
+    elif stage == 'find4corners' or stage == 'stage3':
         read_tile_types(corner_size=int(sys.argv[5]))
         move_tiles_by_shape_by_four_corners(sys.argv[2], sys.argv[3], float(sys.argv[4]), int(sys.argv[5]), sys.argv[6].split(','))
-    elif stage == 'stage4':
+    elif stage == 'find3corners' or stage == 'stage4':
         read_tile_types(corner_size=int(sys.argv[5]))
         move_tiles_by_shape_by_four_corners_with_three_types(sys.argv[2], sys.argv[3], float(sys.argv[4]), int(sys.argv[5]), sys.argv[6].split(','))
     # elif stage == 'stage3a':
@@ -2279,13 +2359,17 @@ def main():
     elif stage == 'stage8':
         read_tile_types()
         merge_tiles(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], save_ready_tiles=False)
-    elif stage == 'stage9':
+    elif stage == 'merge_tiles' or stage == 'stage9':
         read_tile_types()
         merge_tiles(sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], save_ready_tiles=True)
     elif stage == 'unpack_textures':
         unpack_textures(sys.argv[2])
     elif stage == 'pack_tiles':
         pack_tiles(sys.argv[2], sys.argv[3])
+    elif stage == 'match_tiles':
+        match_tiles(sys.argv[2], sys.argv[3])
+    elif stage == 'copy_matched_tiles':
+        copy_matched_tiles(sys.argv[2], sys.argv[3])
 
 
 if __name__ == '__main__':

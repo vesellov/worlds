@@ -280,8 +280,8 @@ class Renderer(Widget):
                 textures={'*': test_model_data['t'].lower()},
                 coefs=test_model_data['c'],
             )
-            unit.max_speed = random.randint(5, 40) / 1000.0
-            unit.acceleration = random.randint(1, 10) / 1000.0
+            unit.max_speed = random.randint(1, 50) / 1000.0
+            unit.acceleration = random.randint(1, 5) / 1000.0
         elif keycode[1] == 'b':
             if self.camera_unit_lock:
                 self.camera_unit_lock = None
@@ -306,9 +306,9 @@ class Renderer(Widget):
         elif keycode[1] == 'd':
             self.scene.shift_land(0, -self.scene.LAND_MOVE_SPEED)
         elif keycode[1] == 's':
-            self.scene.shift_land(self.scene.LAND_MOVE_SPEED, 0)
-        elif keycode[1] == 'w':
             self.scene.shift_land(-self.scene.LAND_MOVE_SPEED, 0)
+        elif keycode[1] == 'w':
+            self.scene.shift_land(self.scene.LAND_MOVE_SPEED, 0)
         return True
 
     @ignore_undertouch

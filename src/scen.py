@@ -65,13 +65,16 @@ class Unit(object):
         self.max_speed = 0.0
 
     def run(self, scene):
-        self.speed += self.acceleration
         if self.speed > self.max_speed:
-            self.speed = self.max_speed
+            self.speed -= self.acceleration
+        else:
+            self.speed += self.acceleration
+        # if self.speed > self.max_speed:
+        #     self.speed = self.max_speed
         self.direction += 1.0
         if self.direction > 360.0:
-            self.direction = random.randint(0, 360)
-            self.max_speed = float(random.randint(1, 100)) / 1000.0
+            # self.direction = random.randint(0, 360)
+            self.max_speed = float(random.randint(1, 50)) / 1000.0
             self.acceleration = float(random.randint(1, 5)) / 1000.0
         self.rotate_vertical.angle = self.direction + 90
         self.shift_w += self.speed * math.cos(math.radians(self.direction))
@@ -121,8 +124,8 @@ class Unit(object):
 
 class Scene(object):
 
-    SEGMENT_SIZE = 25.0
-    PLANET_EQUATOR_SEGMENTS = 180
+    SEGMENT_SIZE = 2.5
+    PLANET_EQUATOR_SEGMENTS = 720 * 2
     PLANET_EQUATOR_LENGTH = SEGMENT_SIZE * PLANET_EQUATOR_SEGMENTS
     PLANET_RADIUS = PLANET_EQUATOR_LENGTH / (2.0 * math.pi)    
     SEGMENT_ANGLE = 360.0 / PLANET_EQUATOR_SEGMENTS
@@ -135,7 +138,7 @@ class Scene(object):
     SEGMENT_COS = math.cos(SEGMENT_ANGLE_RADIANS)  
     PI_4_SIN = math.sin(math.pi / 4.0)
     PI_4_COS = math.cos(math.pi / 4.0)
-    ELEVATION_FACTOR = PLANET_RADIUS / 4.0
+    ELEVATION_FACTOR = PLANET_RADIUS / 20.0
     ELEVATION_CORRECTION = 2.0
     VISIBLE_AREA_SIZE_SEGMENTS = 38
     VISIBLE_AREA_SIZE_SEGMENTS_HALF = int(VISIBLE_AREA_SIZE_SEGMENTS / 2.0)
@@ -900,7 +903,7 @@ class Scene(object):
                 #     print(f'restarting unit ({unit.name}) animation {unit.animation_playing} after frame {unit.animation_frame}')
                 unit.animation_frame = 0
                 current_animation = unit.animations_list.index(unit.animation_playing)
-                current_animation += 1
+                # current_animation += 1
                 if current_animation >= len(unit.animations_list):
                     current_animation = 0
                 unit.animation_playing = unit.animations_list[current_animation]
