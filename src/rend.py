@@ -167,8 +167,8 @@ class Renderer(Widget):
         #     print(f'updating canvas center_point={self.canvas["center_point"]} asp={asp}')
         self.canvas['brightness'] = self.brightness
         self.canvas['contrast'] = self.contrast
-        self.canvas['fog_density'] = 0.04
-        self.canvas['fog_radius'] = (self.scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF - 5) * self.scene.SEGMENT_SIZE
+        self.canvas['fog_density'] = 0.08
+        self.canvas['fog_radius'] = (self.scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF - 3) * self.scene.SEGMENT_SIZE
         self.canvas['material_density'] = 0.0
         # self.on_gl_error('step 2')
 
