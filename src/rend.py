@@ -47,9 +47,9 @@ class Renderer(Widget):
     CAMERA_VIEW_CLIP_NEAR = 2.0
     CAMERA_VIEW_CLIP_FAR = 720.0
 
-    SCALE_INITIAL = 10.0
+    SCALE_INITIAL = 5.0
     SCALE_MIN = 1.0
-    SCALE_MAX = 21.0
+    SCALE_MAX = 10.0
     SCALE_SPEED_FACTOR = 0.25
 
     ROTATE_SPEED = 1.0

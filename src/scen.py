@@ -15,7 +15,6 @@ from kivy.graphics import (
     PushMatrix, PopMatrix,
     Color, Translate, Rotate, Mesh,
 )
-from kivy.graphics.transformation import Matrix  # @UnresolvedImport
 from kivy.graphics.instructions import InstructionGroup  # @UnresolvedImport
 from kivy.graphics.context_instructions import Transform  # @UnresolvedImport
 
@@ -23,6 +22,7 @@ from kivy.graphics.context_instructions import Transform  # @UnresolvedImport
 import res
 import mth
 import dat
+import unt
 
 
 _Debug = True
@@ -32,100 +32,10 @@ _NextUnitID = 0
 _NextObjectID = 0
 _NextMeshID = 0
 
-
-class Unit(object):
-
-    def __init__(self, name, object_name):
-        self.name = name
-        self.object_name = object_name
-        self.template = None
-        self.w = None
-        self.h = None
-        self.shift_w = None
-        self.shift_h = None
-        self.area_w = None
-        self.area_h = None
-        self.static = None
-        self.onstage = False
-        self.parts = []
-        self.meshes_transforms = {}
-        self.meshes_names = {}
-        self.root_mesh_center = None
-        self.rotate_axis_x = None
-        self.rotate_axis_z = None
-        self.rotate_vertical = None
-        self.translate_shift = None
-        self.context_state = None
-        self.animations_list = []
-        self.animation_playing = None
-        self.animation_frame = 0
-        self.direction = 0.0
-        self.acceleration = 0.0
-        self.speed = 0.0
-        self.max_speed = 0.0
-
-    def run(self, scene):
-        if self.speed > self.max_speed:
-            self.speed -= self.acceleration
-        else:
-            self.speed += self.acceleration
-        # if self.speed > self.max_speed:
-        #     self.speed = self.max_speed
-        self.direction += 1.0
-        if self.direction > 360.0:
-            # self.direction = random.randint(0, 360)
-            self.max_speed = float(random.randint(1, 50)) / 1000.0
-            self.acceleration = float(random.randint(1, 5)) / 1000.0
-        self.rotate_vertical.angle = self.direction + 90
-        self.shift_w += self.speed * math.cos(math.radians(self.direction))
-        self.shift_h += self.speed * math.sin(math.radians(self.direction))
-        w_new = self.w
-        h_new = self.h
-        if self.shift_w > 1.0:
-            w_new += int(self.shift_w)
-            self.shift_w = float(self.shift_w) - float(int(self.shift_w))
-        elif self.shift_w < 0.0:
-            w_new += int(self.shift_w) - 1
-            self.shift_w = float(self.shift_w) - float(int(self.shift_w)) + 1.0
-        if self.shift_h > 1.0:
-            h_new += int(self.shift_h)
-            self.shift_h = float(self.shift_h) - float(int(self.shift_h))
-        elif self.shift_h < 0.0:
-            h_new += int(self.shift_h) - 1
-            self.shift_h = float(self.shift_h) - float(int(self.shift_h)) + 1.0
-        w_diff = w_new - self.w
-        h_diff = h_new - self.h
-        self.w = w_new
-        self.h = h_new
-        e_correction = 0
-        if self.root_mesh_center:
-            e_correction = self.root_mesh_center[0][2]
-        shift_vector = scene.coords_map2xyz(self.w, self.h, self.shift_w, self.shift_h, elevation_correction=e_correction)
-        self.translate_shift.xyz = shift_vector
-        if w_diff != 0 or h_diff != 0:
-            # if _Debug:
-            #     print(f'  unit {self.name} at map {self.w},{self.h} shift:{self.shift_w},{self.shift_h} shift_vector:{shift_vector} direction:{self.direction} speed:{self.speed}')
-            self.area_w += w_diff
-            self.area_h += h_diff
-            segment_angle_x, segment_angle_z = scene.coords_area2angles(self.area_w, self.area_h)
-            self.rotate_axis_x.angle = segment_angle_x
-            self.rotate_axis_z.angle = segment_angle_z
-            _w = int(self.w) - int(scene.area_center_w)
-            _h = int(self.h) - int(scene.area_center_h)
-            if self.onstage:
-                if (_w, _h) in scene.land_area_mask:
-                    pass
-                else:
-                    scene.hide_unit(container=scene.container_animated_objects, unit_name=self.name)
-            else:
-                if (_w, _h) in scene.land_area_mask:
-                    scene.show_unit(container=scene.container_animated_objects, unit_name=self.name)
-
-
 class Scene(object):
 
-    SEGMENT_SIZE = 2.5
-    PLANET_EQUATOR_SEGMENTS = 720 * 2
+    SEGMENT_SIZE = 5.0
+    PLANET_EQUATOR_SEGMENTS = 180
     PLANET_EQUATOR_LENGTH = SEGMENT_SIZE * PLANET_EQUATOR_SEGMENTS
     PLANET_RADIUS = PLANET_EQUATOR_LENGTH / (2.0 * math.pi)    
     SEGMENT_ANGLE = 360.0 / PLANET_EQUATOR_SEGMENTS
@@ -140,7 +50,7 @@ class Scene(object):
     PI_4_COS = math.cos(math.pi / 4.0)
     ELEVATION_FACTOR = PLANET_RADIUS / 20.0
     ELEVATION_CORRECTION = 2.0
-    VISIBLE_AREA_SIZE_SEGMENTS = 38
+    VISIBLE_AREA_SIZE_SEGMENTS = 30
     VISIBLE_AREA_SIZE_SEGMENTS_HALF = int(VISIBLE_AREA_SIZE_SEGMENTS / 2.0)
     LAND_MOVE_SPEED = 0.2
 
@@ -477,7 +387,7 @@ class Scene(object):
         if not shift_vector:
             shift_vector = [0.0, 0.0, 0.0]
         _NextUnitID += 1
-        unit = Unit(name=object_name+'#'+str(_NextUnitID), object_name=object_name)
+        unit = unt.Unit(name=object_name+'#'+str(_NextUnitID), object_name=object_name)
         unit.static = static
         unit.onstage = onstage
         if static:
@@ -884,44 +794,13 @@ class Scene(object):
             if u:
                 self.update_land(new_position=(u.w, u.h, u.shift_w, u.shift_h))
         for unit in self.units.values():
-            if unit.static:
-                continue
-            unit.run(self)
+            if not unit.static:
+                unit.run(self)
 
     def on_update_animations(self, delta):
         # TODO: maintain separate list of active animations for all units
         # then it is not required to loop all units
         for unit in self.units.values():
-            if not unit.animations_list:
-                continue
-            ao = self.animated_objects[unit.object_name]
-            animation = ao.animations[unit.animation_playing]
-            root_part_name = ao.parts[0]
-            root_part_animation = animation.parts.get(root_part_name)
-            if unit.animation_frame >= root_part_animation.frames:
-                # if _Debug:
-                #     print(f'restarting unit ({unit.name}) animation {unit.animation_playing} after frame {unit.animation_frame}')
-                unit.animation_frame = 0
-                current_animation = unit.animations_list.index(unit.animation_playing)
-                # current_animation += 1
-                if current_animation >= len(unit.animations_list):
-                    current_animation = 0
-                unit.animation_playing = unit.animations_list[current_animation]
-                animation = ao.animations[unit.animation_playing]
-            frame = unit.animation_frame
-            for part_name in ao.parts:
-                if part_name not in animation.parts:
-                    continue
-                part_animation = animation.parts.get(part_name)
-                if not part_animation:
-                    continue
-                r = part_animation.rotation_frames[frame]
-                t = part_animation.translation_frames[frame]
-                mesh_transform = unit.meshes_transforms[part_name]
-                translate_mat = Matrix()
-                translate_mat.translate(t[0], t[1], t[2])
-                mesh_transform.part_translate.matrix = translate_mat
-                rotate_mat = Matrix()
-                rotate_mat.set(array=mth.quaternion_to_matrix(r[0], r[1], r[2], r[3]))
-                mesh_transform.part_rotate.matrix = rotate_mat.inverse()
-            unit.animation_frame += 1
+            if not unit.static and unit.onstage:
+                unit.animate(self, delta)
+
