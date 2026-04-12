@@ -132,7 +132,7 @@ def render_heightmap(data, draw, max_elevation, water_level):
         draw.polygon(points, fill=(e, e, e))
 
 
-def read_json_file(json_file_path, output_width, output_height):
+def process_json_file(json_file_path, output_width, output_height):
     global min_x, min_y, input_width, input_height, width, height, max_elevation
     width = int(output_width)
     height = int(output_height)
@@ -259,7 +259,7 @@ def main():
         else:
             raise Exception(f"Unexpected parts count in {t}")
 
-    biome_image, heightmap_image, biomes_colors = read_json_file(
+    biome_image, heightmap_image, biomes_colors = process_json_file(
         json_file_path=sys.argv[1],
         output_width=sys.argv[2],
         output_height=sys.argv[3],
