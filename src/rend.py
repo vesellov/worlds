@@ -298,6 +298,8 @@ class Renderer(Widget):
                 if current_index >= len(animated_units_onstage):
                     current_index = 0
                 self.camera_unit_lock = animated_units_onstage[current_index]
+                if _Debug:
+                    print(f'camera locked to unit {self.camera_unit_lock}')
             else:
                 if animated_units_onstage:
                     self.camera_unit_lock = animated_units_onstage[0]

@@ -14,11 +14,152 @@ input_width = 0
 input_height = 0
 width = 0
 height = 0
+min_elevation = 0
 max_elevation = 0
+elevation_data = {}
 
 
 INPUT_WATER_LEVEL = 20      # 0 is the water level in the input heightmap, 100 is the input max height
 BEACH_COAST_LINE_HEIGHT_MAX = 16  # 0 is the water level after heightmap translation, 255 is max height
+
+
+# see: https://github.com/vesellov/worlds/blob/main/catalog.json
+tiles_colors = {
+    'cliff1': (108, 107, 94),
+    'cliff10': (33, 47, 70),
+    'cliff11': (122, 122, 122),
+    'cliff2': (116, 114, 86),
+    'cliff3': (97, 95, 58),
+    'cliff4': (116, 114, 86),
+    'cliff5': (80, 79, 61),
+    'cliff7': (41, 41, 22),
+    'cliff8': (121, 88, 86),
+    'cliff9': (59, 77, 42),
+    'dirt1': (104, 89, 61),
+    'dirt2': (105, 83, 63),
+    'dirt3': (99, 73, 46),
+    'dirt4': (97, 80, 65),
+    'dirt5': (81, 65, 47),
+    'dirt6': (99, 101, 98),
+    'dirt7': (92, 83, 72),
+    'dust1': (115, 95, 71),
+    'dust2': (68, 54, 39),
+    'dust3': (124, 110, 96),
+    'grass1': (24, 39, 0),
+    'grass2': (33, 55, 2),
+    'grass3': (80, 104, 3),
+    'grass5': (95, 98, 2),
+    'grass6': (46, 69, 1),
+    'grass7': (40, 62, 17),
+    'lava1': (155, 35, 20),
+    'mud1': (170, 99, 28),
+    'mud2': (130, 64, 32),
+    'rock1': (79, 77, 74),
+    'rock2': (56, 58, 50),
+    'sand1': (177, 172, 113),
+    'sand2': (176, 158, 104),
+    'sand4': (151, 130, 91),
+    'sand5': (163, 142, 94),
+    'sand6': (163, 142, 94),
+    'sand7': (139, 114, 92),
+    'snow1': (209, 220, 250),
+    'snow2': (208, 215, 228),
+    'snow3': (242, 243, 252),
+    'snow4': (227, 229, 239),
+    'soil1': (116, 112, 76),
+    'soil2': (103, 102, 49),
+    'soil3': (87, 78, 47),
+    'soil4': (61, 58, 29),
+    'soil5': (72, 62, 1),
+    'soil6': (146, 139, 82),
+    'stone1': (78, 72, 62),
+    'stone2': (100, 85, 72),
+    'stone3': (118, 116, 88),
+    'stone5': (176, 165, 130),
+    'stone7': (142, 85, 54),
+    'stone8': (52, 43, 27),
+    'tile1': (80, 84, 68),
+    'tile2': (92, 100, 74),
+    'water1': (43, 125, 193),
+    'water2': (65, 126, 113),
+    'water3': (96, 157, 139),
+    'water4': (15, 96, 81),
+    'water5': (49, 70, 93),
+    'water6': (40, 64, 89),
+    'water7': (54, 72, 99),
+    'water8': (11, 35, 56),
+}
+tiles_colors_reversed = {v: k for k, v in tiles_colors.items()}
+tiles_colors_reversed[(0, 0, 0)] = 'water5'
+
+# see: https://github.com/Azgaar/Fantasy-Map-Generator/blob/master/src/modules/biomes.ts#L12
+biomes_colors = {
+    "466eab": "Marine",
+    "fbe79f": "Hot desert",
+    "b5b887": "Cold desert",
+    "d2d082": "Savanna",
+    "c8d68f": "Grassland",
+    "b6d95d": "Tropical seasonal forest",
+    "29bc56": "Temperate deciduous forest",
+    "7dcb35": "Tropical rainforest",
+    "409c43": "Temperate rainforest",
+    "4b6b32": "Taiga",
+    "96784b": "Tundra",
+    "d5e7eb": "Glacier",
+    "0b9131": "Wetland",
+}
+biomes_colors = {tuple(int(k[i:i+2], 16) for i in (0, 2, 4)):v for k, v in biomes_colors.items()}
+
+biomes_mapping = {
+    'Marine': [('water5', 1.0), ],
+    'Hot desert': [('mud2', 1.0), ],
+    'Cold desert': [('dirt1', 0.5), ('dirt2', 1.0), ],
+    'Savanna': [('dirt2', 1.0), ],
+    'Grassland': [('grass3', 0.5), ('grass2', 1.0), ],
+    'Tropical seasonal forest': [('soil3', 0.5), ('grass2', 1.0), ],
+    'Temperate deciduous forest': [('grass1', 0.1), ('grass2', 1.0), ],
+    'Tropical rainforest': [('grass1', 0.5), ('grass2', 1.0), ],
+    'Temperate rainforest': [('grass1', 0.2), ('grass2', 1.0), ],
+    'Taiga': [('soil5', 1.0), ],
+    'Tundra': [('soil6', 1.0), ],
+    'Glacier': [('snow3', 0.3), ('dirt1', 1.0), ],
+    'Wetland': [('soil5', 0.7), ('grass2', 1.0), ],
+}
+
+inner_outer_transform_before_borders_list = [
+    ('soil3', 'dirt2', None),
+    ('soil5', 'grass2', None),
+    ('soil6', 'sand2', None),
+    ('soil4', 'dirt2', None),
+    ('dirt1', 'dirt2', None),
+    ('dirt4', 'dirt2', None),
+    ('snow3', 'dirt2', None),
+    ('snow3', 'dirt4', None),
+    ('water5', 'sand4', None),
+    ('soil1', 'dirt2', None),
+    ('mud2', 'sand2', None),
+]
+
+inner_outer_transform_borders_list = [
+    ('soil4', 'grass2', 'dirt2'),
+    ('soil5', 'sand2', 'grass2'),
+    ('dirt4', 'grass2', 'dirt2'),
+    ('snow3', 'dirt2', 'sand2'),
+    ('grass1', 'soil5', 'sand2'),
+    ('grass1', 'grass3', 'grass2'),
+    ('grass1', 'sand4', 'sand2'),
+    ('grass1', 'sand2', 'grass2'),
+    ('grass1', 'dirt2', 'grass2'),
+    ('sand4', 'grass2', 'sand2'),
+    ('grass3', 'sand4', 'dirt2'),
+    ('dirt2', 'sand4', 'sand2'),
+    ('dirt2', 'sand2', 'grass2'),
+    ('grass3', 'sand2', 'grass2'),
+    ('soil5', 'grass3', 'grass2'),
+    ('dirt4', 'dirt2', 'sand2'),
+    ('water5', 'sand2', 'sand4'),
+    ('dirt4', 'snow3', 'sand2'),
+]
 
 
 def xy2draw(x, y):
@@ -66,17 +207,75 @@ def detect_elevation_bounds(data):
 def render_biomes(data, draw):
     cells = data['pack']['cells']
     vertices = data['pack']['vertices']
-    biomes_colors = data['biomesData']['color']
+    biomes_colors_data = data['biomesData']['color']
     count = 0
     for cell in cells:
         points = []
-        hex_color = biomes_colors[cell['biome']].lstrip('#')
+        hex_color = biomes_colors_data[cell['biome']].lstrip('#')
         for v_i in cell['v']:
             v = vertices[v_i]
             x, y = v['p']
             coord = xy2draw(x, y)
             points.append(coord)
         draw.polygon(points, fill=tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4)))
+        count += 1
+    return count
+
+
+def capture_biomes_data(biome_image, biomes_colors, biomes_map):
+    for x in range(biome_image.width):
+        for y in range(biome_image.height):
+            biome_pixel = biome_image.getpixel((x, y))
+            biome_color = (int(biome_pixel[0]), int(biome_pixel[1]), int(biome_pixel[2]))
+            best_color_dist = None
+            best_biome = None
+            for c in biomes_colors.keys():
+                diff_dist = color_distance(biome_color, c)
+                if best_color_dist is None or diff_dist < best_color_dist:
+                    best_color_dist = diff_dist
+                    best_biome = biomes_colors[c]
+            biomes_map[(x, y)] = best_biome
+
+
+def capture_tiles_data(tiles_image, tiles_colors_reversed, tiles_map):
+    for x in range(tiles_image.width):
+        for y in range(tiles_image.height):
+            tile_pixel = tiles_image.getpixel((x, y))
+            tile_color = (int(tile_pixel[0]), int(tile_pixel[1]), int(tile_pixel[2]))
+            tiles_map[(x, y)] = tiles_colors_reversed[tile_color]
+
+
+def render_tiles(data, draw, biomes_colors, tiles_colors, biomes_mapping):
+    cells = data['pack']['cells']
+    vertices = data['pack']['vertices']
+    biomes_colors_array = data['biomesData']['color']
+    count = 0
+    for cell in cells:
+        points = []
+        hex_color = biomes_colors_array[cell['biome']].lstrip('#')
+        biome_color = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        best_color_dist = None
+        best_biome = None
+        for c in biomes_colors.keys():
+            diff_dist = color_distance(biome_color, c)
+            if best_color_dist is None or diff_dist < best_color_dist:
+                best_color_dist = diff_dist
+                best_biome = biomes_colors[c]
+        possible_tiles = biomes_mapping[best_biome]
+        rnd = random.randint(0, 10000) / 10000.0
+        biome_tile = None
+        for tile, chance in possible_tiles:
+            if rnd <= chance:
+                biome_tile = tile
+                break
+        for v_i in cell['v']:
+            v = vertices[v_i]
+            x, y = v['p']
+            coord = xy2draw(x, y)
+            points.append(coord)
+        biome_tile_color = tiles_colors[biome_tile]
+        # biome_tile_color = tuple(int(biome_tile_hex_color[i:i+2], 16) for i in (0, 2, 4))
+        draw.polygon(points, fill=biome_tile_color)
         count += 1
     return count
 
@@ -115,52 +314,60 @@ def render_rivers(data, draw):
     return count
 
 
-def render_heightmap(data, draw, max_elevation, water_level):
+def cell_height_unpack(h):
+    height = -990
+    if h >= INPUT_WATER_LEVEL:
+        height = pow(h - 18, 2.2)
+    elif h > 0 and h < INPUT_WATER_LEVEL:
+        height = ((h - INPUT_WATER_LEVEL) / h) * 50.0
+    return height
+
+
+def render_heightmap(data, draw):
+    global min_elevation, max_elevation
     cells = data['pack']['cells']
     vertices = data['pack']['vertices']
-    diff = float(max_elevation - water_level)
+    for cell in cells:
+        points = []
+        h = cell['h']
+        for v_i in cell['v']:
+            v = vertices[v_i]
+            x, y = v['p']
+            points.append(xy2draw(x, y))
+        e = int(h)
+        draw.polygon(points, fill=(e, e, e))
+
+
+def render_scaled_heightmap(data, draw):
+    global min_elevation, max_elevation
+    water_level = INPUT_WATER_LEVEL
+    cells = data['pack']['cells']
+    vertices = data['pack']['vertices']
+    delta = float(max_elevation - water_level)
+    bellow_water_level = 0
     for cell in cells:
         points = []
         h = cell['h']
         if h < water_level:
             h = water_level
+            bellow_water_level += 1
+        h -= water_level
         for v_i in cell['v']:
             v = vertices[v_i]
             x, y = v['p']
             points.append(xy2draw(x, y))
-        e = int((h - water_level) * 255.0 / diff)
+        e = int(float(h) * (255.0 / delta))
         draw.polygon(points, fill=(e, e, e))
+    return bellow_water_level
 
 
-def process_json_file(json_file_path, output_width, output_height):
-    global min_x, min_y, input_width, input_height, width, height, max_elevation
-    width = int(output_width)
-    height = int(output_height)
-    data = read_full_json_file(json_file_path)
-    min_x, max_x, min_y, max_y = detect_bounds(data)
-    input_width = max_x - min_x
-    input_height = max_y - min_y
-    print(f"Bounds are x=({min_x}:{max_x}) y=({min_y}:{max_y}) width={input_width} height={input_height}")
-    min_elevation, max_elevation = detect_elevation_bounds(data)
-    print(f"Elevations are from {min_elevation} to {max_elevation}")
-    biomes_colors = data['biomesData']['color']
-    water_color = biomes_colors[0].lstrip('#')
-    print(f'Output size is {width}:{height}, water color is #{water_color}')
-    biome_image = Image.new("RGB", (width, height), tuple(int(water_color[i:i+2], 16) for i in (0, 2, 4)))
-    biome_draw = ImageDraw.Draw(biome_image)
-    heightmap_image = Image.new("RGB", (width, height), "black")
-    heightmap_draw = ImageDraw.Draw(heightmap_image)
-    biomes_count = render_biomes(data, biome_draw)
-    print(f'Rendered {biomes_count} biomes')
-    # routes_count = render_routes(data, biome_draw)
-    # print(f'Rendered {routes_count} routes')
-    # rivers_count = render_rivers(data, biome_draw)
-    # print(f'Rendered {rivers_count} rivers')
-    render_heightmap(data, heightmap_draw, max_elevation, water_level=INPUT_WATER_LEVEL)
-    heightmap_image = heightmap_image.filter(ImageFilter.GaussianBlur(radius=1))
-    biome_image.save('assets/biome.png')
-    heightmap_image.save('assets/heightmap.png')
-    return biome_image, heightmap_image, biomes_colors
+def capture_elevation_data(heightmap_image):
+    global elevation_data, min_elevation, max_elevation
+    for x in range(heightmap_image.width):
+        for y in range(heightmap_image.height):
+            heightmap_imagebiome_pixel = heightmap_image.getpixel((x, y))
+            h = float(heightmap_imagebiome_pixel[0])
+            elevation_data[(x, y)] = h
 
 
 def plant_trees(data):
@@ -242,7 +449,14 @@ def color_distance(c1, c2):
 
 
 def main():
+    global min_x, min_y, input_width, input_height, width, height, min_elevation, max_elevation, elevation_data
+
+    random.seed(1)
+
     catalog = json.loads(open('assets/catalog.json', 'rt').read())
+
+    biomes_map = {}
+    tiles_map = {}
 
     singles = set()
     pairs = set()
@@ -259,163 +473,94 @@ def main():
         else:
             raise Exception(f"Unexpected parts count in {t}")
 
-    biome_image, heightmap_image, biomes_colors = process_json_file(
-        json_file_path=sys.argv[1],
-        output_width=sys.argv[2],
-        output_height=sys.argv[3],
-    )
+    json_file_path = sys.argv[1]
+    width = int(sys.argv[2])
+    height = int(sys.argv[3])
+    data = read_full_json_file(json_file_path)
+    print(f"Read JSON data from {json_file_path}")
+
+    min_x, max_x, min_y, max_y = detect_bounds(data)
+    input_width = max_x - min_x
+    input_height = max_y - min_y
+    print(f"Bounds are x=({min_x}:{max_x}) y=({min_y}:{max_y}) width={input_width} height={input_height}")
+
+    min_elevation, max_elevation = detect_elevation_bounds(data)
+    print(f"Elevations are from {min_elevation} to {max_elevation}")
+
+    biomes_colors_data = data['biomesData']['color']
+    water_color = biomes_colors_data[0].lstrip('#')
+    print(f'Found {len(biomes_colors_data)} biomes colors, water color is #{water_color}')
+
+    biome_image = Image.new("RGB", (width, height), tuple(int(water_color[i:i+2], 16) for i in (0, 2, 4)))
+    biome_draw = ImageDraw.Draw(biome_image)
+    biomes_count = render_biomes(data, biome_draw)
+    biome_image.save('assets/biome.png')
+    capture_biomes_data(biome_image, biomes_colors, biomes_map)
+    print(f'Rendered {biomes_count} biomes')
+
+    # routes_count = render_routes(data, biome_draw)
+    # print(f'Rendered {routes_count} routes')
+    # rivers_count = render_rivers(data, biome_draw)
+    # print(f'Rendered {rivers_count} rivers')
+    heightmap_image = Image.new("RGB", (width, height), "black")
+    heightmap_draw = ImageDraw.Draw(heightmap_image)
+    render_heightmap(data, heightmap_draw)
+    heightmap_image = heightmap_image.filter(ImageFilter.GaussianBlur(radius=1))
+    capture_elevation_data(heightmap_image)
+    heightmap_scaled_image = Image.new("RGB", (width, height), "black")
+    heightmap_scaled_draw = ImageDraw.Draw(heightmap_scaled_image)
+    bellow_water_level = render_scaled_heightmap(data, heightmap_scaled_draw)
+    heightmap_scaled_image = heightmap_scaled_image.filter(ImageFilter.GaussianBlur(radius=1))
+    heightmap_scaled_image.save('assets/heightmap.png')
+    print(f'Rendered scaled heightmap, {bellow_water_level} tiles were bellow water level')
 
     if heightmap_image.size != biome_image.size:
         raise Exception("Height map and biome map sizes do not match")
 
-    print(f"Map size: {heightmap_image.size}")
-    # see: https://github.com/vesellov/worlds/blob/main/catalog.json
-    avarage_colors = {
-        'cliff1': (108, 107, 94),
-        'cliff10': (33, 47, 70),
-        'cliff11': (122, 122, 122),
-        'cliff2': (116, 114, 86),
-        'cliff3': (97, 95, 58),
-        'cliff4': (116, 114, 86),
-        'cliff5': (80, 79, 61),
-        'cliff7': (41, 41, 22),
-        'cliff8': (121, 88, 86),
-        'cliff9': (59, 77, 42),
-        'dirt1': (104, 89, 61),
-        'dirt2': (105, 83, 63),
-        'dirt3': (99, 73, 46),
-        'dirt4': (97, 80, 65),
-        'dirt5': (81, 65, 47),
-        'dirt6': (99, 101, 98),
-        'dirt7': (92, 83, 72),
-        'dust1': (115, 95, 71),
-        'dust2': (68, 54, 39),
-        'dust3': (124, 110, 96),
-        'grass1': (24, 39, 0),
-        'grass2': (33, 55, 2),
-        'grass3': (80, 104, 3),
-        'grass5': (95, 98, 2),
-        'grass6': (46, 69, 1),
-        'grass7': (40, 62, 17),
-        'lava1': (155, 35, 20),
-        'mud1': (170, 99, 28),
-        'mud2': (130, 64, 32),
-        'rock1': (79, 77, 74),
-        'rock2': (56, 58, 50),
-        'sand1': (177, 172, 113),
-        'sand2': (176, 158, 104),
-        'sand4': (151, 130, 91),
-        'sand5': (163, 142, 94),
-        'sand6': (163, 142, 94),
-        'sand7': (139, 114, 92),
-        'snow1': (209, 220, 250),
-        'snow2': (208, 215, 228),
-        'snow3': (242, 243, 252),
-        'snow4': (227, 229, 239),
-        'soil1': (116, 112, 76),
-        'soil2': (103, 102, 49),
-        'soil3': (87, 78, 47),
-        'soil4': (61, 58, 29),
-        'soil5': (72, 62, 1),
-        'soil6': (146, 139, 82),
-        'stone1': (78, 72, 62),
-        'stone2': (100, 85, 72),
-        'stone3': (118, 116, 88),
-        'stone5': (176, 165, 130),
-        'stone7': (142, 85, 54),
-        'stone8': (52, 43, 27),
-        'tile1': (80, 84, 68),
-        'tile2': (92, 100, 74),
-        'water1': (43, 125, 193),
-        'water2': (65, 126, 113),
-        'water3': (96, 157, 139),
-        'water4': (15, 96, 81),
-        'water5': (49, 70, 93),
-        'water6': (40, 64, 89),
-        'water7': (54, 72, 99),
-        'water8': (11, 35, 56),
-    }
-    # see: https://github.com/Azgaar/Fantasy-Map-Generator/blob/master/src/modules/biomes.ts#L12
-    biomes_types = {
-        "466eab": "Marine",
-        "fbe79f": "Hot desert",
-        "b5b887": "Cold desert",
-        "d2d082": "Savanna",
-        "c8d68f": "Grassland",
-        "b6d95d": "Tropical seasonal forest",
-        "29bc56": "Temperate deciduous forest",
-        "7dcb35": "Tropical rainforest",
-        "409c43": "Temperate rainforest",
-        "4b6b32": "Taiga",
-        "96784b": "Tundra",
-        "d5e7eb": "Glacier",
-        "0b9131": "Wetland",
-    }
-    biomes_types = {tuple(int(k[i:i+2], 16) for i in (0, 2, 4)):v for k, v in biomes_types.items()}
-    biomes_mapping = {
-        'Marine': 'water5',
-        'Hot desert': 'mud2',
-        'Cold desert': 'dirt1',
-        'Savanna': 'dirt2',
-        'Grassland': 'grass3',
-        'Tropical seasonal forest': 'soil3',
-        'Temperate deciduous forest': 'grass2',
-        'Tropical rainforest': 'grass1',
-        'Temperate rainforest': 'grass2',
-        'Taiga': 'soil5',
-        'Tundra': 'soil6',
-        'Glacier': 'snow3',
-        'Wetland': 'soil5',
-    }
-    inner_outer_transform_before_borders_list = [
-        ('soil3', 'dirt2', None),
-        ('soil5', 'grass2', None),
-        ('soil6', 'sand2', None),
-        ('soil4', 'dirt2', None),
-        ('dirt1', 'dirt2', None),
-        ('dirt4', 'dirt2', None),
-        ('snow3', 'dirt2', None),
-        ('snow3', 'dirt4', None),
-        ('water5', 'sand4', None),
-        ('soil1', 'dirt2', None),
-        ('mud2', 'sand2', None),
-    ]
-    inner_outer_transform_borders_list = [
-        ('soil4', 'grass2', 'dirt2'),
-        ('soil5', 'sand2', 'grass2'),
-        ('dirt4', 'grass2', 'dirt2'),
-        ('snow3', 'dirt2', 'sand2'),
-        ('grass2', 'sand4', 'sand2'),
-        ('grass3', 'sand4', 'dirt2'),
-        ('dirt2', 'sand4', 'sand2'),
-        ('dirt2', 'sand2', 'grass2'),
-        ('grass3', 'sand2', 'grass2'),
-        ('soil5', 'grass3', 'grass2'),
-        ('dirt4', 'dirt2', 'sand2'),
-    ]
-    biomes_map = {}
-    tiles_map = {}
-    # coast_line = set()
+    tiles_image = Image.new("RGB", (width, height), "black")
+    tiles_draw = ImageDraw.Draw(tiles_image)
+    biomes_count = render_tiles(data, tiles_draw, biomes_colors, tiles_colors, biomes_mapping)
+    tiles_image.save('assets/tiles_original.png')
+    capture_tiles_data(tiles_image, tiles_colors_reversed, tiles_map)
+    print(f'Rendered {biomes_count} biomes in {len(tiles_map)} tiles')
 
-    for x in range(biome_image.width):
-        for y in range(biome_image.height):
-            biome_pixel = biome_image.getpixel((x, y))
-            biome_color = (int(biome_pixel[0]), int(biome_pixel[1]), int(biome_pixel[2]))
-            best_color_dist = None
-            best_biome = None
-            for c in biomes_types.keys():
-                diff_dist = color_distance(biome_color, c)
-                if best_color_dist is None or diff_dist < best_color_dist:
-                    best_color_dist = diff_dist
-                    best_biome = biomes_types[c]
-            biomes_map[(x, y)] = best_biome
-            tiles_map[(x, y)] = biomes_mapping[best_biome]
+    flooded = 0
+    for x in range(tiles_image.width):
+        for y in range(tiles_image.height):
+            if elevation_data.get((x, y), 0) <= INPUT_WATER_LEVEL:
+                if tiles_map[(x, y)] != 'water5':
+                    tiles_map[(x, y)] = 'water5'
+                    flooded += 1
+    print(f"Flooded {flooded} tiles based on heightmap data")
+
+    beach_area = set()
+    for x in range(1, tiles_image.width-1):
+        for y in range(1, tiles_image.height-1):
+            if (x, y) in beach_area:
+                continue
+            if tiles_map[(x, y)] == 'water5':
+                for xn, yn in [
+                    (x-1, y-1),
+                    (x-1, y),
+                    (x-1, y+1),
+                    (x,   y-1),
+                    (x,   y+1),
+                    (x+1, y-1),
+                    (x+1, y),
+                    (x+1, y+1),
+                ]:
+                    neighbor = tiles_map[(xn, yn)]
+                    if neighbor != 'water5' and neighbor != 'sand4':
+                        beach_area.add((x, y))
+    for x, y in beach_area:
+        tiles_map[(x, y)] = 'sand4'
+    print(f"Added {len(beach_area)} beach area tiles")
 
     for inner, outer, transform in inner_outer_transform_before_borders_list:
         replacing_list = set()
         transform_list = set()
-        for x in range(1, biome_image.width-1):
-            for y in range(1, biome_image.height-1):
+        for x in range(1, tiles_image.width-1):
+            for y in range(1, tiles_image.height-1):
                 center = tiles_map[(x, y)]
                 if center == inner:
                     for xn, yn in [
@@ -585,8 +730,8 @@ def main():
         cycles -= 1
         progress = 0
         changes = 0
-        for x in range(0, biome_image.width-1):
-            for y in range(0, biome_image.height-1):
+        for x in range(0, tiles_image.width-1):
+            for y in range(0, tiles_image.height-1):
                 neighbors_counts = {}
                 neighbors_tiles = {}
                 for xd, yd in [(0, 0), (0, 1), (1, 0), (1, 1)]:
@@ -606,11 +751,13 @@ def main():
                     t10 = tiles_map[(x+1, y)]
                     change = None
                     for c1, c2 in [
+                        ('grass1', 'grass2'),
                         ('snow3', 'dirt4'),
                         ('dirt4', 'dirt2'),
-                        ('grass2', 'sand2'),
+                        ('sand2', 'grass2'),
                         ('soil5', 'grass2'),
                         ('dirt2', 'grass2'),
+                        ('sand4', 'sand2'),
                     ]:
                         if c1 == t00 and c2 == t10:
                             change = 1
@@ -622,7 +769,7 @@ def main():
                         else:
                             tiles_map[(x+1, y)] = tiles_map[(x, y)]
                     else:
-                        if tiles_map[(x, y)] in ['sand2', 'sand4', 'dirt2',]:
+                        if tiles_map[(x, y)] in ['sand4', 'sand2', 'dirt2', ]:
                             tiles_map[(x+1, y)] = tiles_map[(x, y)]
                         else:
                             tiles_map[(x, y)] = tiles_map[(x+1, y)]
@@ -632,8 +779,8 @@ def main():
 
         for inner, outer, transform in inner_outer_transform_borders_list:
             transform_list = set()
-            for x in range(1, biome_image.width-1):
-                for y in range(1, biome_image.height-1):
+            for x in range(1, tiles_image.width-1):
+                for y in range(1, tiles_image.height-1):
                     center = tiles_map[(x, y)]
                     if center == inner:
                         for xn, yn in [
@@ -656,17 +803,17 @@ def main():
             print(f"Transform border line conditionally between {inner} and {outer} with {transform} length: {len(transform_list)}")
 
     stats = {}
-    tiles_image = Image.new("RGB", biome_image.size, "black")
-    for x in range(biome_image.width):
-        for y in range(biome_image.height):
+    tiles_image_output = Image.new("RGB", biome_image.size, "black")
+    for x in range(tiles_image.width):
+        for y in range(tiles_image.height):
             tile = tiles_map[(x, y)]
-            tiles_image.putpixel((x, y), avarage_colors[tile])
+            tiles_image_output.putpixel((x, y), tiles_colors[tile])
             stats[tile] = stats.get(tile, 0) + 1
-    tiles_image.save('assets/tiles.png')
+    tiles_image_output.save('assets/tiles.png')
 
     missing_links = {}
-    for x in range(1, biome_image.width-1):
-        for y in range(1, biome_image.height-1):
+    for x in range(1, tiles_image.width-1):
+        for y in range(1, tiles_image.height-1):
             center = tiles_map[(x, y)]
             for xn, yn in [
                 (x-1, y-1),
@@ -691,8 +838,8 @@ def main():
         print('  ' + ('\n  '.join([f'{pair[0]} - {pair[1]} at {coord[0]}:{coord[1]}' for pair, coord in missing_links.items()])))
         raise Exception("Missing links detected")
 
-    for x in range(0, biome_image.width-1):
-        for y in range(0, biome_image.height-1):
+    for x in range(0, tiles_image.width-1):
+        for y in range(0, tiles_image.height-1):
             neighbors_counts = {}
             neighbors_tiles = {}
             for xd, yd in [(0, 0), (1, 0), (1, 1), (0, 1)]:
@@ -717,8 +864,8 @@ def main():
     # fragment_height = 64
 
     tiles = {}
-    for xb in range(0, biome_image.width-1):
-        for yb in range(0, biome_image.height-1):
+    for xb in range(0, tiles_image.width-1):
+        for yb in range(0, tiles_image.height-1):
             square = {}
             for xi, yi in [(0, 0), (1, 0), (1, 1), (0, 1)]:
                 xn = xb + xi
@@ -946,7 +1093,7 @@ def main():
                 raise Exception(f"Did not found a shape for {samples_all} at ({x}, {y})")
 
     water_catalog_id = catalog['water5'][0]
-    encoded_image = Image.new("RGB", (biome_image.size[0], biome_image.size[1]), "black")
+    encoded_image = Image.new("RGB", (tiles_image.size[0], tiles_image.size[1]), "black")
     catalog_stats = {}
     for x in range(0, encoded_image.width):
         for y in range(0, encoded_image.height):

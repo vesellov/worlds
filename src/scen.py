@@ -49,7 +49,7 @@ class Scene(object):
     SEGMENT_COS = math.cos(SEGMENT_ANGLE_RADIANS)  
     PI_4_SIN = math.sin(math.pi / 4.0)
     PI_4_COS = math.cos(math.pi / 4.0)
-    ELEVATION_FACTOR = PLANET_RADIUS / 5.0
+    ELEVATION_FACTOR = PLANET_RADIUS / 4.0
     ELEVATION_CORRECTION = 2.0
     VISIBLE_AREA_SIZE_SEGMENTS = 30
     VISIBLE_AREA_SIZE_SEGMENTS_HALF = int(VISIBLE_AREA_SIZE_SEGMENTS / 2.0)
@@ -650,9 +650,9 @@ class Scene(object):
             self.add_land_segment(w_t, h_t, _w, _h, dist_to_center)
             added += 1
         removed = 0
+        w_i = self.area_center_w
+        h_i = self.area_center_h
         if not added:
-            w_i = self.area_center_w
-            h_i = self.area_center_h
             for w_t, h_t in self.land_tiles_visible.keys():
                 _w = w_t - w_i
                 _h = h_t - h_i
@@ -671,8 +671,8 @@ class Scene(object):
                         removed += 1
         if self.land_render_queue or self.land_cleanup_queue:
             Clock.schedule_once(self.update_segments, 0.5 * (1.0 / 60.0))
-            # if _Debug:
-            #     print(f'land segments updated added:{added} removed:{removed} visible:{len(self.land_tiles_visible)}')
+            if _Debug:
+                print(f'land updated at {w_i},{h_i} added:{added} removed:{removed} visible:{len(self.land_tiles_visible)}')
 
     def add_land_segment(self, map_w, map_h, area_w, area_h, dist_to_center):
         _get_texture = self.land.get_texture

@@ -378,7 +378,7 @@ class LandData(object):
         for w in range(self.width):
             for h in range(self.height):
                 e = float(im.read_pixel(w, h)[0])
-                if e < sea_level:
+                if e <= sea_level:
                     e = sea_level
                 self.elevation_map_data[(w, h)] = e
         return self.width, self.height
