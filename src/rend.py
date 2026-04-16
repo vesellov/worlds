@@ -49,8 +49,8 @@ class Renderer(Widget):
 
     SCALE_INITIAL = 5.0
     SCALE_MIN = 0.5
-    SCALE_MAX = 10.0
-    SCALE_SPEED_FACTOR = 0.25
+    SCALE_MAX = 8.0
+    SCALE_SPEED_FACTOR = 0.2
 
     ROTATE_SPEED = 1.0
     ROTATE_VERTICAL_MIN = 5

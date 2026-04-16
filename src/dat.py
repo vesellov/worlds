@@ -343,8 +343,6 @@ class LandData(object):
                     color[0], color[2] = color[2], color[0]
                 catalog_id = color[0] + color[1] * 256
                 rotate = color[2] * 90
-                if catalog_id == 0:
-                    import pdb; pdb.set_trace()
                 mozaic_id, mozaic_pos = tiles_registry[catalog_id]
                 tex_cell_x = ( mozaic_pos % 8 ) * step
                 tex_cell_y = ( mozaic_pos // 8 ) * step
@@ -405,6 +403,8 @@ class LandData(object):
         plants_list = json.loads(open(plants_data_file_name, 'rt').read())
         for plant_coded in plants_list:
             variant, w, h, direction = plant_coded.split(' ')
+            w = float(w)
+            h = float(h)
             template, texture, c1, c2, c3 = variant.split(':')
             plant = {}
             plant['k'] = variant

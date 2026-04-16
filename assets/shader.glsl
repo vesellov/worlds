@@ -72,6 +72,10 @@ void main (void){
     // vec3 result_color = mix(fog_color, tex_color.rgb, fog_factor);
     // result_color = (result_color - 0.5) * contrast + 0.5 + brightness;
     // float result_alpha = tex_color.a;
+    // vec3 fog_color = vec3(0.7, 0.7, 0.7);
+    // vec3 result_color = mix(fog_color, tex_color.rgb, fog_factor);
+    // result_color = (result_color - 0.5) * contrast + 0.5 + brightness;
+    // float result_alpha = tex_color.a * fog_factor;
 
     vec4 tex_color = texture2D(texture_id, tex_coord0).rgba;
     float center_point_distance = length(center_point - vertex_pos.xyz);

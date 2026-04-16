@@ -2249,7 +2249,10 @@ def pack_tiles(src_dir, dest_dir):
         current_mozaic_image.paste(tile_image, ((current_mozaic_id % 8) * TILE_SIZE, (current_mozaic_id // 8) * TILE_SIZE))
         registry.append(f'{int(tile_name)} {current_mozaic_num} {current_mozaic_id}')
         current_mozaic_id += 1
+    if current_mozaic_id > 0:
+        current_mozaic_image.save(os.path.join(dest_dir, f'{current_mozaic_num}.png'))
     open(os.path.join('assets/tiles.json'), 'w').write(json.dumps(registry, indent=2))
+    print(f'Packed {len(tiles)} tiles into {current_mozaic_num + 1} mozaic images')
 
 
 def match_tiles(src_dir, maps_dir):

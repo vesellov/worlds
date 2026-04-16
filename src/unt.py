@@ -49,6 +49,7 @@ class Unit(object):
             # self.direction = random.randint(0, 360)
             self.max_speed = float(random.randint(1, 50)) / 1000.0
             self.acceleration = float(random.randint(1, 5)) / 1000.0
+            self.direction -= 360.0
         self.rotate_vertical.angle = self.direction + 90
         self.shift_w += self.speed * math.cos(math.radians(self.direction))
         self.shift_h += self.speed * math.sin(math.radians(self.direction))

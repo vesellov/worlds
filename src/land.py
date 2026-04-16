@@ -161,6 +161,18 @@ inner_outer_transform_borders_list = [
     ('dirt4', 'snow3', 'sand2'),
 ]
 
+trees_biomes_mapping = {
+    'Tropical seasonal forest': (30.0, ['hills',]),
+    'Temperate deciduous forest': (30.0, ['hills', 'fields',]),
+    'Tropical rainforest': (30.0, ['hills',]),
+    'Temperate rainforest': (30.0, ['coast',]),
+    'Taiga': (5.0, ['hills']),
+    'Hot desert': (5.0, ['desert',]),
+    'Glacier': (1.0, ['winter',]),
+    'Cold desert': (1.0, ['winter',]),
+    'Grassland': (5.0, ['fields',]),
+}
+
 
 def xy2draw(x, y):
     global min_x, min_y, input_width, input_height, width, height
@@ -370,18 +382,7 @@ def capture_elevation_data(heightmap_image):
             elevation_data[(x, y)] = h
 
 
-def plant_trees(data):
-    trees_biomes_mapping = {
-        'Tropical seasonal forest': (10.0, ['hills',]),
-        'Temperate deciduous forest': (10.0, ['hills', 'fields',]),
-        'Tropical rainforest': (20.0, ['hills',]),
-        'Temperate rainforest': (10.0, ['coast',]),
-        'Taiga': (1.0, ['hills']),
-        'Hot desert': (1.0, ['desert',]),
-        'Glacier': (1.0, ['winter',]),
-        'Cold desert': (1.0, ['winter',]),
-        'Grassland': (1.0, ['fields',]),
-    }
+def plant_trees(data, tiles_map):
     trees_registry = {}
     trees_variants = {}
     for model_name, variants in json.loads(open('assets/models.json', 'rt').read()).items():
@@ -434,6 +435,10 @@ def plant_trees(data):
         for land_type in land_types:
             tree_variants.extend(trees_registry[land_type])
         for p in random_points:
+            this_tile = tiles_map[int(p.x), int(p.y)]
+            possible_tiles = [t[0] for t in biomes_mapping[biome]]
+            if this_tile not in possible_tiles:
+                continue
             t_variant = random.choice(tree_variants)
             t = dict(trees_variants[t_variant])
             t['x'] = round(p.x, 2)
@@ -505,12 +510,12 @@ def main():
     heightmap_image = Image.new("RGB", (width, height), "black")
     heightmap_draw = ImageDraw.Draw(heightmap_image)
     render_heightmap(data, heightmap_draw)
-    heightmap_image = heightmap_image.filter(ImageFilter.GaussianBlur(radius=1))
+    # heightmap_image = heightmap_image.filter(ImageFilter.GaussianBlur(radius=1))
     capture_elevation_data(heightmap_image)
     heightmap_scaled_image = Image.new("RGB", (width, height), "black")
     heightmap_scaled_draw = ImageDraw.Draw(heightmap_scaled_image)
     bellow_water_level = render_scaled_heightmap(data, heightmap_scaled_draw)
-    heightmap_scaled_image = heightmap_scaled_image.filter(ImageFilter.GaussianBlur(radius=1))
+    # heightmap_scaled_image = heightmap_scaled_image.filter(ImageFilter.GaussianBlur(radius=1))
     heightmap_scaled_image.save('assets/heightmap.png')
     print(f'Rendered scaled heightmap, {bellow_water_level} tiles were bellow water level')
 
@@ -1108,7 +1113,7 @@ def main():
     catalog_ids_sorted = sorted(catalog_stats.keys(), key=lambda k: catalog_stats[k], reverse=True)
 
     data = read_full_json_file(sys.argv[1])
-    trees, trees_variants = plant_trees(data)
+    trees, trees_variants = plant_trees(data, tiles_map)
     open('assets/trees.json', 'w').write(json.dumps(trees, indent=2))
     open('assets/trees_variants.json', 'w').write(json.dumps(sorted(trees_variants.keys()), indent=2))
     open('assets/catalog_stats.json', 'w').write(json.dumps(catalog_ids_sorted, indent=2))
