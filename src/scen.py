@@ -30,17 +30,17 @@ _Debug = True
 
 QUADRO_SEGMENTS = False
 
-
 _NextUnitID = 0
 _NextObjectID = 0
 _NextMeshID = 0
 
+
 class Scene(object):
 
-    SEGMENT_SIZE = 12.0
+    SEGMENT_SIZE = 25.0
     PLANET_EQUATOR_SEGMENTS = 180
     PLANET_EQUATOR_LENGTH = SEGMENT_SIZE * PLANET_EQUATOR_SEGMENTS
-    PLANET_RADIUS = PLANET_EQUATOR_LENGTH / (2.0 * math.pi)    
+    PLANET_RADIUS = PLANET_EQUATOR_LENGTH / (2.0 * math.pi)
     SEGMENT_ANGLE = 360.0 / PLANET_EQUATOR_SEGMENTS
     SEGMENT_ANGLE_HALF = SEGMENT_ANGLE / 2.0
     SEGMENT_ANGLE_HALF_RADIANS = math.radians(SEGMENT_ANGLE_HALF)
@@ -48,16 +48,18 @@ class Scene(object):
     SEGMENT_HALF_COS = math.cos(SEGMENT_ANGLE_HALF_RADIANS)
     SEGMENT_ANGLE_RADIANS = math.radians(SEGMENT_ANGLE/math.sqrt(2.0))
     SEGMENT_SIN = math.sin(SEGMENT_ANGLE_RADIANS)
-    SEGMENT_COS = math.cos(SEGMENT_ANGLE_RADIANS)  
+    SEGMENT_COS = math.cos(SEGMENT_ANGLE_RADIANS)
     PI_4_SIN = math.sin(math.pi / 4.0)
     PI_4_COS = math.cos(math.pi / 4.0)
-    ELEVATION_FACTOR = PLANET_RADIUS / 4.0
+    ELEVATION_FACTOR = PLANET_RADIUS / (SEGMENT_SIZE / 5.0)
     ELEVATION_CORRECTION = 2.0
     VISIBLE_AREA_SIZE_SEGMENTS = 24
     VISIBLE_AREA_SIZE_SEGMENTS_HALF = int(VISIBLE_AREA_SIZE_SEGMENTS / 2.0)
+    MODELS_SCALE_FACTOR = 4.0
     LAND_MOVE_SPEED = 0.2
 
     def __init__(self, land):
+        mth.EI_SCALE_FACTOR = self.MODELS_SCALE_FACTOR
         self.land = land
         self.renderer = None
         self.models = {}

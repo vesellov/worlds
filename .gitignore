@@ -1,8 +1,13 @@
 # Project
+*.json
+assets/catalog_stats.json
+assets/tiles_original.png
 res/
 models/
 textures/
 data/*.res
+
+
 
 
 # Byte-compiled / optimized / DLL files

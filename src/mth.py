@@ -4,12 +4,16 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 
+EI_SCALE_FACTOR = 1.0
+
+
 def vec3sum(v1, v2):
     return [v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]]
 
 
 def ei2xyz(x, y, z):
-    return -x, z, y    
+    global EI_SCALE_FACTOR
+    return -x * EI_SCALE_FACTOR, z * EI_SCALE_FACTOR, y * EI_SCALE_FACTOR    
 
 
 def ei2quad(w, x, y, z):
