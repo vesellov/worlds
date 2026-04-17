@@ -34,7 +34,8 @@ class AppRoot(App):
         self.known_templates = json.loads(open('assets/models.json', 'rt').read())
         scene.renderer = renderer
         self.test_id = 299
-        scene.init_scene(500, 561)
+        scene.init_scene(117, 835)
+        # scene.init_scene(500, 550)
         # scene.init_scene(358, 634)
         # scene.init_scene(97, 681)
         return renderer

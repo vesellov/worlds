@@ -86,5 +86,9 @@ void main (void){
     vec3 result_color = (tex_color.rgb - 0.5) * contrast + 0.5 + brightness;
     float result_alpha = tex_color.a * fog_factor;
 
+    if (result_alpha < 0.5) {
+        discard;
+    }
+
     gl_FragColor = vec4(result_color, result_alpha);
 }

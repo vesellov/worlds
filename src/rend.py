@@ -354,6 +354,7 @@ class Renderer(Widget):
                     self.camera_angle_z -= 360.0
                 if self.camera_angle_z < 0.0:
                     self.camera_angle_z += 360.0
+                self.scene.on_camera_rotate(self.camera_angle_y, self.camera_angle_z)
                 # if _Debug:
                 #     print(f'new camera angle y:{self.camera_angle_y} z:{self.camera_angle_z}')
 

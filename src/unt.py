@@ -21,6 +21,7 @@ class Unit(object):
         self.static = None
         self.onstage = False
         self.parts = []
+        self.container_unit = None
         self.meshes_transforms = {}
         self.meshes_names = {}
         self.root_mesh_center = None
@@ -36,6 +37,9 @@ class Unit(object):
         self.acceleration = 0.0
         self.speed = 0.0
         self.max_speed = 0.0
+
+    def __repr__(self):
+        return f'Unit[{self.name}/{self.w}:{self.h}/{round(self.shift_w,2)}:{round(self.shift_h,2)}/{self.area_w}:{self.area_h}]'
 
     def run(self, scene):
         if self.speed > self.max_speed:

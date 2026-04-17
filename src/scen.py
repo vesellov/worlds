@@ -37,7 +37,7 @@ _NextMeshID = 0
 
 class Scene(object):
 
-    SEGMENT_SIZE = 25.0
+    SEGMENT_SIZE = 20.0
     PLANET_EQUATOR_SEGMENTS = 180
     PLANET_EQUATOR_LENGTH = SEGMENT_SIZE * PLANET_EQUATOR_SEGMENTS
     PLANET_RADIUS = PLANET_EQUATOR_LENGTH / (2.0 * math.pi)
@@ -53,7 +53,7 @@ class Scene(object):
     PI_4_COS = math.cos(math.pi / 4.0)
     ELEVATION_FACTOR = PLANET_RADIUS / (SEGMENT_SIZE / 5.0)
     ELEVATION_CORRECTION = 2.0
-    VISIBLE_AREA_SIZE_SEGMENTS = 24
+    VISIBLE_AREA_SIZE_SEGMENTS = 30
     VISIBLE_AREA_SIZE_SEGMENTS_HALF = int(VISIBLE_AREA_SIZE_SEGMENTS / 2.0)
     MODELS_SCALE_FACTOR = 4.0
     LAND_MOVE_SPEED = 0.2
@@ -94,6 +94,7 @@ class Scene(object):
         self.land_segments_waiting = set()
         self.land_render_queue = []
         self.land_cleanup_queue = []
+        self.last_camera_angle_z_quantized = None
 
     def coords_area2angles(self, w, h):
         angle_z = mth.w2lat_degrees(float(w), self.PLANET_EQUATOR_SEGMENTS)
@@ -524,46 +525,51 @@ class Scene(object):
             unit.meshes_transforms[part_name] = mesh_transform
             unit.parts.append(part_name)
             unit.meshes_names[part_name] = mesh_name
-            if onstage:
-                container.add(PushMatrix(group=unit.name))
-                container.add(mesh_transform.part_translate)
-                container.add(PushMatrix(group=unit.name))
-                container.add(mesh_transform.part_rotate)
-                container.add(BindTexture(source=mesh.material['map_Kd'], index=1, group=unit.name))
-                container.add(Mesh(
-                    vertices=mesh.vertices,
-                    indices=mesh.indices,
-                    fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
-                    mode='triangles',
-                    group=unit.name,
-                ))
-                container.add(PopMatrix(group=unit.name))  # part_rotate
-                container.add(PopMatrix(group=unit.name))  # part_translate
+            unit.container_unit.add(PushMatrix(group=unit.name))
+            unit.container_unit.add(mesh_transform.part_translate)
+            unit.container_unit.add(PushMatrix(group=unit.name))
+            unit.container_unit.add(mesh_transform.part_rotate)
+            unit.container_unit.add(BindTexture(source=mesh.material['map_Kd'], index=1, group=unit.name))
+            unit.container_unit.add(Mesh(
+                vertices=mesh.vertices,
+                indices=mesh.indices,
+                fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+                mode='triangles',
+                group=unit.name,
+            ))
+            unit.container_unit.add(PopMatrix(group=unit.name))  # part_rotate
+            unit.container_unit.add(PopMatrix(group=unit.name))  # part_translate
 
+        # prepare unit container and transforms
+        unit.container_unit = InstructionGroup(group=unit.name)
         unit.rotate_axis_x = Rotate(angle_coords[0], 1, 0, 0, group=unit.name)
         unit.rotate_axis_z = Rotate(angle_coords[1], 0, 0, 1, group=unit.name)
         unit.rotate_vertical = Rotate(direction + 90, 0, 1, 0, group=unit.name)
         unit.translate_shift = Translate(shift_vector[0], shift_vector[1], shift_vector[2], group=unit.name)
         unit.context_state = ChangeState(material_density=0.0, group=unit.name)
-        if onstage:
-            container.add(PushMatrix(group=unit.name))  # unit
-            container.add(unit.rotate_axis_x)
-            container.add(unit.rotate_axis_z)
-            container.add(PushMatrix(group=unit.name))  # unit shift
-            container.add(unit.translate_shift)
-            container.add(PushMatrix(group=unit.name))  # unit rotate
-            container.add(unit.rotate_vertical)
-            container.add(unit.context_state)
-
+        # open unit context and push transforms and state
+        unit.container_unit.add(PushMatrix(group=unit.name))  # unit
+        unit.container_unit.add(unit.rotate_axis_x)
+        unit.container_unit.add(unit.rotate_axis_z)
+        unit.container_unit.add(PushMatrix(group=unit.name))  # unit shift
+        unit.container_unit.add(unit.translate_shift)
+        unit.container_unit.add(PushMatrix(group=unit.name))  # unit rotate
+        unit.container_unit.add(unit.rotate_vertical)
+        unit.container_unit.add(unit.context_state)
+        # push unit meshes recursively
         source_object.walk_parts_ordered(_visitor)
-        if onstage:
-            container.add(ChangeState(material_density=0.0, group=unit.name))
-            container.add(PopMatrix(group=unit.name))  # unit rotate
-            container.add(PopMatrix(group=unit.name))  # unit shift
-            container.add(PopMatrix(group=unit.name))  # unit
+        # close unit context
+        unit.container_unit.add(ChangeState(material_density=0.0, group=unit.name))
+        unit.container_unit.add(PopMatrix(group=unit.name))  # unit rotate
+        unit.container_unit.add(PopMatrix(group=unit.name))  # unit shift
+        unit.container_unit.add(PopMatrix(group=unit.name))  # unit
+        # save unit
         self.units[unit.name] = unit
         if not static:
             self.animating_units.add(unit.name)
+        # place unit on stage if needed
+        if onstage:
+            container.add(unit.container_unit)
         # if static is False:
         #     if _Debug:
         #         print(f'created animated unit at {angle_coords} with shift {shift_vector} from object {object_name} and placed on scene')
@@ -575,7 +581,9 @@ class Scene(object):
         if unit_name not in self.units:
             raise Exception(f'Unit {unit_name} is not on the stage at the moment')
         unit = self.units[unit_name]
-        container.remove_group(unit.name)
+        container.remove(unit.container_unit)
+        unit.container_unit.clear()
+        # container.remove_group(unit.name)
         for part_name in unit.meshes_transforms.keys():
             unit.meshes_transforms[part_name].part_rotate = None
             unit.meshes_transforms[part_name].part_translate = None
@@ -594,7 +602,8 @@ class Scene(object):
         unit = self.units[unit_name]
         if not unit.onstage:
             raise Exception(f'Unit {unit_name} is already hidden')
-        container.remove_group(unit.name)
+        # container.remove_group(unit.name)
+        container.remove(unit.container_unit)
         unit.onstage = False
         if _Debug:
             print(f'  unit {unit.name} was hidden')
@@ -605,43 +614,44 @@ class Scene(object):
         unit = self.units[unit_name]
         if unit.onstage:
             raise Exception(f'Unit {unit_name} is already visible')
-        source_object = self.static_objects[unit.object_name] if unit.static else self.animated_objects[unit.object_name]
+        # source_object = self.static_objects[unit.object_name] if unit.static else self.animated_objects[unit.object_name]
+        container.add(unit.container_unit)
 
-        def _visitor(part_name, parent_part_name):
-            mesh_name = unit.meshes_names[part_name]
-            mesh = self.meshes[mesh_name]
-            mesh_transform = unit.meshes_transforms[part_name]
-            container.add(PushMatrix(group=unit.name))
-            container.add(mesh_transform.part_translate)
-            container.add(PushMatrix(group=unit.name))
-            container.add(mesh_transform.part_rotate)
-            container.add(BindTexture(source=mesh.material['map_Kd'], index=1, group=unit.name))
-            container.add(Mesh(
-                vertices=mesh.vertices,
-                indices=mesh.indices,
-                fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
-                mode='triangles',
-                group=unit.name,
-            ))
-            container.add(PopMatrix(group=unit.name))  # part_rotate
-            container.add(PopMatrix(group=unit.name))  # part_translate
+        # def _visitor(part_name, parent_part_name):
+        #     mesh_name = unit.meshes_names[part_name]
+        #     mesh = self.meshes[mesh_name]
+        #     mesh_transform = unit.meshes_transforms[part_name]
+        #     container.add(PushMatrix(group=unit.name))
+        #     container.add(mesh_transform.part_translate)
+        #     container.add(PushMatrix(group=unit.name))
+        #     container.add(mesh_transform.part_rotate)
+        #     container.add(BindTexture(source=mesh.material['map_Kd'], index=1, group=unit.name))
+        #     container.add(Mesh(
+        #         vertices=mesh.vertices,
+        #         indices=mesh.indices,
+        #         fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+        #         mode='triangles',
+        #         group=unit.name,
+        #     ))
+        #     container.add(PopMatrix(group=unit.name))  # part_rotate
+        #     container.add(PopMatrix(group=unit.name))  # part_translate
 
-        # open unit context and prepare transforms and state
-        container.add(PushMatrix(group=unit.name))  # unit
-        container.add(unit.rotate_axis_x)
-        container.add(unit.rotate_axis_z)
-        container.add(PushMatrix(group=unit.name))  # unit shift
-        container.add(unit.translate_shift)
-        container.add(PushMatrix(group=unit.name))  # unit rotate
-        container.add(unit.rotate_vertical)
-        container.add(unit.context_state)
-        # push unit meshes
-        source_object.walk_parts_ordered(_visitor)
-        # close unit context
-        container.add(ChangeState(material_density=0.0, group=unit.name))
-        container.add(PopMatrix(group=unit.name))  # unit rotate
-        container.add(PopMatrix(group=unit.name))  # unit shift
-        container.add(PopMatrix(group=unit.name))  # unit
+        # # open unit context and prepare transforms and state
+        # container.add(PushMatrix(group=unit.name))  # unit
+        # container.add(unit.rotate_axis_x)
+        # container.add(unit.rotate_axis_z)
+        # container.add(PushMatrix(group=unit.name))  # unit shift
+        # container.add(unit.translate_shift)
+        # container.add(PushMatrix(group=unit.name))  # unit rotate
+        # container.add(unit.rotate_vertical)
+        # container.add(unit.context_state)
+        # # push unit meshes
+        # source_object.walk_parts_ordered(_visitor)
+        # # close unit context
+        # container.add(ChangeState(material_density=0.0, group=unit.name))
+        # container.add(PopMatrix(group=unit.name))  # unit rotate
+        # container.add(PopMatrix(group=unit.name))  # unit shift
+        # container.add(PopMatrix(group=unit.name))  # unit
         unit.onstage = True
         if _Debug:
             print(f'  unit {unit.name} was shown')
@@ -1033,6 +1043,9 @@ class Scene(object):
         if unit.animations_list:
             unit.animation_playing = unit.animations_list[0]
         return unit
+
+    def on_camera_rotate(self, camera_angle_y, camera_angle_z):
+        return
 
     def on_run_units(self, delta):
         if self.renderer.camera_unit_lock:
