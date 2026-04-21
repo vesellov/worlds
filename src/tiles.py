@@ -578,7 +578,7 @@ def find_similar_images():
                     print(f'For {map_name} moved {tile_name}.png to group {group_id}')
 
 
-def read_tile_types(corner_size=None, samples_dir='samples_hq'):
+def read_tile_types(corner_size=None, samples_dir=None):
     global tile_types
     global tile_average_colors
     global tile_types_images
@@ -588,6 +588,8 @@ def read_tile_types(corner_size=None, samples_dir='samples_hq'):
     global tile_types_variants
     if corner_size is None:
         corner_size = CORNER_SIZE
+    if samples_dir is None:
+        samples_dir = os.environ.get('samples_dir', 'samples_hq')        
     average_colors = {}
     for tile_file_name in os.listdir(samples_dir):
         if not tile_file_name.endswith('.png'):
@@ -1674,7 +1676,11 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
             continue
         tile_sample2, tile_sample1, tile_side1, tile_side2, tile_id = parts
         tile_side = f'{tile_side1}_{tile_side2}'
-        tile_side = {'top_left':'top_left', 'top_right':'top_right', 'bottom_left':'bottom_left', 'bottom_right':'bottom_right', 'top_bottom':'top', 'left_right':'left'}[tile_side]
+        try:
+            tile_side = {'top_left':'top_left', 'top_right':'top_right', 'bottom_left':'bottom_left', 'bottom_right':'bottom_right', 'top_bottom':'top', 'left_right':'left'}[tile_side]
+        except Exception as e:
+            print(f'Invalid tile side {tile_side} in file {tile_file_name}')
+            raise e
         if tile_sample1 not in registry:
             registry[tile_sample1] = {}
         if tile_sample2 not in registry[tile_sample1]:
@@ -2098,8 +2104,8 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                         q1 = (tile_sample1, tile_sample2, tile_sample1, tile_sample3)
                         q2 = (tile_sample1, tile_sample3, tile_sample1, tile_sample2)
 
-                except:
-                    print(f'Error merging tile_sample1={tile_sample1} tile_sample2={tile_sample2} tile_sample3={tile_sample3} for tile {tile_id} with side {tile_side}')
+                except Exception as exc:
+                    print(f'Error merging tile_sample1={tile_sample1} tile_sample2={tile_sample2} tile_sample3={tile_sample3} for tile {tile_id} with side {tile_side}: {exc}')
                     continue
                 quadruples.add(q1)
                 quadruples.add(q2)

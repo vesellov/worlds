@@ -1,14 +1,14 @@
 # Project
 *.json
-assets/catalog_stats.json
-assets/tiles_original.png
 res/
 models/
 textures/
 data/*.res
 
-
-
+# Generated during map creation
+assets/catalog_stats.json
+assets/tiles_original.png
+assets/cell_index.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
