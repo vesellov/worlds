@@ -68,6 +68,7 @@ class Renderer(Widget):
         self.camera_angle_y = float(self.ROTATE_VERTICAL_INITIAL)
         self.camera_angle_z = 180.0
         self.camera_unit_lock = None
+        self.camera_move_mode = 2
         self.global_eye_x = 0
         self.global_eye_y = 0
         self.global_eye_z = 0
@@ -170,6 +171,7 @@ class Renderer(Widget):
         self.canvas['fog_density'] = 0.08
         self.canvas['fog_radius'] = (self.scene.VISIBLE_AREA_SIZE_SEGMENTS_HALF - 3) * self.scene.SEGMENT_SIZE
         self.canvas['material_density'] = 0.0
+        self.canvas['water_transparency'] = 10.0 / 255.0
         # self.on_gl_error('step 2')
 
     def define_rotate_angle(self, touch):
@@ -303,14 +305,28 @@ class Renderer(Widget):
             else:
                 if animated_units_onstage:
                     self.camera_unit_lock = animated_units_onstage[0]
+        elif keycode[1] == 'e':
+            self.camera_move_mode = 3 - self.camera_move_mode
         elif keycode[1] == 'a':
-            self.scene.shift_land(0, self.scene.LAND_MOVE_SPEED)
+            if self.camera_move_mode == 1:
+                self.scene.land_shift(0, self.scene.LAND_MOVE_SPEED)
+            else:
+                self.scene.land_move(self.camera_angle_z + 90, self.scene.LAND_MOVE_SPEED)
         elif keycode[1] == 'd':
-            self.scene.shift_land(0, -self.scene.LAND_MOVE_SPEED)
+            if self.camera_move_mode == 1:
+                self.scene.land_shift(0, -self.scene.LAND_MOVE_SPEED)
+            else:
+                self.scene.land_move(self.camera_angle_z - 90, self.scene.LAND_MOVE_SPEED)
         elif keycode[1] == 's':
-            self.scene.shift_land(-self.scene.LAND_MOVE_SPEED, 0)
+            if self.camera_move_mode == 1:
+                self.scene.land_shift(-self.scene.LAND_MOVE_SPEED, 0)
+            else:
+                self.scene.land_move(self.camera_angle_z, -self.scene.LAND_MOVE_SPEED)
         elif keycode[1] == 'w':
-            self.scene.shift_land(self.scene.LAND_MOVE_SPEED, 0)
+            if self.camera_move_mode == 1:
+                self.scene.land_shift(self.scene.LAND_MOVE_SPEED, 0)
+            else:
+                self.scene.land_move(self.camera_angle_z, self.scene.LAND_MOVE_SPEED)
         return True
 
     @ignore_undertouch

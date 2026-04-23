@@ -40,6 +40,7 @@ uniform vec3 center_point;
 // uniform float segment_fog_factor;
 // uniform float dist_to_center;
 uniform float material_density;
+uniform float water_transparency;
 uniform float fog_density;
 uniform float fog_radius;
 // uniform vec3 fog_color;
@@ -86,7 +87,7 @@ void main (void){
     vec3 result_color = (tex_color.rgb - 0.5) * contrast + 0.5 + brightness;
     float result_alpha = tex_color.a * fog_factor;
 
-    if (result_alpha < 0.5) {
+    if ( result_alpha < 0.5) {
         discard;
     }
 

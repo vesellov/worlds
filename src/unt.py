@@ -91,12 +91,12 @@ class Unit(object):
             _w = int(self.w) - int(scene.area_center_w)
             _h = int(self.h) - int(scene.area_center_h)
             if self.onstage:
-                if (_w, _h) in scene.land_area_mask:
+                if (_w, _h) in scene.visible_area_mask:
                     pass
                 else:
                     scene.hide_unit(container=scene.container_animated_objects, unit_name=self.name)
             else:
-                if (_w, _h) in scene.land_area_mask:
+                if (_w, _h) in scene.visible_area_mask:
                     scene.show_unit(container=scene.container_animated_objects, unit_name=self.name)
 
     def animate(self, scene, delta):

@@ -369,17 +369,44 @@ class LandData(object):
                 self.tiles_map_data[(x, y)] = (mozaic_id, tex_coord00, tex_coord01, tex_coord10, tex_coord11)
         return self.width, self.height
 
-    def load_heightmap_file(self, heightmap_file_name, sea_level=0.0):
+    def elevation_unpack(self, h):
+        """
+        h is from 0 to 100
+        result is from -water_level*underwater_factor to 100^height_exponent
+        """
+        self.INPUT_WATER_LEVEL = 20
+        self.ELEVATION_UNPACK_EXPONENT = 2.0
+        self.ELEVATION_UNPACK_UNDERWATER_FACTOR = 40.0
+        if h > self.INPUT_WATER_LEVEL:
+            return pow(h - 18, self.ELEVATION_UNPACK_EXPONENT)
+        if h <= 0:
+            return -1 * (self.INPUT_WATER_LEVEL - 1) * self.ELEVATION_UNPACK_UNDERWATER_FACTOR
+        return (float(h - self.INPUT_WATER_LEVEL) / h) * float(self.ELEVATION_UNPACK_UNDERWATER_FACTOR)
+
+    def load_heightmap_file(self, heightmap_file_name):
+        e_min_unpacked = self.elevation_unpack(0)
+        e_max_unpacked = self.elevation_unpack(100)
+        unpacked_delta = e_max_unpacked - e_min_unpacked
         im = Image(heightmap_file_name, keep_data=True)
         self.width = im.width
         self.height = im.height
         for w in range(self.width):
             for h in range(self.height):
-                e = float(im.read_pixel(w, h)[0])
-                # if e <= sea_level:
-                #     e = sea_level
-                self.elevation_map_data[(w, h)] = e
+                e = float(im.read_pixel(w, h)[0]) * 255.0
+                e_unpacked = self.elevation_unpack(e)
+                e_scaled = (float(e_unpacked - e_min_unpacked) / unpacked_delta )
+                self.elevation_map_data[(w, h)] = e_scaled
         return self.width, self.height
+
+    # def load_heightmap_file(self, heightmap_file_name):
+    #     im = Image(heightmap_file_name, keep_data=True)
+    #     self.width = im.width
+    #     self.height = im.height
+    #     for w in range(self.width):
+    #         for h in range(self.height):
+    #             e = float(im.read_pixel(w, h)[0]) * 255.0
+    #             self.elevation_map_data[(w, h)] = e
+    #     return self.width, self.height
 
     def load_cache_tiles_textures(self, textures_dir_path):
         self.tiles_textures_dir_path = textures_dir_path

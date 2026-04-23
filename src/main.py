@@ -24,19 +24,20 @@ class AppRoot(App):
 
     def build(self):
         land = dat.LandData()
-        land.load_heightmap_file(heightmap_file_name='assets/heightmap.png', sea_level=0.001)
+        land.load_heightmap_file(heightmap_file_name='assets/heightmap.png')
         land.load_tilemap_file(tilemap_file_name='assets/encoded.png')
         land.load_cache_tiles_textures(textures_dir_path='assets/land')
         land.load_plants_data(plants_data_file_name='assets/trees.json')
         scene = scen.Scene(land=land)
         scene.calculate_land_vertices()
+        scene.calculate_scaled_elevation_map()
         renderer = rend.Renderer(app_root=self, scene=scene)
         self.known_templates = json.loads(open('assets/models.json', 'rt').read())
         scene.renderer = renderer
         self.test_id = 299
         # scene.init_scene(117, 835)
         # scene.init_scene(500, 550)
-        scene.init_scene(613, 714)
+        scene.init_scene(456,696)
         # scene.init_scene(97, 681)
         return renderer
 

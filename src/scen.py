@@ -51,12 +51,18 @@ class Scene(object):
     SEGMENT_COS = math.cos(SEGMENT_ANGLE_RADIANS)
     PI_4_SIN = math.sin(math.pi / 4.0)
     PI_4_COS = math.cos(math.pi / 4.0)
-    ELEVATION_FACTOR = PLANET_RADIUS * 0.1
+    ELEVATION_FACTOR = PLANET_RADIUS * 0.2
     ELEVATION_CORRECTION = 2.0
+    INPUT_WATER_LEVEL = 20
+    ELEVATION_UNPACK_EXPONENT = 2.1
+    ELEVATION_UNPACK_UNDERWATER_FACTOR = 40.0
+    WATER_LEVEL = 11
+    WATER_LEVEL_ELEVATION = PLANET_RADIUS + (WATER_LEVEL / 100.0) * ELEVATION_FACTOR
     VISIBLE_AREA_SIZE_SEGMENTS = 36
     VISIBLE_AREA_SIZE_SEGMENTS_HALF = int(VISIBLE_AREA_SIZE_SEGMENTS / 2.0)
     MODELS_SCALE_FACTOR = 1.0
-    LAND_MOVE_SPEED = 0.45
+    LAND_MOVE_SPEED = 0.5
+    LAND_ROTATE_SPEED = 1.0
 
     def __init__(self, land):
         mth.EI_SCALE_FACTOR = self.MODELS_SCALE_FACTOR
@@ -74,10 +80,15 @@ class Scene(object):
         self.container_land_tiles = None
         self.container_static_objects = None
         self.container_animated_objects = None
+        self.container_water_tiles = None
         self.global_translate_before = None
         self.global_translate_after = None
         self.global_rotate_x = None
         self.global_rotate_z = None
+        self.global_water_translate_before = None
+        self.global_water_translate_after = None
+        self.global_water_rotate_x = None
+        self.global_water_rotate_z = None
         if QUADRO_SEGMENTS:
             self.map_width = int(self.land.width / 2)
             self.map_height = int(self.land.height / 2)
@@ -88,13 +99,13 @@ class Scene(object):
         self.area_center_h = None
         self.segment_shift_w = None
         self.segment_shift_h = None
-        self.land_vertices = {}
-        self.land_area_mask = {}
+        self.visible_area_mask = {}
         self.land_tiles_visible = {}
-        self.land_segments_waiting = set()
-        self.land_render_queue = []
-        self.land_cleanup_queue = []
-        self.last_camera_angle_z_quantized = None
+        self.land_vertices = {}
+        self.water_tiles_visible = {}
+        self.segments_waiting = set()
+        self.segments_queue = []
+        self.segments_cleanup_queue = []
 
     def coords_area2angles(self, w, h):
         angle_z = mth.w2lat_degrees(float(w), self.PLANET_EQUATOR_SEGMENTS)
@@ -121,9 +132,7 @@ class Scene(object):
             for _h in range(-self.VISIBLE_AREA_SIZE_SEGMENTS_HALF, self.VISIBLE_AREA_SIZE_SEGMENTS_HALF):
                 dist = int(math.sqrt(_w * _w + _h * _h))
                 if dist < self.VISIBLE_AREA_SIZE_SEGMENTS_HALF:
-                    self.land_area_mask[(_w, _h)] = dist
-        self.global_rotate_x = Rotate(0, 1, 0, 0, group='land')
-        self.global_rotate_z = Rotate(0, 0, 0, 1, group='land')
+                    self.visible_area_mask[(_w, _h)] = dist
         if QUADRO_SEGMENTS:
             self.area_center_w = int(map_center_w / 2)
             self.area_center_h = int(map_center_h / 2)
@@ -142,32 +151,87 @@ class Scene(object):
         planet_shift_y = self.PLANET_RADIUS + elevation_at_center * self.ELEVATION_FACTOR + self.ELEVATION_CORRECTION
         self.global_translate_before = Translate(0, -planet_shift_y, 0, group='land')
         self.global_translate_after = Translate(0, planet_shift_y, 0, group='land')
-        self.global_rotate_x.angle = camera_shift_angle_x
-        self.global_rotate_z.angle = camera_shift_angle_z
+        self.global_rotate_x = Rotate(camera_shift_angle_x, 1, 0, 0, group='land')
+        self.global_rotate_z = Rotate(camera_shift_angle_z, 0, 0, 1, group='land')
+        self.container_animated_objects = InstructionGroup()
+        self.container_static_objects = InstructionGroup()
+        self.container_land_tiles = InstructionGroup()
         self.container.add(PushMatrix(group='land'))
         self.container.add(self.global_translate_before)
         self.container.add(self.global_rotate_x)
         self.container.add(self.global_rotate_z)
-        self.container_animated_objects = InstructionGroup()
-        self.container_static_objects = InstructionGroup()
-        self.container_land_tiles = InstructionGroup()
         self.container.add(self.container_animated_objects)
         self.container.add(self.container_land_tiles)
         self.container.add(self.container_static_objects)
         self.container.add(self.global_translate_after)
         self.container.add(PopMatrix(group='land'))
         added = 0
-        for k, dist_to_center in self.land_area_mask.items():
+        for k, dist_to_center in self.visible_area_mask.items():
             _w, _h = k
             w_t = w + _w
             h_t = h + _h
             if (w_t, h_t) not in self.land_tiles_visible:
-                if (w_t, h_t) not in self.land_segments_waiting:
-                    self.land_render_queue.append((w_t, h_t, dist_to_center))
-                    self.land_segments_waiting.add((w_t, h_t))
+                if (w_t, h_t) not in self.segments_waiting:
+                    self.segments_queue.append((w_t, h_t, dist_to_center))
+                    self.segments_waiting.add((w_t, h_t))
                     added += 1
+        self.global_water_translate_before = Translate(0, -planet_shift_y, 0, group='water')
+        self.global_water_translate_after = Translate(0, planet_shift_y, 0, group='water')
+        self.global_water_rotate_x = Rotate(camera_shift_angle_x, 1, 0, 0, group='water')
+        self.global_water_rotate_z = Rotate(camera_shift_angle_z, 0, 0, 1, group='water')
+        self.container_water_tiles = InstructionGroup()
+        self.container.add(PushMatrix(group='water'))
+        self.container.add(self.global_water_translate_before)
+        self.container.add(self.global_water_rotate_x)
+        self.container.add(self.global_water_rotate_z)
+        self.container.add(self.container_water_tiles)
+        for k, dist_to_center in self.visible_area_mask.items():
+            _w, _h = k
+            w_t = w + _w
+            h_t = h + _h
+            if (w_t, h_t) not in self.water_tiles_visible:
+                segment_angle_x, segment_angle_z = self.coords_area2angles(_w, _h)
+                water_segment_group_name = f'w_{w_t}_{h_t}'
+                ew = self.WATER_LEVEL_ELEVATION #  + (8.0 / 255.0 ) * self.ELEVATION_FACTOR
+                y00 = ew * self.SEGMENT_COS
+                y01 = ew * self.SEGMENT_COS
+                y10 = ew * self.SEGMENT_COS
+                y11 = ew * self.SEGMENT_COS
+                c00 = ew * self.SEGMENT_SIN
+                c01 = ew * self.SEGMENT_SIN
+                c10 = ew * self.SEGMENT_SIN
+                c11 = ew * self.SEGMENT_SIN
+                v00 = (c00 * self.PI_4_SIN, y00, -c00 * self.PI_4_COS)
+                v01 = (c01 * self.PI_4_COS, y01, c01 * self.PI_4_SIN)
+                v10 = (-c10 * self.PI_4_COS, y10, -c10 * self.PI_4_SIN)
+                v11 = (-c11 * self.PI_4_SIN, y11, c11 * self.PI_4_COS)
+                water_vertices = [
+                    v00[0], v00[1], v00[2], 1, 0, 0, 0.0, 0.0,
+                    v01[0], v01[1], v01[2], 1, 0, 0, 0.0, 1.0,
+                    v10[0], v10[1], v10[2], 1, 0, 0, 1.0, 0.0,
+                    v11[0], v11[1], v11[2], 1, 0, 0, 1.0, 1.0,
+                ]
+                water_segment_rotate_x = Rotate(segment_angle_x, 1, 0, 0, group=water_segment_group_name)
+                water_segment_rotate_z = Rotate(segment_angle_z, 0, 0, 1, group=water_segment_group_name)
+                self.container_water_tiles.add(PushMatrix(group=water_segment_group_name))
+                self.container_water_tiles.add(water_segment_rotate_x)
+                self.container_water_tiles.add(water_segment_rotate_z)
+                self.container_water_tiles.add(ChangeState(material_density=0.0, water_transparency=(128.0 / 255.0), group=water_segment_group_name))
+                self.container_water_tiles.add(BindTexture(source='assets/water8a.png', index=1, group=water_segment_group_name))
+                self.container_water_tiles.add(Mesh(
+                    vertices=water_vertices,
+                    indices=[0, 1, 2, 1, 3, 2],
+                    fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+                    mode='triangles',
+                    group=water_segment_group_name,
+                ))
+                self.container_water_tiles.add(ChangeState(material_density=0.0, water_transparency=(10.0 / 255.0), group=water_segment_group_name))
+                self.container_water_tiles.add(PopMatrix(group=water_segment_group_name))
+                self.water_tiles_visible[(w_t, h_t)] = [_w, _h, water_segment_rotate_x, water_segment_rotate_z]
+        self.container.add(self.global_water_translate_after)
+        self.container.add(PopMatrix(group='water'))
         if _Debug:
-            print(f'prepare land area at {w} {h} with {added} segments, elevation at center is {elevation_at_center} with planet shift {planet_shift_y}')
+            print(f'visible area created at {w} {h} with {added} segments, elevation at center is {elevation_at_center} with planet shift {planet_shift_y}, queue is {len(self.segments_waiting)} / {len(self.segments_cleanup_queue)}')
         self.update_segments()
 
     def mesh_key(self, template, part_name, coefs):
@@ -191,6 +255,17 @@ class Scene(object):
         e10 = self.PLANET_RADIUS + self.land.get_elevation(map_w + 1, map_h) * self.ELEVATION_FACTOR
         e11 = self.PLANET_RADIUS + self.land.get_elevation(map_w + 1, map_h + 1) * self.ELEVATION_FACTOR
         return e00, e01, e10, e11
+
+    def calculate_unpacked_elevation(self, h):
+        """
+        h is from 0 to 100
+        result is from -water_level*underwater_factor to 100^height_exponent
+        """
+        if h > self.INPUT_WATER_LEVEL:
+            return pow(h - 18, self.ELEVATION_UNPACK_EXPONENT)
+        if h <= 0:
+            return -1 * (self.INPUT_WATER_LEVEL - 1) * self.ELEVATION_UNPACK_UNDERWATER_FACTOR
+        return (float(h - self.INPUT_WATER_LEVEL) / h) * float(self.ELEVATION_UNPACK_UNDERWATER_FACTOR)
 
     def calculate_elevation(self, w_i, h_i, shift_w, shift_h):
         if QUADRO_SEGMENTS:
@@ -309,6 +384,18 @@ class Scene(object):
         t2 = time.time()
         if _Debug:
             print(f'calculated land vertices for {len(self.land.elevation_map_data)} segments in {t2 - t1} sec')
+
+    def calculate_scaled_elevation_map(self):
+        return
+        # e_min_unpacked = self.calculate_unpacked_elevation(0)
+        # e_max_unpacked = self.calculate_unpacked_elevation(100)
+        # unpacked_delta = e_max_unpacked - e_min_unpacked
+        # for w in range(self.land.width):
+        #     for h in range(self.land.height):
+        #         e = self.land.elevation_map_data[(w, h)]
+        #         e_unpacked = self.calculate_unpacked_elevation(e)
+        #         e_scaled = float(e_unpacked - e_min_unpacked) / unpacked_delta
+        #         self.land.elevation_map_data[(w, h)] = e_scaled
 
     def add_model_template(self, template, model):
         self.models[template] = model
@@ -685,21 +772,27 @@ class Scene(object):
         self.area_center_w = w_i
         self.area_center_h = h_i
         e, _, _ = self.calculate_elevation(self.area_center_w, self.area_center_h, self.segment_shift_w, self.segment_shift_h)
+        if e < self.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * self.ELEVATION_FACTOR:
+            e = self.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * self.ELEVATION_FACTOR
         # e = self.PLANET_RADIUS + 0.5 * self.ELEVATION_FACTOR
         # if _Debug:
         #     print(f'  map from {w0},{h0} shift:{w0shift},{h0shift} to {w_i},{h_i} with e:{e} new shift is {self.segment_shift_w},{self.segment_shift_h}')
         planet_shift_y = e + self.ELEVATION_CORRECTION # self.PLANET_RADIUS + e * self.ELEVATION_FACTOR
         self.global_translate_before.y = -planet_shift_y
         self.global_translate_after.y = planet_shift_y
+        self.global_water_translate_before.y = -planet_shift_y
+        self.global_water_translate_after.y = planet_shift_y
         camera_shift_angle_x, camera_shift_angle_z = self.coords_area2angles(0.5-self.segment_shift_w, 0.5-self.segment_shift_h)
         self.global_rotate_x.angle = camera_shift_angle_x
         self.global_rotate_z.angle = camera_shift_angle_z
+        self.global_water_rotate_x.angle = camera_shift_angle_x
+        self.global_water_rotate_z.angle = camera_shift_angle_z
         added = 0
         removed = 0
         if abs(wd) > 3 or abs(hd) > 3:
             if _Debug:
                 print(f'  big shift for land update at {w_i} {h_i} with shift {self.segment_shift_w} {self.segment_shift_h} and delta {wd} {hd}')
-            self.land_cleanup_queue.clear()
+            self.segments_cleanup_queue.clear()
         if new_position or wd != 0 or hd != 0:
             for unit_name in self.units.keys():
                 unit = self.units[unit_name]
@@ -727,45 +820,58 @@ class Scene(object):
                 #     unit.area_h = area_h
                 #     unit.rotate_axis_x.angle = segment_angle_x
                 #     unit.rotate_axis_z.angle = segment_angle_z
-                if (_w, _h) not in self.land_area_mask:
-                    if (w_t, h_t) not in self.land_cleanup_queue:
-                        self.land_cleanup_queue.append((w_t, h_t))
+                if (_w, _h) not in self.visible_area_mask:
+                    if (w_t, h_t) not in self.segments_cleanup_queue:
+                        self.segments_cleanup_queue.append((w_t, h_t))
                         removed += 1
+            for w_t, h_t in self.water_tiles_visible.keys():
+                _w = w_t - w_i
+                _h = h_t - h_i
+                water_area_w, water_area_h, water_segment_rotate_x, water_segment_rotate_z = self.water_tiles_visible[(w_t, h_t)]
+                water_area_w -= wd
+                water_area_h -= hd
+                segment_angle_x, segment_angle_z = self.coords_area2angles(water_area_w, water_area_h)
+                # water_segment_rotate_x.angle = segment_angle_x
+                # water_segment_rotate_z.angle = segment_angle_z
+                # self.water_tiles_visible[(w_t, h_t)][0] = water_area_w
+                # self.water_tiles_visible[(w_t, h_t)][1] = water_area_h
             for unit_name in self.animating_units:
                 unit = self.units[unit_name]
                 if not unit.onstage:
                     continue
                 _w = unit.w - w_i
                 _h = unit.h - h_i
-                if (_w, _h) not in self.land_area_mask:
+                if (_w, _h) not in self.visible_area_mask:
                     self.hide_unit(container=self.container_animated_objects, unit_name=unit.name)
-            for k, dist_to_center in self.land_area_mask.items():
+            for k, dist_to_center in self.visible_area_mask.items():
                 _w, _h = k
                 w_t = w_i + _w
                 h_t = h_i + _h
                 if (w_t, h_t) not in self.land_tiles_visible:
-                    if (w_t, h_t) not in self.land_segments_waiting:
-                        self.land_render_queue.append((w_t, h_t, dist_to_center))
-                        self.land_segments_waiting.add((w_t, h_t))
+                    if (w_t, h_t) not in self.segments_waiting:
+                        self.segments_queue.append((w_t, h_t, dist_to_center))
+                        self.segments_waiting.add((w_t, h_t))
                         added += 1
+        if _Debug:
+            print(f'visible area at {w_i} {h_i} with {added} added and {removed} removed segments, elevation is {e} / {planet_shift_y}, queue is {len(self.segments_waiting)} / {len(self.segments_cleanup_queue)}')
         self.update_segments()
 
     def update_segments(self, dt=None):
-        if not self.land_render_queue and not self.land_cleanup_queue:
+        if not self.segments_queue and not self.segments_cleanup_queue:
             return
         added = 0
         removed = 0
-        self.land_render_queue.sort(key=lambda x: -x[2])
+        self.segments_queue.sort(key=lambda x: -x[2])
         chunk = 30
         w_i = self.area_center_w
         h_i = self.area_center_h
-        while chunk and self.land_render_queue:
+        while chunk and self.segments_queue:
             chunk -= 1
-            w_t, h_t, _ = self.land_render_queue.pop()
-            self.land_segments_waiting.discard((w_t, h_t))
+            w_t, h_t, _ = self.segments_queue.pop()
+            self.segments_waiting.discard((w_t, h_t))
             _w = w_t - w_i
             _h = h_t - h_i
-            dist_to_center = self.land_area_mask.get((_w, _h), None)
+            dist_to_center = self.visible_area_mask.get((_w, _h), None)
             if dist_to_center is not None:
                 if (w_t, h_t) not in self.land_tiles_visible:
                     self.add_land_segment(w_t, h_t, _w, _h, dist_to_center)
@@ -774,28 +880,28 @@ class Scene(object):
             for w_t, h_t in self.land_tiles_visible.keys():
                 _w = w_t - w_i
                 _h = h_t - h_i
-                if (_w, _h) not in self.land_area_mask:
-                    if (w_t, w_t) not in self.land_cleanup_queue:
-                        self.land_cleanup_queue.append((w_t, h_t))
+                if (_w, _h) not in self.visible_area_mask:
+                    if (w_t, w_t) not in self.segments_cleanup_queue:
+                        self.segments_cleanup_queue.append((w_t, h_t))
         chunk = 100 if not added else int(added / 2)
-        while chunk and self.land_cleanup_queue:
+        while chunk and self.segments_cleanup_queue:
             chunk -= 1
-            w_t, h_t = self.land_cleanup_queue.pop()
+            w_t, h_t = self.segments_cleanup_queue.pop()
             if (w_t, h_t) in self.land_tiles_visible:
                 _w = w_t - w_i
                 _h = h_t - h_i
-                if (_w, _h) not in self.land_area_mask:
+                if (_w, _h) not in self.visible_area_mask:
                     self.remove_land_segment(w_t, h_t)
                     removed += 1
         if added:
             Clock.schedule_once(self.update_segments, 0.2 * (1.0 / 120.0))
             if _Debug:
-                print(f'land updated at {w_i},{h_i} added:{added} removed:{removed} visible:{len(self.land_tiles_visible)}')
+                print(f'  land updated at {w_i},{h_i} added:{added} removed:{removed} visible:{len(self.land_tiles_visible)}')
             return
         if removed:
             Clock.schedule_once(self.update_segments, 10.0)
             if _Debug:
-                print(f'land cleaned at {w_i},{h_i} added:{added} removed:{removed} visible:{len(self.land_tiles_visible)}')
+                print(f'  land cleaned at {w_i},{h_i} added:{added} removed:{removed} visible:{len(self.land_tiles_visible)}')
             return
 
     def add_land_segment(self, map_w, map_h, area_w, area_h, dist_to_center):
@@ -846,11 +952,9 @@ class Scene(object):
         e_correction = 0
         # e_correction = (e_max - e_min) * 0.05
         segment_group_name = f'l_{map_w}_{map_h}'
-        segment_rotate_x = Rotate(0, 1, 0, 0, group=segment_group_name)
-        segment_rotate_z = Rotate(0, 0, 0, 1, group=segment_group_name)
         segment_angle_x, segment_angle_z = self.coords_area2angles(w, h)
-        segment_rotate_x.angle = segment_angle_x
-        segment_rotate_z.angle = segment_angle_z
+        segment_rotate_x = Rotate(segment_angle_x, 1, 0, 0, group=segment_group_name)
+        segment_rotate_z = Rotate(segment_angle_z, 0, 0, 1, group=segment_group_name)
         self.container_land_tiles.add(PushMatrix(group=segment_group_name))
         self.container_land_tiles.add(segment_rotate_x)
         self.container_land_tiles.add(segment_rotate_z)
@@ -985,27 +1089,37 @@ class Scene(object):
         for static_unit_name in static_units_at_segment:
             self.remove_unit_from_stage(container=self.container_static_objects, unit_name=static_unit_name)
         self.container_land_tiles.remove_group(segment_group_name)
+        # water_segment_group_name = f'w_{w_t}_{h_t}'
+        # self.container_water_tiles.remove_group(water_segment_group_name)
         self.land_tiles_visible.pop((w_t, h_t))
 
-    def shift_land(self, shift_w, shift_h):
+    def land_shift(self, shift_w, shift_h):
+        require_update = False
         if shift_h != 0:
             if shift_h > 0:
                 if self.area_center_h + self.VISIBLE_AREA_SIZE_SEGMENTS_HALF + 1 < self.map_height:
-                    self.segment_shift_h = self.segment_shift_h + self.LAND_MOVE_SPEED
-                    self.update_land()
+                    self.segment_shift_h = self.segment_shift_h + shift_h
+                    require_update = True
             else:
                 if self.area_center_h - self.VISIBLE_AREA_SIZE_SEGMENTS_HALF > 0:
-                    self.segment_shift_h = self.segment_shift_h - self.LAND_MOVE_SPEED
-                    self.update_land()
+                    self.segment_shift_h = self.segment_shift_h + shift_h
+                    require_update = True
         if shift_w != 0:
             if shift_w > 0:
                 if self.area_center_w + self.VISIBLE_AREA_SIZE_SEGMENTS_HALF + 1 < self.map_width:
-                    self.segment_shift_w = self.segment_shift_w + self.LAND_MOVE_SPEED
-                    self.update_land()
+                    self.segment_shift_w = self.segment_shift_w + shift_w
+                    require_update = True
             else:
                 if self.area_center_w - self.VISIBLE_AREA_SIZE_SEGMENTS_HALF > 0:
-                    self.segment_shift_w = self.segment_shift_w - self.LAND_MOVE_SPEED
-                    self.update_land()
+                    self.segment_shift_w = self.segment_shift_w + shift_w
+                    require_update = True
+        if require_update:
+            self.update_land()
+
+    def land_move(self, direction_angle, distance):
+        shift_w = math.cos(math.radians(direction_angle - 90)) * distance
+        shift_h = math.sin(math.radians(direction_angle - 90)) * distance
+        self.land_shift(shift_w, shift_h)
 
     def place_animated_unit_on_land(self, template, map_w, map_h, shift_w=0.5, shift_h=0.5, direction=0, textures=None, coefs=[0, 0, 0]):
         ao = self.create_object_data_from_model_data(

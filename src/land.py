@@ -23,10 +23,11 @@ elevation_data = {}
 
 
 INPUT_WATER_LEVEL = 20  # 20 is the water level in the input heightmap, 100 is the input max height
-ELEVATION_UNPACK_EXPONENT = 2.2
-CLIFFS_HEIGHT_MARGIN = 50
-CLIFFS_HEIGHT_DROP = 5
-TRANSFORM_CYCLES = 25
+ELEVATION_UNPACK_EXPONENT = 2.1
+ELEVATION_UNPACK_UNDERWATER_FACTOR = 40.0
+CLIFFS_HEIGHT_MARGIN = 60
+CLIFFS_HEIGHT_DROP = 10
+TRANSFORM_CYCLES = 20
 
 
 # see: https://github.com/vesellov/worlds/blob/main/catalog.json
@@ -116,7 +117,7 @@ biomes_colors = {
 biomes_colors = {tuple(int(k[i:i+2], 16) for i in (0, 2, 4)):v for k, v in biomes_colors.items()}
 
 biomes_mapping = {
-    'Marine':                       [('water5', 1.0), ],
+    'Marine':                       [('water1', 1.0), ],
     'Hot desert':                   [('mud2', 0.75), ('sand2', 1.0), ],
     'Cold desert':                  [('soil6', 0.75), ('sand2', 1.0), ],
     'Savanna':                      [('mud2', 0.25), ('soil3', 0.5), ('dust1', 0.75), ('dirt2', 1.0),],
@@ -173,6 +174,8 @@ inner_outer_transform_before_borders_list = [
     ('soil4', 'grass1', None),
     ('soil5', 'grass2', None),
     ('soil6', 'sand2', None),
+    ('grass1', 'grass2', None),
+    ('grass3', 'grass2', None),
     ('dirt1', 'dirt2', None),
     ('dirt4', 'dirt2', None),
     ('dust1', 'dirt2', None),
@@ -180,55 +183,58 @@ inner_outer_transform_before_borders_list = [
     ('snow2', 'snow3', None),
     ('snow3', 'sand2', None),
     ('mud2', 'sand2', None),
+    ('water1', 'water5', None),
+    ('water5', 'grass2', 'dirt6'),
 ]
 
 inner_outer_transform_borders_list = [
-    ('cliff2', 'sand4', 'sand2'),
-    ('cliff2', 'dirt2', 'sand2'),
-    ('sand1', 'grass2', 'sand2'),
-    ('sand1', 'grass1', 'sand2'),
-    ('sand1', 'cliff2', 'sand2'),
-    ('sand1', 'dirt2', 'sand2'),
-    ('snow1', 'sand2', 'snow2'),
-    ('snow2', 'sand2', 'snow3'),
+    # ('cliff2', 'sand4', 'sand2'),
+    # ('cliff2', 'dirt2', 'sand2'),
+    # ('sand1', 'grass2', 'sand2'),
+    # ('sand1', 'grass1', 'sand2'),
+    # ('sand1', 'cliff2', 'sand2'),
+    # ('sand1', 'dirt2', 'sand2'),
+    # ('snow1', 'sand2', 'snow2'),
+    # ('snow2', 'sand2', 'snow3'),
     ('snow3', 'dirt2', 'sand2'),
-    ('snow3', 'sand4', 'sand2'),
-    ('grass1', 'soil5', 'sand2'),
+    ('snow3', 'dirt6', 'sand2'),
+    # ('snow3', 'sand4', 'sand2'),
+    # ('grass1', 'soil5', 'grass2'),
     ('grass1', 'grass3', 'grass2'),
-    ('grass1', 'sand4', 'sand2'),
+    ('grass1', 'sand4', 'grass2'),
     ('grass1', 'sand2', 'grass2'),
     ('grass1', 'dirt2', 'grass2'),
-    ('grass1', 'water5', 'grass2'),
-    ('grass2', 'cliff2', 'sand2'),
-    ('grass3', 'sand1', 'dirt2'),
-    ('grass3', 'sand2', 'dirt2'),
+    ('water5', 'grass1', 'grass2'),
+    # ('grass2', 'cliff2', 'sand2'),
+    # ('grass3', 'sand1', 'dirt2'),
+    # ('grass3', 'sand2', 'dirt2'),
     ('grass3', 'sand4', 'dirt2'),
     ('grass3', 'dirt6', 'grass2'),
-    ('dirt1', 'dirt6', 'sand4'),
+    # ('dirt1', 'dirt6', 'sand4'),
     ('dirt2', 'dirt6', 'sand4'),
-    ('dirt4', 'dirt2', 'sand2'),
-    ('dirt6', 'dirt2', 'sand4'),
-    ('dirt6', 'sand2', 'sand4'),
-    ('dust1', 'grass2', 'dirt2'),
-    ('dust1', 'sand2', 'dirt2'),
+    # ('dirt4', 'dirt2', 'sand2'),
+    # ('dust1', 'grass2', 'dirt2'),
+    # ('dust1', 'sand2', 'dirt2'),
     ('dust1', 'sand4', 'dirt2'),
-    ('dust1', 'dirt6', 'dirt2'),
+    # ('dust1', 'dirt6', 'dirt2'),
     ('soil3', 'sand2', 'dirt2'),
     ('soil3', 'sand4', 'dirt2'),
-    ('soil3', 'dirt6', 'dirt2'),
+    # ('soil3', 'dirt6', 'dirt2'),
     ('soil4', 'grass2', 'grass1'),
-    ('soil4', 'sand2', 'grass1'),
-    ('soil4', 'cliff2', 'grass1'),
-    ('soil5', 'grass3', 'grass2'),
+    # ('soil4', 'sand2', 'grass1'),
+    # ('soil4', 'cliff2', 'grass1'),
+    ('soil4', 'dirt6', 'grass1'),
+    # ('soil5', 'grass3', 'grass2'),
     ('soil5', 'sand2', 'grass2'),
-    ('soil5', 'sand4', 'grass2'),
+    ('soil5', 'grass1', 'grass2'),
+    # ('soil5', 'sand4', 'grass2'),
     ('soil5', 'dirt6', 'grass2'),
-    ('soil6', 'grass2', 'sand2'),
-    ('soil6', 'sand4', 'sand2'),
-    ('soil6', 'cliff2', 'grass1'),
-    ('mud2', 'sand4', 'sand2'),
+    # ('soil6', 'grass2', 'sand2'),
+    # ('soil6', 'sand4', 'sand2'),
+    # ('soil6', 'cliff2', 'grass1'),
+    # ('mud2', 'sand4', 'sand2'),
     ('mud2', 'dirt2', 'sand2'),
-    ('mud2', 'grass2', 'sand2'),
+    # ('mud2', 'grass2', 'sand2'),
     ('water5', 'sand1', 'sand4'),
     ('water5', 'sand2', 'sand4'),
     ('water5', 'grass3', 'dirt2'),
@@ -238,6 +244,40 @@ inner_outer_transform_borders_list = [
     ('water5', 'soil4', 'grass1'),
     ('water5', 'soil5', 'grass2'),
     ('water5', 'mud2', 'sand2'),
+    # ('water1', 'sand1', 'water5'),
+    # ('water1', 'sand2', 'water5'),
+    ('water1', 'sand4', 'water5'),
+    # ('water1', 'grass1', 'water5'),
+    ('water1', 'grass2', 'water5'),
+    ('water1', 'dirt6', 'water5'),
+    # ('water1', 'grass3', 'water5'),
+    # ('water1', 'dirt1', 'water5'),
+    # ('water1', 'dirt2', 'water5'),
+    # ('water1', 'dust1', 'water5'),
+    # ('water1', 'soil3', 'water5'),
+    # ('water1', 'soil4', 'water5'),
+    # ('water1', 'soil5', 'water5'),
+    # ('water1', 'mud2', 'water5'),
+    ('dirt6', 'sand2', 'sand4'),
+]
+
+transform_two_adjacent_diagonal_neighbors = [
+    # ('grass1', 'grass2'),
+    # ('soil4', 'grass1'),
+    # ('snow3', 'snow2'),
+    # ('dirt4', 'dirt2'),
+    # ('grass2', 'sand2'),
+    # ('soil5', 'grass2'),
+    # ('dirt2', 'grass2'),
+    # ('sand4', 'sand2'),
+    # ('dirt2', 'sand2'),
+    # ('grass2', 'grass3'),
+    # ('grass2', 'water5', ),
+    # ('sand2', 'water5', ),
+    # ('sand2', 'water5'),
+    # ('soil4', 'water5', ),
+    # ('sand4', 'water5'),
+    # ('water1', 'water5'),
 ]
 
 
@@ -282,7 +322,7 @@ def detect_bounds(data):
 
 def detect_elevation_bounds(data):
     cells = data['pack']['cells']
-    min_elevation = min(c['h'] for c in cells)
+    min_elevation = min(filter(None, [c['h'] for c in cells]))
     max_elevation = max(c['h'] for c in cells)
     return min_elevation, max_elevation
 
@@ -316,8 +356,8 @@ def enrich_data_with_tiles_mapping(data):
                 break
         if True:
             if biome_tile in ['snow1', 'snow2', 'snow3', ]:
-                if h < 50:
-                    biome_tile = 'sand2'
+                if h < CLIFFS_HEIGHT_MARGIN - CLIFFS_HEIGHT_DROP:
+                    biome_tile = 'mud2'
         data['pack']['cells'][i]['tile'] = biome_tile
         tiles_stats[biome_tile] = tiles_stats.get(biome_tile, 0) + 1
     return tiles_stats
@@ -448,6 +488,7 @@ def render_rivers(data, draw):
     count = 0
     for river in data['pack']['rivers']:
         points = []
+        points1 = []
         points2 = []
         for c_i in river['cells']:
             if c_i < 0:
@@ -456,8 +497,10 @@ def render_rivers(data, draw):
             x, y = c['p']
             x_draw, y_draw = xy2draw(x, y)
             points.append((x_draw, y_draw))
+            points1.append((x_draw, y_draw+1))
             points2.append((x_draw+1, y_draw+1))
         draw.line(points, fill=tiles_colors['water5'], width=1)
+        draw.line(points1, fill=tiles_colors['water5'], width=1)
         draw.line(points2, fill=tiles_colors['water5'], width=1)
         count += 1
     return count
@@ -467,8 +510,8 @@ def elevation_unpack(h):
     if h > INPUT_WATER_LEVEL:
         return pow(h - 18, ELEVATION_UNPACK_EXPONENT)
     if h <= 0:
-        return -950
-    return (float(h - INPUT_WATER_LEVEL) / h) * float(50)
+        return -1 * (INPUT_WATER_LEVEL - 1) * ELEVATION_UNPACK_UNDERWATER_FACTOR
+    return (float(h - INPUT_WATER_LEVEL) / h) * float(ELEVATION_UNPACK_UNDERWATER_FACTOR)
 
 
 def elevation_to_scale_255(e):
@@ -477,48 +520,38 @@ def elevation_to_scale_255(e):
     return int(float(e - min_elevation_unpacked) * 255.0 / delta)
 
 
-def render_heightmap(data, draw):
+def render_heightmap(data, draw, packed_draw):
     cells = data['pack']['cells']
     vertices = data['pack']['vertices']
     bellow_water_count = 0
     above_cliffs_count = 0
     for cell in cells:
         points = []
-        h = cell['h']
-        cell_feature = data['pack']['features'][cell['f']]
-        if cell_feature['type'] == 'lake':
-            h = round(cell_feature['height'])
-        if True:
-            if h > CLIFFS_HEIGHT_MARGIN - CLIFFS_HEIGHT_DROP and h <= CLIFFS_HEIGHT_MARGIN:
-                h = CLIFFS_HEIGHT_MARGIN - CLIFFS_HEIGHT_DROP
-        if True:
-            if h < INPUT_WATER_LEVEL:
-                h = 2
-        if h < INPUT_WATER_LEVEL:
-            bellow_water_count += 1
-        if h > CLIFFS_HEIGHT_MARGIN:
-            above_cliffs_count += 1
         for v_i in cell['v']:
             v = vertices[v_i]
             x, y = v['p']
             points.append(xy2draw(x, y))
-        e = elevation_to_scale_255(elevation_unpack(h))
-        draw.polygon(points, fill=(e, e, e))
+        h = cell['h']
+        cell_feature = data['pack']['features'][cell['f']]
+        if cell_feature['type'] == 'lake':
+            h = round(cell_feature['height'])
+        packed_draw.polygon(points, fill=(h, h, h))
+        if True:
+            if h > CLIFFS_HEIGHT_MARGIN - CLIFFS_HEIGHT_DROP and h <= CLIFFS_HEIGHT_MARGIN:
+                h = CLIFFS_HEIGHT_MARGIN - CLIFFS_HEIGHT_DROP
+        if False:
+            if h < INPUT_WATER_LEVEL:
+                h = 2
+        if True:
+            if h == INPUT_WATER_LEVEL:
+                h = INPUT_WATER_LEVEL + 1
+        if h < INPUT_WATER_LEVEL:
+            bellow_water_count += 1
+        if h > CLIFFS_HEIGHT_MARGIN:
+            above_cliffs_count += 1
+        # e = elevation_to_scale_255(elevation_unpack(h))
+        draw.polygon(points, fill=(h, h, h))
     return bellow_water_count, above_cliffs_count
-
-
-def update_heightmap_after_tiling(tiles_image, tiles_map, heightmap_image):
-    deep = elevation_to_scale_255(elevation_unpack(2))
-    c = (deep, deep, deep)
-    changes = 0
-    for x in range(tiles_image.width):
-        for y in range(tiles_image.height):
-            if tiles_map[(x, y)] == 'water5':
-                this_pixel = heightmap_image.getpixel((x, y))
-                if this_pixel != c:
-                    heightmap_image.putpixel((x, y), c)
-                    changes += 1
-    return changes
 
 
 def capture_elevation_data(heightmap_image):
@@ -526,8 +559,8 @@ def capture_elevation_data(heightmap_image):
     for x in range(heightmap_image.width):
         for y in range(heightmap_image.height):
             heightmap_imagebiome_pixel = heightmap_image.getpixel((x, y))
-            h = float(heightmap_imagebiome_pixel[0])
-            _elevation_data[(x, y)] = h
+            # saceled_e = float(heightmap_imagebiome_pixel[0])
+            _elevation_data[(x, y)] = heightmap_imagebiome_pixel[0]
     return _elevation_data
 
 
@@ -649,16 +682,45 @@ def plant_trees(data, tiles_map):
     return trees, trees_variants
 
 
-def flood_bellow_water_tiles(tiles_image, tiles_map):
-    scaled_water_level = elevation_to_scale_255(elevation_unpack(INPUT_WATER_LEVEL))
+def flood_bellow_water_tiles(tiles_image, tiles_map, flood_level):
     flooded = 0
     for x in range(tiles_image.width):
         for y in range(tiles_image.height):
-            if elevation_data.get((x, y), 0) < scaled_water_level:
-                if tiles_map[(x, y)] != 'water5':
+            if elevation_data.get((x, y), 0) <= flood_level:
+                if tiles_map[(x, y)] not in ['water1', 'water5']:
                     tiles_map[(x, y)] = 'water5'
                     flooded += 1
     return flooded
+
+
+def shallow_water_tiles(tiles_image, tiles_map, heightmap_image, shallow_level):
+    # global min_elevation_unpacked, max_elevation_unpacked, water_level_unpacked
+    # shallow_elevation = elevation_to_scale_255(elevation_unpack(INPUT_WATER_LEVEL - 1))
+    # delta = float(max_elevation_unpacked - min_elevation_unpacked)
+    # deep = elevation_to_scale_255(elevation_unpack(1))
+    # shallow = elevation_to_scale_255(elevation_unpack(INPUT_WATER_LEVEL - shallow_deep))
+    changes = 0
+    # for x in range(tiles_image.width):
+    #     for y in range(tiles_image.height):
+    #         if x == 400 and y == 400:
+    #             import pdb; pdb.set_trace()
+    #         if tiles_map[(x, y)] in ['water1', 'water5', 'dirt6']:
+    #             pixel = heightmap_image.getpixel((x, y))
+    #             h = int((float(pixel[0]) / 255.0) * delta + min_elevation_unpacked)
+    #             if h >= INPUT_WATER_LEVEL:
+    #                 heightmap_image.putpixel((x, y), c)
+    #                 changes += 1
+    for x in range(tiles_image.width):
+        for y in range(tiles_image.height):
+            if tiles_map[(x, y)] in ['water1', 'water5', 'dirt6']:
+                if elevation_data.get((x, y), 0) > shallow_level:
+                # h = heightmap_image.getpixel((x, y))[0]
+                # e = elevation_to_scale_255(elevation_unpack(h))
+                # if e > shallow:
+                # if elevation_data.get((x, y), 0) >= shallow_elevation:
+                    heightmap_image.putpixel((x, y), (shallow_level, shallow_level, shallow_level))
+                    changes += 1
+    return changes
 
 
 def transform_inner_outer_areas_borders(tiles_image, tiles_map):
@@ -814,25 +876,14 @@ def transform_neighboring_tiles_conditionally(tiles_image, tiles_map, catalog, m
                         t00 = tiles_map[(x, y)]
                         t10 = tiles_map[(x+1, y)]
                         change = None
-                        for c1, c2 in [
-                            ('grass1', 'grass2'),
-                            ('soil4', 'grass1'),
-                            ('snow3', 'snow2'),
-                            ('dirt4', 'dirt2'),
-                            ('grass2', 'sand2'),
-                            ('soil5', 'grass2'),
-                            ('dirt2', 'grass2'),
-                            ('sand4', 'sand2'),
-                            ('dirt2', 'sand2'),
-                            ('grass2', 'grass3'),
-                            ('water5', 'grass2'),
-                            ('sand2', 'water5'),
-                            ('water5', 'soil4'),
-                        ]:
-                            if c1 == t00 and c2 == t10:
-                                change = 1
-                            elif c2 == t00 and c1 == t10:
-                                change = 2
+                        if attempts > 5:
+                            change = random.randint(1, 2)
+                        else:
+                            for c1, c2 in transform_two_adjacent_diagonal_neighbors:
+                                if c1 == t00 and c2 == t10:
+                                    change = 1
+                                elif c2 == t00 and c1 == t10:
+                                    change = 2
                         if change is not None:
                             if change == 1:
                                 tiles_map[(x, y)] = tiles_map[(x+1, y)]
@@ -1123,17 +1174,20 @@ def main():
     min_elevation_unpacked = elevation_unpack(min_elevation)
     max_elevation_unpacked = elevation_unpack(max_elevation)
     water_level_unpacked = elevation_unpack(INPUT_WATER_LEVEL)
-    print(f"Elevations are from {min_elevation} to {max_elevation}, unpacked from {min_elevation_unpacked} to {max_elevation_unpacked}, water level is {INPUT_WATER_LEVEL} unpacked water level is {water_level_unpacked}")
+    print(f"Elevations are from {min_elevation} to {max_elevation}, water level is {INPUT_WATER_LEVEL}")
 
     biomes_colors_data = data['biomesData']['color']
     water_color = biomes_colors_data[0].lstrip('#')
     print(f'Found {len(biomes_colors_data)} biomes colors, water color is #{water_color}')
 
-    deep = elevation_to_scale_255(elevation_unpack(2))
-    heightmap_image = Image.new("RGB", (width, height), (deep, deep, deep))
+    # deep = elevation_to_scale_255(elevation_unpack(1))
+    heightmap_image = Image.new("RGB", (width, height), (min_elevation, min_elevation, min_elevation))
     heightmap_draw = ImageDraw.Draw(heightmap_image)
-    bellow_water_count, above_cliffs_count = render_heightmap(data, heightmap_draw)
-    heightmap_image = heightmap_image.filter(ImageFilter.GaussianBlur(radius=1.0))
+    heightmap_packed_image = Image.new("RGB", (width, height), (0, 0, 0))
+    heightmap_packed_draw = ImageDraw.Draw(heightmap_packed_image)
+    bellow_water_count, above_cliffs_count = render_heightmap(data, heightmap_draw, heightmap_packed_draw)
+    heightmap_packed_image.save('assets/heightmap_packed.png')
+    # heightmap_image = heightmap_image.filter(ImageFilter.GaussianBlur(radius=1.0))
     elevation_data = capture_elevation_data(heightmap_image)
     print(f'Rendered heightmap, {bellow_water_count} tiles are bellow water level, {above_cliffs_count} tiles are above cliffs, min elevation is {min_elevation}, max elevation is {max_elevation}')
 
@@ -1178,8 +1232,9 @@ def main():
     capture_tiles_data(tiles_image, tiles_colors_reversed, tiles_map)
     print(f'Read {len(tiles_map)} tiles from the rendered image')
 
-    flooded = flood_bellow_water_tiles(tiles_image, tiles_map)
-    print(f"Flooded {flooded} tiles based on heightmap data")
+    # scaled_water_level = elevation_to_scale_255(elevation_unpack(INPUT_WATER_LEVEL))
+    flooded = flood_bellow_water_tiles(tiles_image, tiles_map, flood_level=INPUT_WATER_LEVEL)
+    print(f"Flooded {flooded} tiles based on heightmap data, water level is {INPUT_WATER_LEVEL}")
 
     # beach_area = build_beach_area(tiles_image, tiles_map)
     # print(f"Added {len(beach_area)} beach area tiles")
@@ -1253,9 +1308,12 @@ def main():
     # fragment_y = 672
     # fragment_width = 64
     # fragment_height = 64
-    changes = update_heightmap_after_tiling(tiles_image, tiles_map, heightmap_image)
+    changes = 0
+    changes = shallow_water_tiles(tiles_image, tiles_map, heightmap_image, shallow_level=INPUT_WATER_LEVEL-1)
+    print(f"Updated heightmap to set shallow of the bellow water tiles with {changes} changes")
+    heightmap_image = heightmap_image.filter(ImageFilter.GaussianBlur(radius=0.75))
     heightmap_image.save('assets/heightmap.png')
-    print(f"Updated heightmap after tiling with {changes} changes")
+    print(f"Elevations are from {min_elevation} to {max_elevation}")
 
     tiles = build_tiles_puzzle(tiles_image, tiles_map, catalog)
     print(f"Built tiles puzzle with {len(tiles)} tiles")
