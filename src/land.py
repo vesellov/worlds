@@ -134,6 +134,7 @@ biomes_mapping = {
 
 roads_mapping = {
     'water5': ['stone1', ],
+    'cliff1': ['rock2', ],
     'cliff2': ['rock2', ],
     'dust1': ['dirt2', ],
     'dirt1': ['dirt2', ],
@@ -181,33 +182,46 @@ inner_outer_transform_before_borders_list = [
     ('dust1', 'dirt2', None),
     ('snow1', 'snow2', None),
     ('snow2', 'snow3', None),
-    ('snow3', 'sand2', None),
+    ('snow3', 'cliff2', None),
+    ('snow3', 'cliff1', None),
     ('mud2', 'sand2', None),
     ('water1', 'water5', None),
     ('water5', 'grass2', 'dirt6'),
 ]
 
 inner_outer_transform_borders_list = [
-    # ('cliff2', 'sand4', 'sand2'),
-    # ('cliff2', 'dirt2', 'sand2'),
+    # ('cliff1', 'grass1', 'dirt2'),
+    ('cliff1', 'grass2', 'cliff2'),
+    ('cliff1', 'dirt2', 'cliff2'),
+    ('cliff1', 'dirt6', 'cliff2'),
+    # ('cliff1', 'grass3', 'dirt2'),
+    # ('cliff1', 'soil5', 'dirt2'),
+    # ('cliff1', 'dirt6', 'sand2'),
+    # ('cliff1', 'sand4', 'sand2'),
+    # ('cliff1', 'water5', 'sand2'),
     # ('sand1', 'grass2', 'sand2'),
     # ('sand1', 'grass1', 'sand2'),
     # ('sand1', 'cliff2', 'sand2'),
     # ('sand1', 'dirt2', 'sand2'),
     # ('snow1', 'sand2', 'snow2'),
     # ('snow2', 'sand2', 'snow3'),
-    ('snow3', 'dirt2', 'sand2'),
-    ('snow3', 'dirt6', 'sand2'),
-    # ('snow3', 'sand4', 'sand2'),
+    # ('cliff2', 'grass2', 'grass1'),
+    ('snow3', 'cliff2', 'cliff1'),
+    ('snow3', 'dirt2', 'cliff1'),
+    ('snow3', 'dirt6', 'cliff1'),
+    ('snow3', 'sand4', 'sand2'),
+    ('snow3', 'grass2', 'cliff1'),
+    ('snow3', 'grass3', 'cliff1'),
     # ('grass1', 'soil5', 'grass2'),
     ('grass1', 'grass3', 'grass2'),
     ('grass1', 'sand4', 'grass2'),
     ('grass1', 'sand2', 'grass2'),
     ('grass1', 'dirt2', 'grass2'),
-    ('water5', 'grass1', 'grass2'),
+    # ('grass1', 'cliff2', 'dirt2'),
     # ('grass2', 'cliff2', 'sand2'),
     # ('grass3', 'sand1', 'dirt2'),
     # ('grass3', 'sand2', 'dirt2'),
+    # ('grass2', 'cliff2', 'grass1'),
     ('grass3', 'sand4', 'dirt2'),
     ('grass3', 'dirt6', 'grass2'),
     # ('dirt1', 'dirt6', 'sand4'),
@@ -229,14 +243,17 @@ inner_outer_transform_borders_list = [
     ('soil5', 'grass1', 'grass2'),
     # ('soil5', 'sand4', 'grass2'),
     ('soil5', 'dirt6', 'grass2'),
+    ('soil5', 'cliff2', 'dirt2'),
     # ('soil6', 'grass2', 'sand2'),
     # ('soil6', 'sand4', 'sand2'),
     # ('soil6', 'cliff2', 'grass1'),
     # ('mud2', 'sand4', 'sand2'),
     ('mud2', 'dirt2', 'sand2'),
     # ('mud2', 'grass2', 'sand2'),
+    ('water5', 'cliff2', 'dirt6'),
     ('water5', 'sand1', 'sand4'),
     ('water5', 'sand2', 'sand4'),
+    ('water5', 'grass1', 'grass2'),
     ('water5', 'grass3', 'dirt2'),
     ('water5', 'dirt2', 'sand4'),
     ('water5', 'dust1', 'dirt2'),
@@ -246,9 +263,9 @@ inner_outer_transform_borders_list = [
     ('water5', 'mud2', 'sand2'),
     # ('water1', 'sand1', 'water5'),
     # ('water1', 'sand2', 'water5'),
-    ('water1', 'sand4', 'water5'),
     # ('water1', 'grass1', 'water5'),
     ('water1', 'grass2', 'water5'),
+    ('water1', 'sand4', 'water5'),
     ('water1', 'dirt6', 'water5'),
     # ('water1', 'grass3', 'water5'),
     # ('water1', 'dirt1', 'water5'),
@@ -357,6 +374,7 @@ def enrich_data_with_tiles_mapping(data):
         if True:
             if biome_tile in ['snow1', 'snow2', 'snow3', ]:
                 if h < CLIFFS_HEIGHT_MARGIN - CLIFFS_HEIGHT_DROP:
+                    import pdb; pdb.set_trace()
                     biome_tile = 'mud2'
         data['pack']['cells'][i]['tile'] = biome_tile
         tiles_stats[biome_tile] = tiles_stats.get(biome_tile, 0) + 1
@@ -611,7 +629,7 @@ def build_cliffs(tiles_image, tiles_map):
                     if neighbor_h <= CLIFFS_HEIGHT_MARGIN:
                         cliffs.add((x, y))
     for x, y in cliffs:
-        tiles_map[(x, y)] = 'cliff2'
+        tiles_map[(x, y)] = 'cliff1'
     return cliffs
 
 
@@ -1238,6 +1256,7 @@ def main():
 
     # beach_area = build_beach_area(tiles_image, tiles_map)
     # print(f"Added {len(beach_area)} beach area tiles")
+
     # cliffs = build_cliffs(tiles_image, tiles_map)
     # print(f"Added {len(cliffs)} cliff tiles")
 
@@ -1318,7 +1337,7 @@ def main():
     tiles = build_tiles_puzzle(tiles_image, tiles_map, catalog)
     print(f"Built tiles puzzle with {len(tiles)} tiles")
 
-    water_catalog_id = catalog['water5'][0]
+    water_catalog_id = catalog['water1'][0]
     encoded_image = Image.new("RGB", (tiles_image.size[0], tiles_image.size[1]), "black")
     catalog_stats = {}
     for x in range(0, encoded_image.width):
