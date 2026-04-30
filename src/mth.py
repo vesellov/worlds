@@ -3,8 +3,10 @@ import numpy as np
 
 from scipy.spatial.transform import Rotation
 
+import const
 
-EI_SCALE_FACTOR = 1.0
+
+EI_SCALE_FACTOR = const.MODELS_SCALE_FACTOR
 
 
 def vec3sum(v1, v2):
@@ -450,8 +452,14 @@ def get_z_in_triangle(x, y, p1, p2, p3):
     return -(A * x + B * y + D) / C
 
 
+def to_positive_zero(v):
+    if v is -0.0 or v == 0.0:
+        return 0.0
+    return v
+
+
 def quantize_coefs(coefs, quant_size=0.5):
-    return [round(round(c / quant_size, 0) * quant_size, 1) for c in coefs]
+    return [to_positive_zero(round(round(c / quant_size, 0) * quant_size, 1)) for c in coefs]
 
 
 def sqrt_dist(dx, dy):

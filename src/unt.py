@@ -3,6 +3,7 @@ import random
 
 from kivy.graphics.transformation import Matrix  # @UnresolvedImport
 
+import const
 import mth
 
 
@@ -48,11 +49,11 @@ class Unit(object):
             self.speed += self.acceleration
         # if self.speed > self.max_speed:
         #     self.speed = self.max_speed
-        self.direction += 1.0
+        # self.direction += 1.0
         if self.direction > 360.0:
             # self.direction = random.randint(0, 360)
-            self.max_speed = float(random.randint(1, 50)) / 1000.0
-            self.acceleration = float(random.randint(1, 5)) / 1000.0
+            # self.max_speed = float(random.randint(1, 50)) / 1000.0
+            # self.acceleration = float(random.randint(1, 5)) / 1000.0
             self.direction -= 360.0
         self.rotate_vertical.angle = self.direction + 90
         self.shift_w += self.speed * math.cos(math.radians(self.direction))
@@ -78,7 +79,7 @@ class Unit(object):
         e_correction = 0
         if self.root_mesh_center:
             e_correction = self.root_mesh_center[0][2]
-        shift_vector = scene.coords_map2xyz(self.w, self.h, self.shift_w, self.shift_h, elevation_correction=e_correction)
+        shift_vector = scene.coords_map2xyz(self.w, self.h, self.shift_w, self.shift_h) # , elevation_correction=e_correction)
         self.translate_shift.xyz = shift_vector
         if w_diff != 0 or h_diff != 0:
             # if _Debug:

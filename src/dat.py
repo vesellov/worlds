@@ -7,6 +7,7 @@ from kivy.core.image import Image
 from kivy.cache import Cache
 from kivy.resources import resource_find
 
+import const
 import res
 import mth
 
@@ -374,17 +375,14 @@ class LandData(object):
         h is from 0 to 100
         result is from -water_level*underwater_factor to 100^height_exponent
         """
-        self.INPUT_WATER_LEVEL = 20
-        self.ELEVATION_UNPACK_EXPONENT = 2.0
-        self.ELEVATION_UNPACK_UNDERWATER_FACTOR = 40.0
-        if h > self.INPUT_WATER_LEVEL:
-            return pow(h - 18, self.ELEVATION_UNPACK_EXPONENT)
+        if h > const.INPUT_WATER_LEVEL:
+            return pow(h - 18, const.ELEVATION_UNPACK_EXPONENT)
         if h <= 0:
-            return -1 * (self.INPUT_WATER_LEVEL - 1) * self.ELEVATION_UNPACK_UNDERWATER_FACTOR
-        return (float(h - self.INPUT_WATER_LEVEL) / h) * float(self.ELEVATION_UNPACK_UNDERWATER_FACTOR)
+            return -1 * (const.INPUT_WATER_LEVEL - 1) * const.ELEVATION_UNPACK_UNDERWATER_FACTOR
+        return (float(h - const.INPUT_WATER_LEVEL) / float(h)) * float(const.ELEVATION_UNPACK_UNDERWATER_FACTOR)
 
     def load_heightmap_file(self, heightmap_file_name):
-        e_min_unpacked = self.elevation_unpack(0)
+        e_min_unpacked = self.elevation_unpack(1)
         e_max_unpacked = self.elevation_unpack(100)
         unpacked_delta = e_max_unpacked - e_min_unpacked
         im = Image(heightmap_file_name, keep_data=True)
@@ -394,7 +392,7 @@ class LandData(object):
             for h in range(self.height):
                 e = float(im.read_pixel(w, h)[0]) * 255.0
                 e_unpacked = self.elevation_unpack(e)
-                e_scaled = (float(e_unpacked - e_min_unpacked) / unpacked_delta )
+                e_scaled = (float(e_unpacked - e_min_unpacked) / unpacked_delta)
                 self.elevation_map_data[(w, h)] = e_scaled
         return self.width, self.height
 

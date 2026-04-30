@@ -1664,6 +1664,7 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
     lst = sorted(os.listdir(src_dir))
     pairs = set()
     triples = set()
+    errors = []
     for tile_file_name in lst:
         if not tile_file_name.endswith('.png'):
             continue
@@ -2105,7 +2106,7 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                         q2 = (tile_sample1, tile_sample3, tile_sample1, tile_sample2)
 
                 except Exception as exc:
-                    print(f'Error merging tile_sample1={tile_sample1} tile_sample2={tile_sample2} tile_sample3={tile_sample3} for tile {tile_id} with side {tile_side}: {exc}')
+                    errors.append(f'Error merging tile_sample1={tile_sample1} tile_sample2={tile_sample2} tile_sample3={tile_sample3} for tile {tile_id} with side {tile_side}: {exc}')
                     continue
                 quadruples.add(q1)
                 quadruples.add(q2)
@@ -2122,6 +2123,7 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                 count += 1
                 print(f'    saved merged fragment to {merged_tile_name}')
     print(f'processed {count} 3-types tiles')
+    print(f'found {len(errors)} errors during merging:\n' + '\n'.join(errors))
     print(f'missing {len(missing)} pairs for merging: {list(sorted(missing))}')
     print(f'merged {len(quadruples)} quadruples')
     # for q in sorted(quadruples):
@@ -2211,7 +2213,12 @@ def unpack_textures(dest_dir):
 
 
 def pack_tiles(src_dir, dest_dir):
-    catalog_ids_sorted = json.loads(open('assets/catalog_stats.json').read())
+    if os.path.exists('assets/catalog_stats.json'):
+        catalog_stats = json.loads(open('assets/catalog_stats.json').read())
+        catalog_ids_sorted = sorted(catalog_stats.keys(), key=lambda k: catalog_stats[k], reverse=True)
+    else:
+        catalog = json.loads(open('assets/catalog.json').read())
+        catalog_ids_sorted = sorted(catalog.keys())
     tiles = []
     images = {}
     lst = sorted(os.listdir(src_dir))
@@ -2230,7 +2237,7 @@ def pack_tiles(src_dir, dest_dir):
     current_mozaic_id = 0
     registry = []
     for catalog_id in catalog_ids_sorted:
-        tile_name = f'{catalog_id:05d}'
+        tile_name = f'{int(catalog_id):05d}'
         tile_image = images[tile_name]
         if not current_mozaic_image:
             current_mozaic_image = Image.new("RGB", (TILE_SIZE * 8, TILE_SIZE * 8), "black")

@@ -20,6 +20,7 @@ from kivy.graphics.instructions import InstructionGroup  # @UnresolvedImport
 from kivy.graphics.context_instructions import Transform  # @UnresolvedImport
 
 
+import const
 import res
 import mth
 import dat
@@ -37,35 +38,7 @@ _NextMeshID = 0
 
 class Scene(object):
 
-    SEGMENT_SIZE = 5.0
-    PLANET_EQUATOR_SEGMENTS = 360
-    PLANET_EQUATOR_LENGTH = SEGMENT_SIZE * PLANET_EQUATOR_SEGMENTS
-    PLANET_RADIUS = PLANET_EQUATOR_LENGTH / (2.0 * math.pi)
-    SEGMENT_ANGLE = 360.0 / PLANET_EQUATOR_SEGMENTS
-    SEGMENT_ANGLE_HALF = SEGMENT_ANGLE / 2.0
-    SEGMENT_ANGLE_HALF_RADIANS = math.radians(SEGMENT_ANGLE_HALF)
-    SEGMENT_HALF_SIN = math.sin(SEGMENT_ANGLE_HALF_RADIANS)
-    SEGMENT_HALF_COS = math.cos(SEGMENT_ANGLE_HALF_RADIANS)
-    SEGMENT_ANGLE_RADIANS = math.radians(SEGMENT_ANGLE/math.sqrt(2.0))
-    SEGMENT_SIN = math.sin(SEGMENT_ANGLE_RADIANS)
-    SEGMENT_COS = math.cos(SEGMENT_ANGLE_RADIANS)
-    PI_4_SIN = math.sin(math.pi / 4.0)
-    PI_4_COS = math.cos(math.pi / 4.0)
-    ELEVATION_FACTOR = PLANET_RADIUS * 0.2
-    ELEVATION_CORRECTION = 2.0
-    INPUT_WATER_LEVEL = 20
-    ELEVATION_UNPACK_EXPONENT = 2.1
-    ELEVATION_UNPACK_UNDERWATER_FACTOR = 40.0
-    WATER_LEVEL = 11
-    WATER_LEVEL_ELEVATION = PLANET_RADIUS + (WATER_LEVEL / 100.0) * ELEVATION_FACTOR
-    VISIBLE_AREA_SIZE_SEGMENTS = 36
-    VISIBLE_AREA_SIZE_SEGMENTS_HALF = int(VISIBLE_AREA_SIZE_SEGMENTS / 2.0)
-    MODELS_SCALE_FACTOR = 1.0
-    LAND_MOVE_SPEED = 0.5
-    LAND_ROTATE_SPEED = 1.0
-
     def __init__(self, land):
-        mth.EI_SCALE_FACTOR = self.MODELS_SCALE_FACTOR
         self.land = land
         self.renderer = None
         self.models = {}
@@ -108,30 +81,30 @@ class Scene(object):
         self.segments_cleanup_queue = []
 
     def coords_area2angles(self, w, h):
-        angle_z = mth.w2lat_degrees(float(w), self.PLANET_EQUATOR_SEGMENTS)
-        angle_x = mth.h2lon_degrees(float(h), self.PLANET_EQUATOR_SEGMENTS)
+        angle_z = mth.w2lat_degrees(float(w), const.PLANET_EQUATOR_SEGMENTS)
+        angle_x = mth.h2lon_degrees(float(h), const.PLANET_EQUATOR_SEGMENTS)
         return angle_x, angle_z
 
     def coords_map2xyz(self, map_w, map_h, shift_w, shift_h, elevation_correction=None):
         e, _, _ = self.calculate_elevation(map_w, map_h, shift_w, shift_h)
-        c = e * self.SEGMENT_SIN
+        c = e * const.SEGMENT_SIN
         e_correction = 0
         if elevation_correction is not None:
             e_correction = elevation_correction
         return (
-            c * self.PI_4_SIN * ((0.5 - shift_w) * 2.0),
+            c * const.PI_4_SIN * ((0.5 - shift_w) * 2.0),
             e - e_correction,
-            c * self.PI_4_COS * ((shift_h - 0.5) * 2.0),
+            c * const.PI_4_COS * ((shift_h - 0.5) * 2.0),
         )
 
     def create_container(self):
         self.container = InstructionGroup()
 
     def init_scene(self, map_center_w, map_center_h):
-        for _w in range(-self.VISIBLE_AREA_SIZE_SEGMENTS_HALF, self.VISIBLE_AREA_SIZE_SEGMENTS_HALF):
-            for _h in range(-self.VISIBLE_AREA_SIZE_SEGMENTS_HALF, self.VISIBLE_AREA_SIZE_SEGMENTS_HALF):
+        for _w in range(-const.VISIBLE_AREA_SIZE_SEGMENTS_HALF, const.VISIBLE_AREA_SIZE_SEGMENTS_HALF):
+            for _h in range(-const.VISIBLE_AREA_SIZE_SEGMENTS_HALF, const.VISIBLE_AREA_SIZE_SEGMENTS_HALF):
                 dist = int(math.sqrt(_w * _w + _h * _h))
-                if dist < self.VISIBLE_AREA_SIZE_SEGMENTS_HALF:
+                if dist < const.VISIBLE_AREA_SIZE_SEGMENTS_HALF:
                     self.visible_area_mask[(_w, _h)] = dist
         if QUADRO_SEGMENTS:
             self.area_center_w = int(map_center_w / 2)
@@ -148,7 +121,7 @@ class Scene(object):
             elevation_at_center = self.land.get_elevation(w * 2, h * 2)
         else:
             elevation_at_center = self.land.get_elevation(w, h)
-        planet_shift_y = self.PLANET_RADIUS + elevation_at_center * self.ELEVATION_FACTOR + self.ELEVATION_CORRECTION
+        planet_shift_y = const.PLANET_RADIUS + elevation_at_center * const.ELEVATION_FACTOR + const.ELEVATION_CORRECTION
         self.global_translate_before = Translate(0, -planet_shift_y, 0, group='land')
         self.global_translate_after = Translate(0, planet_shift_y, 0, group='land')
         self.global_rotate_x = Rotate(camera_shift_angle_x, 1, 0, 0, group='land')
@@ -192,19 +165,19 @@ class Scene(object):
             if (w_t, h_t) not in self.water_tiles_visible:
                 segment_angle_x, segment_angle_z = self.coords_area2angles(_w, _h)
                 water_segment_group_name = f'w_{w_t}_{h_t}'
-                ew = self.WATER_LEVEL_ELEVATION #  + (8.0 / 255.0 ) * self.ELEVATION_FACTOR
-                y00 = ew * self.SEGMENT_COS
-                y01 = ew * self.SEGMENT_COS
-                y10 = ew * self.SEGMENT_COS
-                y11 = ew * self.SEGMENT_COS
-                c00 = ew * self.SEGMENT_SIN
-                c01 = ew * self.SEGMENT_SIN
-                c10 = ew * self.SEGMENT_SIN
-                c11 = ew * self.SEGMENT_SIN
-                v00 = (c00 * self.PI_4_SIN, y00, -c00 * self.PI_4_COS)
-                v01 = (c01 * self.PI_4_COS, y01, c01 * self.PI_4_SIN)
-                v10 = (-c10 * self.PI_4_COS, y10, -c10 * self.PI_4_SIN)
-                v11 = (-c11 * self.PI_4_SIN, y11, c11 * self.PI_4_COS)
+                ew = const.WATER_LEVEL_ELEVATION #  + (8.0 / 255.0 ) * self.ELEVATION_FACTOR
+                y00 = ew * const.SEGMENT_COS
+                y01 = ew * const.SEGMENT_COS
+                y10 = ew * const.SEGMENT_COS
+                y11 = ew * const.SEGMENT_COS
+                c00 = ew * const.SEGMENT_SIN
+                c01 = ew * const.SEGMENT_SIN
+                c10 = ew * const.SEGMENT_SIN
+                c11 = ew * const.SEGMENT_SIN
+                v00 = (c00 * const.PI_4_SIN, y00, -c00 * const.PI_4_COS)
+                v01 = (c01 * const.PI_4_COS, y01, c01 * const.PI_4_SIN)
+                v10 = (-c10 * const.PI_4_COS, y10, -c10 * const.PI_4_SIN)
+                v11 = (-c11 * const.PI_4_SIN, y11, c11 * const.PI_4_COS)
                 water_vertices = [
                     v00[0], v00[1], v00[2], 1, 0, 0, 0.0, 0.0,
                     v01[0], v01[1], v01[2], 1, 0, 0, 0.0, 1.0,
@@ -240,20 +213,20 @@ class Scene(object):
 
     def get_segment_elevation(self, map_w, map_h):
         if QUADRO_SEGMENTS:
-            e00 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2,     map_h * 2    ) * self.ELEVATION_FACTOR
-            e01 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2,     map_h * 2 + 1) * self.ELEVATION_FACTOR
-            e02 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2,     map_h * 2 + 2) * self.ELEVATION_FACTOR
-            e10 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 1, map_h * 2    ) * self.ELEVATION_FACTOR
-            e11 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 1, map_h * 2 + 1) * self.ELEVATION_FACTOR
-            e12 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 1, map_h * 2 + 2) * self.ELEVATION_FACTOR
-            e20 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 2, map_h * 2    ) * self.ELEVATION_FACTOR
-            e21 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 2, map_h * 2 + 1) * self.ELEVATION_FACTOR
-            e22 = self.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 2, map_h * 2 + 2) * self.ELEVATION_FACTOR
+            e00 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2,     map_h * 2    ) * const.ELEVATION_FACTOR
+            e01 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2,     map_h * 2 + 1) * const.ELEVATION_FACTOR
+            e02 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2,     map_h * 2 + 2) * const.ELEVATION_FACTOR
+            e10 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 1, map_h * 2    ) * const.ELEVATION_FACTOR
+            e11 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 1, map_h * 2 + 1) * const.ELEVATION_FACTOR
+            e12 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 1, map_h * 2 + 2) * const.ELEVATION_FACTOR
+            e20 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 2, map_h * 2    ) * const.ELEVATION_FACTOR
+            e21 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 2, map_h * 2 + 1) * const.ELEVATION_FACTOR
+            e22 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 2, map_h * 2 + 2) * const.ELEVATION_FACTOR
             return e00, e01, e02, e10, e11, e12, e20, e21, e22
-        e00 = self.PLANET_RADIUS + self.land.get_elevation(map_w, map_h) * self.ELEVATION_FACTOR
-        e01 = self.PLANET_RADIUS + self.land.get_elevation(map_w, map_h + 1) * self.ELEVATION_FACTOR
-        e10 = self.PLANET_RADIUS + self.land.get_elevation(map_w + 1, map_h) * self.ELEVATION_FACTOR
-        e11 = self.PLANET_RADIUS + self.land.get_elevation(map_w + 1, map_h + 1) * self.ELEVATION_FACTOR
+        e00 = const.PLANET_RADIUS + self.land.get_elevation(map_w, map_h) * const.ELEVATION_FACTOR
+        e01 = const.PLANET_RADIUS + self.land.get_elevation(map_w, map_h + 1) * const.ELEVATION_FACTOR
+        e10 = const.PLANET_RADIUS + self.land.get_elevation(map_w + 1, map_h) * const.ELEVATION_FACTOR
+        e11 = const.PLANET_RADIUS + self.land.get_elevation(map_w + 1, map_h + 1) * const.ELEVATION_FACTOR
         return e00, e01, e10, e11
 
     def calculate_unpacked_elevation(self, h):
@@ -261,18 +234,18 @@ class Scene(object):
         h is from 0 to 100
         result is from -water_level*underwater_factor to 100^height_exponent
         """
-        if h > self.INPUT_WATER_LEVEL:
-            return pow(h - 18, self.ELEVATION_UNPACK_EXPONENT)
+        if h > const.INPUT_WATER_LEVEL:
+            return pow(h - 18, const.ELEVATION_UNPACK_EXPONENT)
         if h <= 0:
-            return -1 * (self.INPUT_WATER_LEVEL - 1) * self.ELEVATION_UNPACK_UNDERWATER_FACTOR
-        return (float(h - self.INPUT_WATER_LEVEL) / h) * float(self.ELEVATION_UNPACK_UNDERWATER_FACTOR)
+            return -1 * (const.INPUT_WATER_LEVEL - 1) * const.ELEVATION_UNPACK_UNDERWATER_FACTOR
+        return (float(h - const.INPUT_WATER_LEVEL) / h) * float(const.ELEVATION_UNPACK_UNDERWATER_FACTOR)
 
     def calculate_elevation(self, w_i, h_i, shift_w, shift_h):
         if QUADRO_SEGMENTS:
             e00, e01, e02, e10, e11, e12, e20, e21, e22 = self.get_segment_elevation(w_i, h_i)
             e_min = min(e00, e01, e02, e10, e11, e12, e20, e21, e22)
             e_max = max(e00, e01, e02, e10, e11, e12, e20, e21, e22)
-            a2 = self.SEGMENT_ANGLE
+            a2 = const.SEGMENT_ANGLE
             a1 = a2 / 2.0
             w_f = shift_w * a2
             h_f = shift_h * a2
@@ -311,7 +284,7 @@ class Scene(object):
         e00, e01, e10, e11 = self.get_segment_elevation(w_i, h_i)
         e_min = min(e00, e01, e10, e11)
         e_max = max(e00, e01, e10, e11)
-        a = self.SEGMENT_ANGLE
+        a = const.SEGMENT_ANGLE
         p00 = (0, 0, e00)
         p01 = (0, a, e01)
         p10 = (a, 0, e10)
@@ -332,33 +305,33 @@ class Scene(object):
                     e00, e01, e02, e10, e11, e12, e20, e21, e22 = self.get_segment_elevation(w, h)
                     e_min = min(e00, e01, e02, e10, e11, e12, e20, e21, e22)
                     e_max = max(e00, e01, e02, e10, e11, e12, e20, e21, e22)
-                    y00 = e00 * self.SEGMENT_COS
-                    y01 = e01 * self.SEGMENT_COS
-                    y02 = e02 * self.SEGMENT_COS
-                    y10 = e10 * self.SEGMENT_COS
-                    y11 = e11 * self.SEGMENT_COS
-                    y12 = e12 * self.SEGMENT_COS
-                    y20 = e20 * self.SEGMENT_COS
-                    y21 = e21 * self.SEGMENT_COS
-                    y22 = e22 * self.SEGMENT_COS
-                    c00 = e00 * self.SEGMENT_SIN
-                    c01 = e01 * self.SEGMENT_SIN
-                    c02 = e02 * self.SEGMENT_SIN
-                    c10 = e10 * self.SEGMENT_SIN
-                    c11 = e11 * self.SEGMENT_SIN
-                    c12 = e12 * self.SEGMENT_SIN
-                    c20 = e20 * self.SEGMENT_SIN
-                    c21 = e21 * self.SEGMENT_SIN
-                    c22 = e22 * self.SEGMENT_SIN
-                    v00 = ( c00 * self.PI_4_SIN,  y00,  -c00 * self.PI_4_COS)
-                    v01 = ( c01 * self.PI_4_COS,  y01,   c01 * 0)
-                    v02 = ( c02 * self.PI_4_COS,  y02,   c02 * self.PI_4_SIN)
-                    v10 = ( c10 * 0,              y10,  -c10 * self.PI_4_COS)
+                    y00 = e00 * const.SEGMENT_COS
+                    y01 = e01 * const.SEGMENT_COS
+                    y02 = e02 * const.SEGMENT_COS
+                    y10 = e10 * const.SEGMENT_COS
+                    y11 = e11 * const.SEGMENT_COS
+                    y12 = e12 * const.SEGMENT_COS
+                    y20 = e20 * const.SEGMENT_COS
+                    y21 = e21 * const.SEGMENT_COS
+                    y22 = e22 * const.SEGMENT_COS
+                    c00 = e00 * const.SEGMENT_SIN
+                    c01 = e01 * const.SEGMENT_SIN
+                    c02 = e02 * const.SEGMENT_SIN
+                    c10 = e10 * const.SEGMENT_SIN
+                    c11 = e11 * const.SEGMENT_SIN
+                    c12 = e12 * const.SEGMENT_SIN
+                    c20 = e20 * const.SEGMENT_SIN
+                    c21 = e21 * const.SEGMENT_SIN
+                    c22 = e22 * const.SEGMENT_SIN
+                    v00 = ( c00 * const.PI_4_SIN,  y00,  -c00 * const.PI_4_COS)
+                    v01 = ( c01 * const.PI_4_COS,  y01,   c01 * 0)
+                    v02 = ( c02 * const.PI_4_COS,  y02,   c02 * const.PI_4_SIN)
+                    v10 = ( c10 * 0,              y10,  -c10 * const.PI_4_COS)
                     v11 = ( c11 * 0,              y11,   c11 * 0)
-                    v12 = ( c12 * 0,              y12,   c12 * self.PI_4_SIN)
-                    v20 = (-c20 * self.PI_4_COS,  y20,  -c20 * self.PI_4_SIN)
-                    v21 = (-c21 * self.PI_4_COS,  y21,   c21 * 0)
-                    v22 = (-c22 * self.PI_4_SIN,  y22,   c22 * self.PI_4_COS)
+                    v12 = ( c12 * 0,              y12,   c12 * const.PI_4_SIN)
+                    v20 = (-c20 * const.PI_4_COS,  y20,  -c20 * const.PI_4_SIN)
+                    v21 = (-c21 * const.PI_4_COS,  y21,   c21 * 0)
+                    v22 = (-c22 * const.PI_4_SIN,  y22,   c22 * const.PI_4_COS)
                     self.land_vertices[(w, h)] = (v00, v01, v02, v10, v11, v12, v20, v21, v22, e_min, e_max)
             t2 = time.time()
             if _Debug:
@@ -368,18 +341,18 @@ class Scene(object):
             e00, e01, e10, e11 = self.get_segment_elevation(w, h)
             e_min = min(e00, e01, e10, e11)
             e_max = max(e00, e01, e10, e11)
-            y00 = e00 * self.SEGMENT_COS
-            y01 = e01 * self.SEGMENT_COS
-            y10 = e10 * self.SEGMENT_COS
-            y11 = e11 * self.SEGMENT_COS
-            c00 = e00 * self.SEGMENT_SIN
-            c01 = e01 * self.SEGMENT_SIN
-            c10 = e10 * self.SEGMENT_SIN
-            c11 = e11 * self.SEGMENT_SIN
-            v00 = (c00 * self.PI_4_SIN, y00, -c00 * self.PI_4_COS)
-            v01 = (c01 * self.PI_4_COS, y01, c01 * self.PI_4_SIN)
-            v10 = (-c10 * self.PI_4_COS, y10, -c10 * self.PI_4_SIN)
-            v11 = (-c11 * self.PI_4_SIN, y11, c11 * self.PI_4_COS)
+            y00 = e00 * const.SEGMENT_COS
+            y01 = e01 * const.SEGMENT_COS
+            y10 = e10 * const.SEGMENT_COS
+            y11 = e11 * const.SEGMENT_COS
+            c00 = e00 * const.SEGMENT_SIN
+            c01 = e01 * const.SEGMENT_SIN
+            c10 = e10 * const.SEGMENT_SIN
+            c11 = e11 * const.SEGMENT_SIN
+            v00 = (c00 * const.PI_4_SIN, y00, -c00 * const.PI_4_COS)
+            v01 = (c01 * const.PI_4_COS, y01, c01 * const.PI_4_SIN)
+            v10 = (-c10 * const.PI_4_COS, y10, -c10 * const.PI_4_SIN)
+            v11 = (-c11 * const.PI_4_SIN, y11, c11 * const.PI_4_COS)
             self.land_vertices[(w, h)] = (v00, v01, v10, v11, e_min, e_max)
         t2 = time.time()
         if _Debug:
@@ -472,8 +445,9 @@ class Scene(object):
         mesh.max = fig_data[11]
         mesh.radius = fig_data[12]
         self.meshes[name] = mesh
-        # if _Debug:
-        #     print(f'  prepared mesh {name} with {idx} faces and texture {texture_filename}')
+        if _Debug:
+            print(f'  prepared mesh {name} with {idx} faces texture:{texture} coefs:{coefs}')
+            # center:{mesh.center} min:{mesh.min} max:{mesh.max} radius:{mesh.radius} 
         return mesh
 
     def create_object_data_from_model_data(self, template, coefs=[0, 0, 0], selected_parts=[], excluded_parts=[], selected_animations=None, textures=None):
@@ -772,12 +746,12 @@ class Scene(object):
         self.area_center_w = w_i
         self.area_center_h = h_i
         e, _, _ = self.calculate_elevation(self.area_center_w, self.area_center_h, self.segment_shift_w, self.segment_shift_h)
-        if e < self.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * self.ELEVATION_FACTOR:
-            e = self.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * self.ELEVATION_FACTOR
+        if e < const.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * const.ELEVATION_FACTOR:
+            e = const.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * const.ELEVATION_FACTOR
         # e = self.PLANET_RADIUS + 0.5 * self.ELEVATION_FACTOR
         # if _Debug:
         #     print(f'  map from {w0},{h0} shift:{w0shift},{h0shift} to {w_i},{h_i} with e:{e} new shift is {self.segment_shift_w},{self.segment_shift_h}')
-        planet_shift_y = e + self.ELEVATION_CORRECTION # self.PLANET_RADIUS + e * self.ELEVATION_FACTOR
+        planet_shift_y = e + const.ELEVATION_CORRECTION # self.PLANET_RADIUS + e * self.ELEVATION_FACTOR
         self.global_translate_before.y = -planet_shift_y
         self.global_translate_after.y = planet_shift_y
         self.global_water_translate_before.y = -planet_shift_y
@@ -1024,7 +998,7 @@ class Scene(object):
                 plant_variant = None
                 static_object_name = None
                 plant_key = plant['k']
-                e_plant_correction = None
+                e_plant_correction = 0
                 if plant_key in self.land.plants_variants:
                     plant_variant = self.land.plants_variants[plant_key]
                     if plant_variant['so']:
@@ -1050,7 +1024,7 @@ class Scene(object):
                     so = self.static_objects[static_object_name]
                     e_plant_correction = so.root_mesh_center[0][2]
                 self.land.plants_map_data[(wn, hn)][i]['so'] = static_object_name
-                shift_vector = self.coords_map2xyz(w_t, h_t, plant['sw'], plant['sh'], elevation_correction=e_correction+e_plant_correction)
+                shift_vector = self.coords_map2xyz(w_t, h_t, plant['sw'], plant['sh']) # , elevation_correction=e_correction+e_plant_correction)
                 unit = self.construct_unit_from_object_data(
                     container=self.container_static_objects,
                     object_name=static_object_name,
@@ -1097,20 +1071,20 @@ class Scene(object):
         require_update = False
         if shift_h != 0:
             if shift_h > 0:
-                if self.area_center_h + self.VISIBLE_AREA_SIZE_SEGMENTS_HALF + 1 < self.map_height:
+                if self.area_center_h + const.VISIBLE_AREA_SIZE_SEGMENTS_HALF + 1 < self.map_height:
                     self.segment_shift_h = self.segment_shift_h + shift_h
                     require_update = True
             else:
-                if self.area_center_h - self.VISIBLE_AREA_SIZE_SEGMENTS_HALF > 0:
+                if self.area_center_h - const.VISIBLE_AREA_SIZE_SEGMENTS_HALF > 0:
                     self.segment_shift_h = self.segment_shift_h + shift_h
                     require_update = True
         if shift_w != 0:
             if shift_w > 0:
-                if self.area_center_w + self.VISIBLE_AREA_SIZE_SEGMENTS_HALF + 1 < self.map_width:
+                if self.area_center_w + const.VISIBLE_AREA_SIZE_SEGMENTS_HALF + 1 < self.map_width:
                     self.segment_shift_w = self.segment_shift_w + shift_w
                     require_update = True
             else:
-                if self.area_center_w - self.VISIBLE_AREA_SIZE_SEGMENTS_HALF > 0:
+                if self.area_center_w - const.VISIBLE_AREA_SIZE_SEGMENTS_HALF > 0:
                     self.segment_shift_w = self.segment_shift_w + shift_w
                     require_update = True
         if require_update:
@@ -1134,9 +1108,9 @@ class Scene(object):
         area_h = map_h - int(self.area_center_h)
         e_correction = 0
         if ao.root_mesh_center:
-            e_correction = ao.root_mesh_center[0][2]
+            e_correction = ao.root_mesh_center[0][2] * const.MODELS_SCALE_FACTOR
         segment_angle_x, segment_angle_z = self.coords_area2angles(area_w, area_h)
-        shift_vector = self.coords_map2xyz(map_w, map_h, shift_w, shift_h, elevation_correction=e_correction)
+        shift_vector = self.coords_map2xyz(map_w, map_h, shift_w, shift_h) # , elevation_correction=e_correction)
         unit = self.construct_unit_from_object_data(
             container=self.container_animated_objects,
             object_name=ao.name,
@@ -1156,6 +1130,8 @@ class Scene(object):
         )
         if unit.animations_list:
             unit.animation_playing = unit.animations_list[0]
+        if _Debug:
+            print(f'  new animated unit {unit.name} from template {template} at {map_w},{map_h} shift:{shift_w},{shift_h} direction:{direction} coefs:{coefs}')
         return unit
 
     def on_camera_rotate(self, camera_angle_y, camera_angle_z):

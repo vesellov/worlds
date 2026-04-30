@@ -9,6 +9,10 @@ data/*.res
 assets/catalog_stats.json
 assets/tiles_original.png
 assets/cell_index.png
+assets/heightmap_packed.png
+assets/heightmap_raw.png
+assets/rivers.png
+assets/routes.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
