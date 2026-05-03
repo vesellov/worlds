@@ -37,8 +37,9 @@ class AppRoot(App):
         # self.test_id = sorted(self.known_templates.keys()).index
         # scene.init_scene(117, 835)
         # scene.init_scene(500, 550)
-        scene.init_scene(383,533)
+        # scene.init_scene(831,383)
         # scene.init_scene(97, 681)
+        scene.init_scene()
         return renderer
 
 

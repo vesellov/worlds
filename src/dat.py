@@ -425,33 +425,39 @@ class LandData(object):
             print(f'  cached {count} textures at {self.tiles_textures_dir_path} for land tiles')
 
     def load_plants_data(self, plants_data_file_name):
-        plants_list = json.loads(open(plants_data_file_name, 'rt').read())
-        for plant_coded in plants_list:
-            variant, w, h, direction = plant_coded.split(' ')
-            w = float(w)
-            h = float(h)
-            template, texture, c1, c2, c3 = variant.split(':')
-            plant = {}
-            plant['k'] = variant
-            plant['m'] = template
-            plant['t'] = texture
-            plant['c'] = mth.quantize_coefs([float(c1), float(c2), float(c3)])
-            if variant not in self.plants_variants:
-                variant = dict(plant)
-                variant['so'] = None
-                self.plants_variants[plant['k']] = variant
-            int_w = int(float(w))
-            int_h = int(float(h))
-            shift_w = float(w) - float(int_w)
-            shift_h = float(h) - float(int_h)
-            plant['w'] = int_w
-            plant['h'] = int_h
-            plant['sw'] = shift_w
-            plant['sh'] = shift_h
-            plant['d'] = direction
-            if (int_w, int_h) not in self.plants_map_data:
-                self.plants_map_data[(int_w, int_h)] = []
-            self.plants_map_data[(int_w, int_h)].append(plant)
+        plants_data = json.loads(open(plants_data_file_name, 'rt').read())
+        for plant_key in plants_data.keys():
+            template, texture, parts = plant_key.split('#')
+            plants_list = plants_data[plant_key]
+            for plant_coded in plants_list:
+                coefs, w, h, direction, plant_biome, plant_kind = plant_coded.split(' ')
+                w = float(w)
+                h = float(h)
+                c1, c2, c3 = coefs.split(':')
+                coefs_q = mth.quantize_coefs([float(c1), float(c2), float(c3)])
+                coefs_str = ':'.join([str(c) for c in coefs_q])
+                plant_variant_key = f'{template}#{texture}#{parts}#{coefs_str}'
+                plant = {}
+                plant['k'] = plant_variant_key
+                plant['m'] = template
+                plant['t'] = texture
+                plant['c'] = coefs_q
+                if plant_variant_key not in self.plants_variants:
+                    variant = dict(plant)
+                    variant['so'] = None
+                    self.plants_variants[plant_variant_key] = variant
+                int_w = int(float(w))
+                int_h = int(float(h))
+                shift_w = float(w) - float(int_w)
+                shift_h = float(h) - float(int_h)
+                plant['w'] = int_w
+                plant['h'] = int_h
+                plant['sw'] = shift_w
+                plant['sh'] = shift_h
+                plant['d'] = direction
+                if (int_w, int_h) not in self.plants_map_data:
+                    self.plants_map_data[(int_w, int_h)] = []
+                self.plants_map_data[(int_w, int_h)].append(plant)
 
     def save_elevation_memmap(self, file_name_prefix, destination_dir):
         file_path = os.path.join(destination_dir, f'{file_name_prefix}.{self.width}.{self.height}.memmap')

@@ -2344,6 +2344,14 @@ def copy_matched_tiles(maps_dir, dest_dir):
             break
 
 
+def flip_image(image_file_path):
+    image = Image.open(image_file_path)
+    image.load()
+    flipped_image = image.transpose(Transpose.FLIP_TOP_BOTTOM)
+    flipped_image.save(image_file_path)
+    print(f'Flipped image {image_file_path} vertically')
+
+
 def main():
     stage = sys.argv[1]
     if stage == 'split_tiles' or stage == 'stage1':
@@ -2386,6 +2394,8 @@ def main():
         match_tiles(sys.argv[2], sys.argv[3])
     elif stage == 'copy_matched_tiles':
         copy_matched_tiles(sys.argv[2], sys.argv[3])
+    elif stage == 'flip_png':
+        flip_image(sys.argv[2])
 
 
 if __name__ == '__main__':

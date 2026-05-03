@@ -190,7 +190,7 @@ class Renderer(Widget):
             shift_h=0.5,
             direction=0, # random.randint(0, 360),
             textures={'*': template_data['t'].lower()},
-            coefs=template_data['c'][self.this_template_variant_coefs_index],
+            coefs=[float(c) for c in (template_data['c'].split(' ')[self.this_template_variant_coefs_index]).split(':')],
         )
         unit.max_speed = 0 # random.randint(1, 50) / 1000.0
         unit.acceleration = 0 # random.randint(1, 5) / 1000.0
@@ -289,8 +289,9 @@ class Renderer(Widget):
                 self.this_template_name = sorted(self.app_root.known_templates.keys())[0]
             else:
                 current_index = sorted(self.app_root.known_templates.keys()).index(self.this_template_name)
-                if current_index > 0:
-                    current_index -= 1
+                current_index -= 1
+                if current_index < 0:
+                    current_index = len(self.app_root.known_templates) - 1
                 self.this_template_name = sorted(self.app_root.known_templates.keys())[current_index]
             self.this_template_variant_index = 0
             self.this_template_variant_coefs_index = 0
@@ -342,7 +343,7 @@ class Renderer(Widget):
             else:
                 self.this_template_variant_coefs_index += 1
             template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
-            if self.this_template_variant_coefs_index >= len(template_data['c']):
+            if self.this_template_variant_coefs_index >= len(template_data['c'].split(' ')):
                 self.this_template_variant_coefs_index = 0
             self._show_unit(template_data)
         elif keycode[1] == 'h':

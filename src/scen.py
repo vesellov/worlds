@@ -100,7 +100,11 @@ class Scene(object):
     def create_container(self):
         self.container = InstructionGroup()
 
-    def init_scene(self, map_center_w, map_center_h):
+    def init_scene(self, map_center_w=None, map_center_h=None):
+        if map_center_w is None:
+            map_center_w = int(self.map_width / 2)
+        if map_center_h is None:
+            map_center_h = int(self.map_height / 2)
         for _w in range(-const.VISIBLE_AREA_SIZE_SEGMENTS_HALF, const.VISIBLE_AREA_SIZE_SEGMENTS_HALF):
             for _h in range(-const.VISIBLE_AREA_SIZE_SEGMENTS_HALF, const.VISIBLE_AREA_SIZE_SEGMENTS_HALF):
                 dist = int(math.sqrt(_w * _w + _h * _h))
@@ -117,10 +121,11 @@ class Scene(object):
         w = int(self.area_center_w)
         h = int(self.area_center_h)
         camera_shift_angle_x, camera_shift_angle_z = self.coords_area2angles(0.5-self.segment_shift_w, 0.5-self.segment_shift_h)
-        if QUADRO_SEGMENTS:
-            elevation_at_center = self.land.get_elevation(w * 2, h * 2)
-        else:
-            elevation_at_center = self.land.get_elevation(w, h)
+        # if QUADRO_SEGMENTS:
+        #     elevation_at_center = self.land.get_elevation(w * 2, h * 2)
+        # else:
+        #     elevation_at_center = self.land.get_elevation(w, h)
+        elevation_at_center = 0.25
         planet_shift_y = const.PLANET_RADIUS + elevation_at_center * const.ELEVATION_FACTOR + const.ELEVATION_CORRECTION
         self.global_translate_before = Translate(0, -planet_shift_y, 0, group='land')
         self.global_translate_after = Translate(0, planet_shift_y, 0, group='land')
@@ -745,10 +750,10 @@ class Scene(object):
             hd = h_i - h0
         self.area_center_w = w_i
         self.area_center_h = h_i
-        e, _, _ = self.calculate_elevation(self.area_center_w, self.area_center_h, self.segment_shift_w, self.segment_shift_h)
-        if e < const.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * const.ELEVATION_FACTOR:
-            e = const.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * const.ELEVATION_FACTOR
-        # e = self.PLANET_RADIUS + 0.5 * self.ELEVATION_FACTOR
+        # e, _, _ = self.calculate_elevation(self.area_center_w, self.area_center_h, self.segment_shift_w, self.segment_shift_h)
+        # if e < const.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * const.ELEVATION_FACTOR:
+        #     e = const.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * const.ELEVATION_FACTOR
+        e = const.PLANET_RADIUS + 0.25 * const.ELEVATION_FACTOR
         # if _Debug:
         #     print(f'  map from {w0},{h0} shift:{w0shift},{h0shift} to {w_i},{h_i} with e:{e} new shift is {self.segment_shift_w},{self.segment_shift_h}')
         planet_shift_y = e + const.ELEVATION_CORRECTION # self.PLANET_RADIUS + e * self.ELEVATION_FACTOR
@@ -997,10 +1002,10 @@ class Scene(object):
                 plant = plants_list[i]
                 plant_variant = None
                 static_object_name = None
-                plant_key = plant['k']
+                plant_variant_key = plant['k']
                 e_plant_correction = 0
-                if plant_key in self.land.plants_variants:
-                    plant_variant = self.land.plants_variants[plant_key]
+                if plant_variant_key in self.land.plants_variants:
+                    plant_variant = self.land.plants_variants[plant_variant_key]
                     if plant_variant['so']:
                         static_object_name = plant_variant['so']
                 if not static_object_name:
@@ -1010,15 +1015,20 @@ class Scene(object):
                         textures={'*': plant_variant['t']},
                     )
                     static_object_name = so.name
-                    if plant_key not in self.land.plants_variants:
+                    if plant_variant_key not in self.land.plants_variants:
                         variant = dict(plant)
                         variant.pop('x', None)
                         variant.pop('y', None)
+                        variant.pop('w', None)
+                        variant.pop('h', None)
+                        variant.pop('sw', None)
+                        variant.pop('sh', None)
+                        variant.pop('d', None)
                         variant['so'] = static_object_name
-                        self.land.plants_variants[plant_key] = variant
+                        self.land.plants_variants[plant_variant_key] = variant
                     else:
-                        if not self.land.plants_variants[plant_key]['so']:
-                            self.land.plants_variants[plant_key]['so'] = static_object_name
+                        if not self.land.plants_variants[plant_variant_key]['so']:
+                            self.land.plants_variants[plant_variant_key]['so'] = static_object_name
                     e_plant_correction = so.root_mesh_center[0][2]
                 else:
                     so = self.static_objects[static_object_name]
