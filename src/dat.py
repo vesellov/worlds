@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import traceback
 import numpy as np
 
 from kivy.core.image import Image
@@ -191,12 +192,12 @@ class ModelData(object):
         self.bones = {}
         self.animations = {}
 
-    def scan_figure_data(self, figures_res_file_path):
+    def scan_figures_data(self, figures_res_file_path):
         items = {}
         with open(figures_res_file_path, 'rb') as figures_file:
             res_filetree_dict = res.read_res_filetree(figures_file, return_dict=True)
             for k in res_filetree_dict.keys():
-                ext = k[-4:]
+                ext = k[-4:].lower().replace('.', '')
                 if ext not in items:
                     items[ext] = []
                 items[ext].append(k[:-4])
@@ -208,7 +209,7 @@ class ModelData(object):
         with open(texture_res_file_path, 'rb') as texture_file:
             res_filetree_dict = res.read_res_filetree(texture_file, return_dict=True)
             for k in res_filetree_dict.keys():
-                if k.endswith('.mmp') and k[:-4].lower() == name.lower():
+                if k.lower().endswith('.mmp') and k[:-4].lower() == name.lower():
                     mmp_file_path = os.path.join(destination_dir, name.lower() + '.mmp')
                     png_file_path = os.path.join(destination_dir, name.lower() + '.png')
                     res.unpack_res_element(texture_file, res_filetree_dict[k], dest_file_name=mmp_file_path)
@@ -219,6 +220,43 @@ class ModelData(object):
                         print(f'unpacked texture {name} to {png_file_path}')
                     return png_file_path
         return None
+
+    def load_figure_data(self, figure_dir_path, template):
+        lnk_file_path = os.path.join(figure_dir_path, template + '.lnk')
+        if not os.path.isfile(lnk_file_path):
+            return None
+        lnk_list, lnk_tree, lnk_parents, _ = res.read_lnk_info(lnk_file_path)
+        self.links[template] = {
+            'ordered': lnk_list,
+            'tree': lnk_tree,
+            'parents': lnk_parents,
+        }
+        anm_count = 0
+        for file_name in os.listdir(figure_dir_path):
+            file_name = file_name.lower()
+            if file_name.endswith('.fig'):
+                fig_file_path = os.path.join(figure_dir_path, file_name)
+                try:
+                    fig_info = res.read_fig_info(fig_file_path)
+                except Exception as exc:
+                    if _Debug:
+                        print(f'error reading figure file {fig_file_path}: {exc}')
+                    continue
+                self.figures[file_name[:-4]] = fig_info
+                continue
+            if file_name.endswith('.bon'):
+                bon_file_path = os.path.join(figure_dir_path, file_name)
+                self.bones[file_name[:-4]] = res.read_bon_info(bon_file_path)
+            sub_path = os.path.join(figure_dir_path, file_name)
+            if os.path.isdir(sub_path):
+                for sub_file_name in os.listdir(sub_path):
+                    sub_file_name = sub_file_name.lower()
+                    if sub_file_name.endswith('.anm'):
+                        anm_file_path = os.path.join(sub_path, sub_file_name)
+                        self.animations[file_name][sub_file_name[:-4]] = res.read_anm_info(anm_file_path)
+                        anm_count += 1
+        if _Debug:
+            print(f'for model {{{template}}} loaded {len(self.links)} links, {len(self.figures)} figures, {len(self.bones)} bones and {anm_count} animations')
 
     def unpack_figure_data(self, figures_res_file_path, destination_dir, template, selected_parts=[], selected_animations=[], save_json=False):
         destination_sub_dir = os.path.join(destination_dir, template)
@@ -236,12 +274,18 @@ class ModelData(object):
                 mod_filetree = res.unpack_mod_info(mod_file_name, destination_dir=destination_sub_dir)
                 for mod_element in mod_filetree:
                     el = mod_element[0][:-4]
-                    if mod_element[0].endswith('.fig'):
+                    if mod_element[0].lower().endswith('.fig'):
                         if not selected_parts or el in selected_parts:
                             fig_file_name = os.path.join(destination_sub_dir, mod_element[0])
-                            self.figures[mod_element[0][:-4]] = res.read_fig_info(fig_file_name)
+                            try:
+                                fig_info = res.read_fig_info(fig_file_name)
+                            except Exception as exc:
+                                if _Debug:
+                                    print(f'error reading figure file {fig_file_name}: {exc}')
+                                continue
+                            self.figures[mod_element[0][:-4]] = fig_info
                             fig_count += 1
-                    elif mod_element[0].endswith('.lnk'):
+                    elif mod_element[0].lower().endswith('.lnk'):
                         lnk_file_name = os.path.join(destination_sub_dir, mod_element[0])
                         lnk_list, lnk_tree, lnk_parents, _ = res.read_lnk_info(lnk_file_name)
                         lnk_count += 1
@@ -312,6 +356,7 @@ class LandData(object):
         self.tiles_files = {}
         self.plants_map_data = {}
         self.plants_variants = {}
+        self.buildings_map_data = {}
 
     def load_tilemap_file(self, tilemap_file_name):
         tiles_list = json.loads(open('assets/tiles.json', 'rt').read())
@@ -430,7 +475,7 @@ class LandData(object):
             template, texture, parts = plant_key.split('#')
             plants_list = plants_data[plant_key]
             for plant_coded in plants_list:
-                coefs, w, h, direction, plant_biome, plant_kind = plant_coded.split(' ')
+                coefs, w, h, direction, plant_name, plant_template = plant_coded.split(' ')
                 w = float(w)
                 h = float(h)
                 c1, c2, c3 = coefs.split(':')
@@ -454,10 +499,19 @@ class LandData(object):
                 plant['h'] = int_h
                 plant['sw'] = shift_w
                 plant['sh'] = shift_h
-                plant['d'] = direction
+                plant['d'] = float(direction)
                 if (int_w, int_h) not in self.plants_map_data:
                     self.plants_map_data[(int_w, int_h)] = []
                 self.plants_map_data[(int_w, int_h)].append(plant)
+
+    def load_buildings_data(self, buildings_data_file_name):
+        buildings_data = json.loads(open(buildings_data_file_name, 'rt').read())
+        for building_info in buildings_data:
+            x = int(building_info['x'])
+            y = int(building_info['y'])
+            if (x, y) not in self.buildings_map_data:
+                self.buildings_map_data[(x, y)] = []
+            self.buildings_map_data[(x, y)].append(building_info)
 
     def save_elevation_memmap(self, file_name_prefix, destination_dir):
         file_path = os.path.join(destination_dir, f'{file_name_prefix}.{self.width}.{self.height}.memmap')
@@ -498,22 +552,22 @@ def main():
     cmd = sys.argv[1]
     if cmd == 'list_models':
         md = ModelData()
-        st = md.scan_figure_data(sys.argv[2])
+        st = md.scan_figures_data(sys.argv[2])
         print('\n'.join(sorted(st['mod'])))
     elif cmd == 'list_figures':
         md = ModelData()
-        st = md.scan_figure_data()
+        st = md.scan_figures_data(sys.argv[2])
         print('\n'.join(sorted(st['fig'])))
     elif cmd == 'unpack_models':
         md = ModelData()
-        st = md.scan_figure_data(sys.argv[2])
+        st = md.scan_figures_data(sys.argv[2])
         lst = sorted(st['mod'])
         for m in lst:
             print(f'loading {m}')
             try:
                 md.unpack_figure_data(sys.argv[2], destination_dir='models', template=m)
-            except:
-                pass
+            except Exception as exc:
+                print(m, traceback.format_exc())
             
 
 if __name__ == '__main__':

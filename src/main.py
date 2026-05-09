@@ -28,6 +28,7 @@ class AppRoot(App):
         land.load_tilemap_file(tilemap_file_name='assets/encoded.png')
         land.load_cache_tiles_textures(textures_dir_path='assets/land')
         land.load_plants_data(plants_data_file_name='assets/plants.json')
+        land.load_buildings_data(buildings_data_file_name='assets/buildings.json')
         scene = scen.Scene(land=land)
         scene.calculate_land_vertices()
         scene.calculate_scaled_elevation_map()
@@ -38,8 +39,8 @@ class AppRoot(App):
         # scene.init_scene(117, 835)
         # scene.init_scene(500, 550)
         # scene.init_scene(831,383)
-        # scene.init_scene(97, 681)
-        scene.init_scene()
+        scene.init_scene(369,313)
+        # scene.init_scene()
         return renderer
 
 

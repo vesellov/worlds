@@ -313,7 +313,8 @@ def trilinear(val, coefs=[0, 0, 0]):
     # Bilinear interpolation by dex
     v2 = t1 + (t2 - t1) * coefs[0]
     # Trilinear interpolation by height
-    return v1 + (v2 - v1) * coefs[2]
+    ret = v1 + (v2 - v1) * coefs[2]
+    return ret
 
 
 def latlon2xyz(latitude_radians, longitude_radians, radius=1.0):

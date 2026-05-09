@@ -8,7 +8,7 @@ test.describe('map layers', () => {
       localStorage.clear()
       sessionStorage.clear()
     })
-    await page.goto('/?seed=4&&width=1024&height=1024')
+    await page.goto('/?width=1024&height=1024&options=default')  // &&seed=1
     await page.waitForFunction(() => (window as any).mapId !== undefined, { timeout: 60000 })
     await page.waitForTimeout(500)
   })
@@ -18,9 +18,9 @@ test.describe('map layers', () => {
     await page.click('#optionsTab')
 
     const culturesOutput = page.locator('#culturesOutput')
-    await page.locator('#culturesOutput').fill('2')
+    await page.locator('#culturesOutput').fill('3')
     const status = await page.evaluate(async () => {
-      document.getElementById('statesNumber').children.item(1).value = "4";
+      document.getElementById('statesNumber').children.item(1).value = "6";
       document.getElementById('lock_statesNumber').setAttribute('data-locked','1');
     })
 

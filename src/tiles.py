@@ -8,7 +8,7 @@ import pprint
 
 import numpy as np
 import imagehash
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 from PIL.Image import Transpose
 from skimage.metrics import structural_similarity  # @UnresolvedImport
 
@@ -2350,6 +2350,24 @@ def flip_image(image_file_path):
     flipped_image = image.transpose(Transpose.FLIP_TOP_BOTTOM)
     flipped_image.save(image_file_path)
     print(f'Flipped image {image_file_path} vertically')
+
+
+def transform_image(image_file_path):
+    image = Image.open(image_file_path)
+    image.load()
+    dest_image = Image.new("RGB", (image.width, image.height), (0, 0, 0))
+    dest_draw = ImageDraw.Draw(dest_image)
+    source_color = (255, 255, 255)
+    dest_color = (0, 0, 0)
+    # for x in range(image.width):
+    #     for y in range(image.height):
+    #         r, g, b = image.getpixel((x, y))
+    #         # Example transformation: invert colors
+    #         new_r = 255 - r
+    #         new_g = 255 - g
+    #         new_b = 255 - b
+    #         dest_draw.point((x, y), (new_r, new_g, new_b))
+    print(f'Transformed image {image_file_path}')
 
 
 def main():

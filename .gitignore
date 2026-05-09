@@ -5,6 +5,7 @@ models/
 textures/
 data/*.res
 fmg/
+repack/
 
 # Generated during map creation
 assets/catalog_stats.json

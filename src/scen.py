@@ -54,6 +54,7 @@ class Scene(object):
         self.container_static_objects = None
         self.container_animated_objects = None
         self.container_water_tiles = None
+        self.containers_land_tiles = {}
         self.global_translate_before = None
         self.global_translate_after = None
         self.global_rotate_x = None
@@ -121,11 +122,11 @@ class Scene(object):
         w = int(self.area_center_w)
         h = int(self.area_center_h)
         camera_shift_angle_x, camera_shift_angle_z = self.coords_area2angles(0.5-self.segment_shift_w, 0.5-self.segment_shift_h)
-        # if QUADRO_SEGMENTS:
-        #     elevation_at_center = self.land.get_elevation(w * 2, h * 2)
-        # else:
-        #     elevation_at_center = self.land.get_elevation(w, h)
-        elevation_at_center = 0.25
+        if QUADRO_SEGMENTS:
+            elevation_at_center = self.land.get_elevation(w * 2, h * 2)
+        else:
+            elevation_at_center = self.land.get_elevation(w, h)
+        # elevation_at_center = 0.25
         planet_shift_y = const.PLANET_RADIUS + elevation_at_center * const.ELEVATION_FACTOR + const.ELEVATION_CORRECTION
         self.global_translate_before = Translate(0, -planet_shift_y, 0, group='land')
         self.global_translate_after = Translate(0, planet_shift_y, 0, group='land')
@@ -378,7 +379,7 @@ class Scene(object):
     def add_model_template(self, template, model):
         self.models[template] = model
 
-    def create_mesh_from_fig_data(self, fig_data, prefix='', texture=None, coefs=[0, 0, 0]):
+    def create_mesh_from_fig_data(self, fig_data, prefix='', texture=None, coefs=[0, 0, 0], scale=[1.0, 1.0, 1.0]):
         """
         fig_data fields list:
             0:"blocks",
@@ -415,9 +416,9 @@ class Scene(object):
         for i in range(fig_data[1]):
             for j in range(4):
                 vert_buf.append(mth.ei2xyz_list([
-                    mth.trilinear([fig_data[13][i][0][k][j] for k in range(8)], coefs),
-                    mth.trilinear([fig_data[13][i][1][k][j] for k in range(8)], coefs),
-                    mth.trilinear([fig_data[13][i][2][k][j] for k in range(8)], coefs),
+                    mth.trilinear([fig_data[13][i][0][k][j] for k in range(8)], coefs) * scale[0],
+                    mth.trilinear([fig_data[13][i][1][k][j] for k in range(8)], coefs) * scale[1],
+                    mth.trilinear([fig_data[13][i][2][k][j] for k in range(8)], coefs) * scale[2],
                 ]))
         for i in range(fig_data[2]):
             for j in range(4):
@@ -455,14 +456,25 @@ class Scene(object):
             # center:{mesh.center} min:{mesh.min} max:{mesh.max} radius:{mesh.radius} 
         return mesh
 
-    def create_object_data_from_model_data(self, template, coefs=[0, 0, 0], selected_parts=[], excluded_parts=[], selected_animations=None, textures=None):
+    def create_object_data_from_model_data(self, template, coefs=[0, 0, 0], scale=[1.0, 1.0, 1.0], selected_parts=[], excluded_parts=[], selected_animations=None, textures=None):
         global _NextObjectID
         _NextObjectID += 1
         if textures is None:
             textures = {'*': 'default0'}
+        if template == 'jbuho00':
+            textures['towerbroken01'] = 'jigrantower00'
         if template not in self.models:
             m = dat.ModelData()
-            m.unpack_figure_data('data/figures.res', 'models', template=template)
+            if os.path.isdir('models/' + template):
+                try:
+                    m.load_figure_data('models/' + template, template)
+                except Exception as e:
+                    print(f'    error loading template {template} : {e}')
+                    return None
+            else:
+                if _Debug:
+                    print(f'    loading template {template} from data/figures.res and unpacking into models/')
+                m.unpack_figure_data('data/figures.res', 'models', template=template)
             for texture in textures.values():
                 tex_file_path = 'textures/model/' + texture + '.png'
                 if not os.path.isfile(tex_file_path):
@@ -474,7 +486,7 @@ class Scene(object):
                         _tex = Image(tex_file_path_source).texture
                         Cache.append('kv.texture', tex_file_path, _tex)
                         if _Debug:
-                            print(f'  cached texture {texture} at {tex_file_path} for model {template}')
+                            print(f'    cached texture {texture} at {tex_file_path} for model {template}')
             self.add_model_template(template, m)
         m = self.models[template]
         static = False if selected_animations else True
@@ -501,12 +513,14 @@ class Scene(object):
         #     print(f'about to prepare unit ({ao.name}) with {len(selected_parts)} parts and {len(ao.animations_loaded)} animations from model {{{template}}}')
         # t1 = time.time()
         for part_name in selected_parts:
+            if part_name == 'mainobj':
+                part_name = 'main obj'
             o.parts.append(part_name)
             part_info = m.bones[part_name]
             o.bones[part_name] = mth.ei2xyz_list([
-                mth.trilinear([part_info[i][0] for i in range(8)], coefs),
-                mth.trilinear([part_info[i][1] for i in range(8)], coefs),
-                mth.trilinear([part_info[i][2] for i in range(8)], coefs),
+                mth.trilinear([part_info[i][0] for i in range(8)], coefs) * scale[0],
+                mth.trilinear([part_info[i][1] for i in range(8)], coefs) * scale[1],
+                mth.trilinear([part_info[i][2] for i in range(8)], coefs) * scale[2],
             ])
             mesh_key = self.mesh_key(o.template, part_name, coefs)
             if mesh_key in self.meshes_index:
@@ -519,6 +533,7 @@ class Scene(object):
                     prefix=o.template + '_' + part_name,
                     texture=o.textures[part_name] if part_name in o.textures else o.textures['*'],
                     coefs=coefs,
+                    scale=scale,
                 )
                 mesh.object_name = o.name
                 mesh.object_part_name = part_name
@@ -750,10 +765,10 @@ class Scene(object):
             hd = h_i - h0
         self.area_center_w = w_i
         self.area_center_h = h_i
-        # e, _, _ = self.calculate_elevation(self.area_center_w, self.area_center_h, self.segment_shift_w, self.segment_shift_h)
-        # if e < const.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * const.ELEVATION_FACTOR:
-        #     e = const.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * const.ELEVATION_FACTOR
-        e = const.PLANET_RADIUS + 0.25 * const.ELEVATION_FACTOR
+        e, _, _ = self.calculate_elevation(self.area_center_w, self.area_center_h, self.segment_shift_w, self.segment_shift_h)
+        if e < const.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * const.ELEVATION_FACTOR:
+            e = const.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * const.ELEVATION_FACTOR
+        # e = const.PLANET_RADIUS + 0.25 * const.ELEVATION_FACTOR
         # if _Debug:
         #     print(f'  map from {w0},{h0} shift:{w0shift},{h0shift} to {w_i},{h_i} with e:{e} new shift is {self.segment_shift_w},{self.segment_shift_h}')
         planet_shift_y = e + const.ELEVATION_CORRECTION # self.PLANET_RADIUS + e * self.ELEVATION_FACTOR
@@ -932,16 +947,21 @@ class Scene(object):
         # e_correction = (e_max - e_min) * 0.05
         segment_group_name = f'l_{map_w}_{map_h}'
         segment_angle_x, segment_angle_z = self.coords_area2angles(w, h)
+        container_land_tile = InstructionGroup(group=segment_group_name)
         segment_rotate_x = Rotate(segment_angle_x, 1, 0, 0, group=segment_group_name)
         segment_rotate_z = Rotate(segment_angle_z, 0, 0, 1, group=segment_group_name)
-        self.container_land_tiles.add(PushMatrix(group=segment_group_name))
-        self.container_land_tiles.add(segment_rotate_x)
-        self.container_land_tiles.add(segment_rotate_z)
+        container_land_tile.add(PushMatrix(group=segment_group_name))
+        container_land_tile.add(segment_rotate_x)
+        container_land_tile.add(segment_rotate_z)
+        # self.container_land_tiles.add(PushMatrix(group=segment_group_name))
+        # self.container_land_tiles.add(segment_rotate_x)
+        # self.container_land_tiles.add(segment_rotate_z)
         # if _Debug:
         #     if map_w == self.area_center_w and map_h == self.area_center_h:
         #         tex_source = None
         segment_state = ChangeState(material_density=0.0, group=segment_group_name)
-        self.container_land_tiles.add(segment_state)
+        # self.container_land_tiles.add(segment_state)
+        container_land_tile.add(segment_state)
         if QUADRO_SEGMENTS:
             self.container_land_tiles.add(BindTexture(source=tex00_file_path, index=1, group=segment_group_name))
             self.container_land_tiles.add(Mesh(
@@ -976,8 +996,10 @@ class Scene(object):
                 group=segment_group_name,
             ))
         else:
-            self.container_land_tiles.add(BindTexture(source=tex_file_path, index=1, group=segment_group_name))
-            self.container_land_tiles.add(Mesh(
+            container_land_tile.add(BindTexture(source=tex_file_path, index=1, group=segment_group_name))
+            # self.container_land_tiles.add(BindTexture(source=tex_file_path, index=1, group=segment_group_name))
+            container_land_tile.add(Mesh(
+            # self.container_land_tiles.add(Mesh(
                 vertices=vert,
                 indices=[0, 1, 2, 1, 3, 2],
                 fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
@@ -997,6 +1019,39 @@ class Scene(object):
                 (w_t, h_t),
             ]
         for wn, hn in plant_segments:
+            building_list = self.land.buildings_map_data.get((wn, hn), [])
+            for i in range(len(building_list)):
+                building = building_list[i]
+                coefs = mth.quantize_coefs([float(c) for c in building['c'].split(':')])
+                scale = ([float(s) for s in building['s'].split(':')])
+                model_name = building['m']
+                textures = {'*': building['t']}
+                building_so = self.create_object_data_from_model_data(
+                    template=model_name,
+                    coefs=coefs,
+                    scale=scale,
+                    textures=textures,
+                )
+                shift_vector = self.coords_map2xyz(w_t, h_t, 0.5, 0.5)
+                building_unit = self.construct_unit_from_object_data(
+                    container=self.container_static_objects,
+                    object_name=building_so.name,
+                    angle_coords=(
+                        segment_angle_x,
+                        segment_angle_z,
+                    ),
+                    shift_vector=shift_vector,
+                    direction=building['d'],
+                    static=True,
+                    onstage=True,
+                    w=map_w,
+                    h=map_h,
+                    shift_w=0.5,
+                    shift_h=0.5,
+                    area_w=area_w,
+                    area_h=area_h,
+                )
+                static_units_at_segment.append(building_unit.name)
             plants_list = self.land.plants_map_data.get((wn, hn), [])
             for i in range(len(plants_list)):
                 plant = plants_list[i]
@@ -1043,7 +1098,7 @@ class Scene(object):
                         segment_angle_z,
                     ),
                     shift_vector=shift_vector,
-                    direction=random.randint(0, 360),
+                    direction=plant['d'],
                     static=True,
                     onstage=True,
                     w=map_w,
@@ -1054,6 +1109,13 @@ class Scene(object):
                     area_h=area_h,
                 )
                 static_units_at_segment.append(unit.name)
+        container_land_tile.add(ChangeState(material_density=0.0, group=segment_group_name))
+        container_land_tile.add(PopMatrix(group=segment_group_name))
+        self.containers_land_tiles[(w_t, h_t)] = container_land_tile
+        self.container_land_tiles.add(self.containers_land_tiles[(w_t, h_t)])
+        # self.container_land_tiles.add(ChangeState(material_density=0.0, group=segment_group_name))
+        # self.container_land_tiles.add(PopMatrix(group=segment_group_name))
+        self.land_tiles_visible[(w_t, h_t)] = [area_w, area_h, segment_rotate_x, segment_rotate_z, static_units_at_segment, segment_state]
         for unit in self.units.values():
             if unit.static:
                 continue
@@ -1061,18 +1123,19 @@ class Scene(object):
                 continue
             if int(unit.w) == w_t and int(unit.h) == h_t:
                 self.show_unit(container=self.container_animated_objects, unit_name=unit.name)
-        self.container_land_tiles.add(ChangeState(material_density=0.0, group=segment_group_name))
-        self.container_land_tiles.add(PopMatrix(group=segment_group_name))
-        self.land_tiles_visible[(w_t, h_t)] = [area_w, area_h, segment_rotate_x, segment_rotate_z, static_units_at_segment, segment_state]
         # if _Debug:
         #     print(f'     added land segment at w:{map_w} h:{map_h} area_w:{area_w} area_h:{area_h} e_min:{e_min} with {len(static_units_at_segment)} static units')
 
     def remove_land_segment(self, w_t, h_t):
-        segment_group_name = f'l_{w_t}_{h_t}'
+        # segment_group_name = f'l_{w_t}_{h_t}'
         _, _, _, _, static_units_at_segment, _ = self.land_tiles_visible[(w_t, h_t)]
         for static_unit_name in static_units_at_segment:
             self.remove_unit_from_stage(container=self.container_static_objects, unit_name=static_unit_name)
-        self.container_land_tiles.remove_group(segment_group_name)
+        container_land_tile = self.containers_land_tiles.get((w_t, h_t))
+        if container_land_tile:
+            self.container_land_tiles.remove(container_land_tile)
+            self.containers_land_tiles.pop((w_t, h_t))
+        # self.container_land_tiles.remove_group(segment_group_name)
         # water_segment_group_name = f'w_{w_t}_{h_t}'
         # self.container_water_tiles.remove_group(water_segment_group_name)
         self.land_tiles_visible.pop((w_t, h_t))
@@ -1105,13 +1168,28 @@ class Scene(object):
         shift_h = math.sin(math.radians(direction_angle - 90)) * distance
         self.land_shift(shift_w, shift_h)
 
-    def place_animated_unit_on_land(self, template, map_w, map_h, shift_w=0.5, shift_h=0.5, direction=0, textures=None, coefs=[0, 0, 0]):
+    def place_animated_unit_on_land(
+            self,
+            template,
+            map_w, map_h, shift_w=0.5, shift_h=0.5, direction=0,
+            selected_parts=[],
+            excluded_parts=[],
+            selected_animations=None,
+            textures=None,
+            coefs=[0, 0, 0],
+            scale=[1.0, 1.0, 1.0],
+        ):
         ao = self.create_object_data_from_model_data(
             template=template,
-            coefs=coefs,
-            selected_animations='*',
+            selected_parts=selected_parts,
+            excluded_parts=excluded_parts,
+            selected_animations=selected_animations,
             textures=textures,
+            coefs=coefs,
+            scale=scale,
         )
+        if not ao:
+            return None
         map_w = int(map_w)
         map_h = int(map_h)
         area_w = map_w - int(self.area_center_w) 

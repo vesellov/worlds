@@ -10,7 +10,6 @@ import numpy as np
 
 import mth
 
-
 min_x = 0
 min_y = 0
 input_width = 0
@@ -25,13 +24,13 @@ max_elevation = 0
 # elevation_data = {}
 
 
-GLOBAL_SCALE = 0.25
+GLOBAL_SCALE = 0.5
 INPUT_WATER_LEVEL = 20  # 20 is the water level in the input heightmap, 100 is the input max height
 # ELEVATION_UNPACK_EXPONENT = 2.1
 # ELEVATION_UNPACK_UNDERWATER_FACTOR = 80.0
 CLIFFS_HEIGHT_MARGIN = 60
 CLIFFS_HEIGHT_DROP = 10
-TRANSFORM_CYCLES = 20
+TRANSFORM_CYCLES = 25
 RIVERS_MAX_ELEVATION_LEVEL = 3
 LAKES_MAX_ELEVATION_LEVEL = 2
 ROUTES_MIN_ELEVATION_LEVEL = 23
@@ -126,80 +125,68 @@ biomes_mapping = {
     # https://en.wikipedia.org/wiki/Marines
     'Marine':                       [('water5', 1.0), ],
     # https://en.wikipedia.org/wiki/Desert_climate#Hot_desert_climates
-    'Hot desert':                   [('mud2', 0.25), ('sand1', 0.75), ('sand2', 1.0), ],
+    'Hot desert':                   [('mud2', 1.0), ],  # [('mud2', 0.25), ('sand1', 0.75), ('sand2', 1.0), ],
     # https://en.wikipedia.org/wiki/Desert_climate#Cold_desert_climates
-    'Cold desert':                  [('snow3', 0.1), ('dust1', 0.4), ('dirt1', 0.7), ('dirt2', 1.0), ],
+    'Cold desert':                  [('dust1', 1.0), ],  # [('snow3', 0.1), ('dust1', 0.4), ('dirt1', 0.7), ('dirt2', 1.0), ],
     # https://en.wikipedia.org/wiki/Savanna
-    'Savanna':                      [('soil3', 0.5), ('dust1', 0.75), ('dirt2', 1.0),],
+    'Savanna':                      [('soil6', 1.0), ],  # [('soil3', 0.5), ('dust1', 0.75), ('dirt2', 1.0),],
     # https://en.wikipedia.org/wiki/Grassland
-    'Grassland':                    [('soil3', 0.3), ('soil5', 0.6), ('grass2', 1.0), ],
+    'Grassland':                    [('grass3', 1.0), ],  # [('soil3', 0.3), ('soil5', 0.6), ('grass2', 1.0), ],
     # https://en.wikipedia.org/wiki/Seasonal_tropical_forest
-    'Tropical seasonal forest':     [('soil5', 0.5), ('grass2', 1.0), ],
+    'Tropical seasonal forest':     [('soil5', 1.0), ],  #  [('soil5', 0.5), ('grass2', 1.0), ],
     # https://en.wikipedia.org/wiki/Temperate_deciduous_forest
-    'Temperate deciduous forest':   [('soil4', 0.5), ('grass1', 1.0), ],
+    'Temperate deciduous forest':   [('soil4', 1.0), ],  # [('soil4', 0.5), ('grass1', 1.0), ],
     # https://en.wikipedia.org/wiki/Tropical_rainforest
-    'Tropical rainforest':          [('grass3', 0.5), ('grass2', 1.0), ],
+    'Tropical rainforest':          [('dirt2', 1.0), ],  #  [('grass3', 0.5), ('grass2', 1.0), ],
     # https://en.wikipedia.org/wiki/Temperate_rainforest
-    'Temperate rainforest':         [('grass1', 0.5), ('grass2', 1.0), ],
+    'Temperate rainforest':         [('grass2', 1.0), ],  #  [('grass1', 0.5), ('grass2', 1.0), ],
     # https://en.wikipedia.org/wiki/Taiga
-    'Taiga':                        [('soil6', 0.5), ('grass2', 1.0), ],
+    'Taiga':                        [('grass1', 1.0), ], # [('grass1', 0.5), ('grass2', 1.0), ],
     # https://en.wikipedia.org/wiki/Tundra
-    'Tundra':                       [('soil3', 0.3), ('dirt1', 0.6),  ('dirt2', 1.0), ],
+    'Tundra':                       [('soil3', 1.0), ],  # [('soil3', 0.3), ('dirt1', 0.6),  ('dirt2', 1.0), ],
     # https://en.wikipedia.org/wiki/Glacier
     'Glacier':                      [('snow3', 1.0), ],
     # https://en.wikipedia.org/wiki/Wetland
-    'Wetland':                      [('grass2', 0.5), ('sand4', 1.0), ],                                    
+    'Wetland':                      [('sand2', 1.0), ],  # [('grass2', 0.5), ('sand4', 1.0), ],                                    
 }
 
-trees_biomes_mapping = {
+plants_mapping = {
     'Marine': {},  # no trees, no plants (TODO: maybe under water plants?)
     'Hot desert': { # few bushes only
-        'mud2': [(0.25, 'hot_desert:bush'), ],
-        'sand1': [(0.25, 'hot_desert:bush'), ],
-        'sand2': [(0.25, 'hot_desert:bush'), ],
+        'mud2': [(0.2, 'desert_bush'), ],
     },
     'Cold desert': { # no trees, but plants
-        'snow3': [(0.25, 'glacier:frozen_plant'), ],
-        'dust1': [(0.25, 'glacier:frozen_plant'), ],
-        'dirt2': [(0.25, 'glacier:frozen_plant'), ],
+        'dust1': [(0.05, 'winter_bush'), (0.1, 'winter_stump'), (0.15, 'winter_spruce'), (0.2, 'winter_deadwood'), ],
     },
     'Savanna': {    # few trees, few plants
-        'soil3': [(0.1, 'savanna:tree'), (0.2, 'savanna:bush'), (0.25, 'savanna:deadwood'), ],
-        'dust1': [(0.1, 'savanna:tree'), (0.2, 'savanna:bush'), (0.25, 'savanna:deadwood'), ],
-        'dirt2': [(0.1, 'savanna:tree'), (0.2, 'savanna:bush'), (0.25, 'savanna:deadwood'), ],
-    },  
+        'soil6': [(0.1, 'autumn_tree'), (0.67, 'autumn_bush'), (0.7, 'autumn_deadwood'), ],
+    },
     'Grassland': { # few trees, but more plants
-        'soil3': [(0.2, 'grassland:tree'), (0.3, 'grassland:bush'), (0.35, 'grassland:deadwood'), (0.5, 'grassland:mushroom'), ],
-        'soil5': [(0.2, 'grassland:tree'), (0.3, 'grassland:bush'), (0.35, 'grassland:deadwood'), (0.5, 'grassland:mushroom'), ],
-        'grass2': [(0.2, 'grassland:tree'), (0.3, 'grassland:bush'), (0.35, 'grassland:deadwood'), (0.5, 'grassland:mushroom'), ],
+        'grass3': [(0.05, 'temperate_tree'), (0.6, 'temperate_bush'),  (0.67, 'generic_mushroom'), (0.7, 'temperate_deadwood'),],
     },
     'Tropical seasonal forest': {  # trees, bushes and deadwood
-        'grass2': [(0.4, 'tropical:tree'), (0.95, 'tropical:bush'), (1.0, 'tropical:deadwood'), ],
+        'soil5': [(0.7, 'temperate_tree'), (0.97, 'temperate_bush'), (1.0, 'temperate_deadwood'), ],
     },
     'Temperate deciduous forest': {  # average amount of trees
-        'soil4': [(0.2, 'temperate:tree'), (0.95, 'temperate:bush'), (1.0, 'temperate:deadwood'), ],
-        'grass1': [(0.2, 'temperate:tree'), (0.95, 'temperate:bush'), (1.0, 'temperate:deadwood'), ],
+        'soil4': [(0.7, 'temperate_tree'), (0.97, 'temperate_bush'), (1.0, 'temperate_deadwood'), ],
     },
     'Tropical rainforest': {  # most amount of trees
-        'grass2': [(0.4, 'tropical:tree'), (0.95, 'tropical:bush'), (1.0, 'tropical:deadwood'), ],
+        'grass2': [(0.4, 'temperate_tree'), (0.97, 'temperate_bush'), (1.0, 'temperate_deadwood'), ],
     },
     'Temperate rainforest': {  # average amount of trees, but more plants
-        'grass1': [(0.2, 'temperate:tree'), (0.95, 'temperate:bush'), (1.0, 'temperate:deadwood'), ],
+        'grass1': [(0.2, 'temperate_tree'), (0.97, 'temperate_bush'), (1.0, 'temperate_deadwood'), ],
     },
     'Taiga': {  # trees, bushes, deadwood, mushrooms
-        'soil6': [(0.4, 'taiga:tree'), (0.8, 'taiga:bush'), (0.95, 'taiga:mushroom'), (1.0, 'taiga:deadwood'), ],
-        'grass2': [(0.4, 'taiga:tree'), (0.8, 'taiga:bush'), (0.95, 'taiga:mushroom'), (1.0, 'taiga:deadwood'), ],
+        'grass1': [(0.4, 'temperate_tree'), (0.8, 'temperate_bush'), (0.97, 'generic_mushroom'), (1.0, 'temperate_deadwood'), ],
     },
     'Tundra': {  # few trees
-        'soil3': [(0.25, 'taiga:tree'), ],
-        'dirt1': [(0.25, 'taiga:tree'), ],
-        'dirt2': [(0.25, 'taiga:tree'), ],
-    },
-    'Wetland': {  # few trees, few plants
-        'grass2': [(0.1, 'lowland:tree'), (0.2, 'lowland:bush'), (0.25, 'lowland:deadwood'), ],
+        'soil3': [(0.25, 'temperate_tree'), ],
     },
     'Glacier': {  # few frozen plants or trees
-        'snow3': [(0.125, 'glacier:frozen_plant'), (0.125, 'glacier:frozen_tree'), ],
+        'snow3': [(0.125, 'winter_bush'), (0.125, 'winter_tree'), ],
+    },
+    'Wetland': {  # few trees, few plants
+        'sand2': [(0.1, 'temperate_tree'), (0.23, 'temperate_reed'), (0.25, 'temperate_deadwood'), ],
     },
 }
 
@@ -222,13 +209,36 @@ roads_mapping = {
 }
 
 buildings_mapping = {
-    
+    'north': {
+        'capital': 'stbuho22#quater00#null#0.0:0.0:0.0#2.0:2.0:2.0',
+        'tower': 'stbuto2#kaniantower00#null#0.0:0.3:0.5#1.0:1.0:1.0',
+    },
+    'south': {
+        'capital': 'stbuho11#tent02#null#0.5:0.5:0.8#0.5:0.5:0.5',
+        'tower': 'stwa13#hadoganwall01#null#0.9:0.1:2.0#0.25:0.5:1.5',
+    },
+    'east': {
+        'capital': 'stbuho30#jigranhouse02#null#0.0:0.0:0.0#1.0:1.0:1.0',
+        'tower': 'fireztower00#fireztower#null#0.0:0.0:0.0#0.4:0.4:0.4',
+    },
+    'undead': {
+        'capital': 'stbuho60#flyertemple00#null#0.0:0.0:0.0#0.5:0.5:0.5',
+        'tower': 'stbuho46#necrotower00#null#0.0:0.0:0.0#1.0:1.0:1.0',
+    },
+    'magic': {
+        'capital': 'stbuto1#dgunpyramid00#null#1.0:1.0:40.0#1.0:1.0:1.0',
+        'tower': 'stst114#jlion00#null#0.0:0.5:1.0#2.0:2.0:2.0',
+    },
+    'orc': {
+        'capital': 'stbuho23#headquaters00#null#0.0:0.0:0.0#2.0:2.0:2.0',
+        'tower': 'stst87#goblin00#null#0.0:0.0:0.0#15.0:15.0:15.0',
+    },
 }
 
 inner_outer_transform_before_borders_list = [
     ('soil1', 'dirt2', None),
     ('soil3', 'dirt2', None),
-    ('soil4', 'grass1', None),
+    ('soil4', 'dirt2', None),
     ('soil5', 'grass2', None),
     ('soil6', 'sand2', None),
     ('grass1', 'grass2', None),
@@ -275,6 +285,7 @@ inner_outer_transform_borders_list = [
     ('sand1', 'cliff2', 'sand2'),
     # ('snow1', 'sand2', 'snow2'),
     ('sand2', 'stone1', 'sand4'),
+    ('sand2', 'dirt6', 'sand4'),
     # ('cliff2', 'grass2', 'grass1'),
     ('snow3', 'cliff2', 'cliff1'),
     ('snow3', 'dirt2', 'cliff1'),
@@ -287,15 +298,18 @@ inner_outer_transform_borders_list = [
     ('grass1', 'sand4', 'grass2'),
     ('grass1', 'sand2', 'grass2'),
     ('grass1', 'dirt2', 'grass2'),
-    ('grass1', 'stone1', 'dirt2'),
+    # ('grass1', 'stone1', 'dirt2'),
     # ('grass1', 'cliff2', 'dirt2'),
     # ('grass2', 'cliff2', 'sand2'),
     # ('grass3', 'sand1', 'dirt2'),
     # ('grass3', 'sand2', 'dirt2'),
     # ('grass2', 'cliff2', 'grass1'),
     # ('grass2', 'stone1', 'dirt6'),
-    ('grass3', 'sand4', 'dirt2'),
+    ('grass2', 'soil4', 'dirt2'),
+    ('grass3', 'sand4', 'grass2'),
+    ('grass3', 'sand2', 'grass2'),
     ('grass3', 'dirt6', 'grass2'),
+    ('grass3', 'stone1', 'grass2'),
     ('dirt1', 'sand4', 'dirt2'),
     ('dirt2', 'dirt6', 'sand4'),
     # ('dirt4', 'dirt2', 'sand2'),
@@ -306,10 +320,11 @@ inner_outer_transform_borders_list = [
     ('soil3', 'sand2', 'dirt2'),
     ('soil3', 'sand4', 'dirt2'),
     # ('soil3', 'dirt6', 'dirt2'),
-    ('soil4', 'grass2', 'grass1'),
+    ('soil4', 'grass2', 'dirt2'),
+    ('soil4', 'sand4', 'dirt2'),
     # ('soil4', 'sand2', 'grass1'),
     # ('soil4', 'cliff2', 'grass1'),
-    ('soil4', 'dirt6', 'grass1'),
+    ('soil4', 'dirt6', 'dirt2'),
     # ('soil5', 'grass3', 'grass2'),
     ('soil5', 'sand2', 'grass2'),
     ('soil5', 'sand4', 'grass2'),
@@ -321,6 +336,7 @@ inner_outer_transform_borders_list = [
     ('soil6', 'grass2', 'sand2'),
     ('soil6', 'sand4', 'sand2'),
     ('soil6', 'cliff2', 'sand2'),
+    ('soil6', 'dirt2', 'sand2'),
     # ('mud2', 'sand4', 'sand2'),
     ('mud2', 'dirt2', 'sand2'),
     ('mud2', 'sand4', 'sand2'),
@@ -334,7 +350,7 @@ inner_outer_transform_borders_list = [
     ('water5', 'dirt2', 'sand4'),
     ('water5', 'dust1', 'dirt2'),
     ('water5', 'soil3', 'dirt2'),
-    ('water5', 'soil4', 'grass1'),
+    ('water5', 'soil4', 'dirt2'),
     ('water5', 'soil5', 'grass2'),
     ('water5', 'mud2', 'sand2'),
     ('water5', 'stone1', 'dirt6'),
@@ -354,6 +370,8 @@ inner_outer_transform_borders_list = [
     # ('water1', 'soil5', 'water5'),
     # ('water1', 'mud2', 'water5'),
     ('dirt6', 'sand2', 'sand4'),
+    ('stone1', 'grass1', 'dirt2'),
+
 ]
 
 transform_two_adjacent_diagonal_neighbors = [
@@ -462,7 +480,7 @@ def enrich_data_with_tiles_mapping(data):
     return tiles_stats
 
 
-def render_biomes(data, draw):
+def build_biomes(data, draw):
     cells = data['pack']['cells']
     vertices = data['pack']['vertices']
     biomes_colors_data = data['biomesData']['color']
@@ -480,7 +498,7 @@ def render_biomes(data, draw):
     return count
 
 
-def render_cell_index(data, draw):
+def build_cell_index(data, draw):
     cells = data['pack']['cells']
     vertices = data['pack']['vertices']
     count = 0
@@ -538,7 +556,7 @@ def capture_cell_index_data(cell_index_image):
     return cell_index_map
 
 
-def render_tiles(data, draw, tiles_colors):
+def build_tiles(data, draw, tiles_colors):
     cells = data['pack']['cells']
     vertices = data['pack']['vertices']
     count = 0
@@ -555,7 +573,7 @@ def render_tiles(data, draw, tiles_colors):
     return count
 
 
-def render_routes(data, draw, routes_draw, zonemap_draw):
+def build_routes(data, draw, routes_draw, zonemap_draw):
     cells = data['pack']['cells']
     count = 0
     for route in data['pack']['routes']:
@@ -679,7 +697,7 @@ def update_routes_elevation(heightmap_image, routes_map, min_route_elevation, ro
     return changes
 
 
-def render_rivers(data, draw, rivers_draw, zonemap_draw, max_rivers=5):
+def build_rivers(data, draw, rivers_draw, zonemap_draw, max_rivers=5):
     river_shallow_tile = 'dirt6'
     river_deep_tile = 'water5'
     cells = data['pack']['cells']
@@ -761,7 +779,7 @@ def update_rivers_elevation(heightmap_image, rivers_map, max_river_elevation):
 #     return int(float(e - min_elevation_unpacked) * 255.0 / delta)
 
 
-def render_heightmap(data, draw, packed_draw, zonemap_draw):
+def build_heightmap(data, draw, packed_draw, zonemap_draw):
     biomes_names = data['biomesData']['name']
     cells = data['pack']['cells']
     vertices = data['pack']['vertices']
@@ -813,19 +831,64 @@ def render_heightmap(data, draw, packed_draw, zonemap_draw):
     return bellow_water_count, above_cliffs_count
 
 
-def render_burgs(data, burgs_map):
-    cells = data['pack']['cells']
-    vertices = data['pack']['vertices']
+def build_capitals(data, heightmap_image):
+    # cells = data['pack']['cells']
     cultures = data['pack']['cultures']
-    # print(cultures)
+    states = data['pack']['states']
+    # grid_cells = data['grid']['cells']
+    results = []
+    races = list(sorted(buildings_mapping.keys()))
+    index = 0
     for burg in data['pack']['burgs']:
+        index += 1
         if isinstance(burg, dict):
             if burg['group'] == 'capital':
-                print('===========================')
-                print(burg['name'], cultures[burg['culture']]['name'], cells[burg['cell']]['h'], cells[burg['cell']]['t'])
-                # print(cells[burg['cell']])
-                # print(cultures[burg['culture']])
+                x, y = xy2draw(burg['x'], burg['y'])
+                x = int(round(x))
+                y = int(round(y))
+                h = heightmap_image.getpixel((x, y))[0]
+                if h < INPUT_WATER_LEVEL:
+                    h = INPUT_WATER_LEVEL
+                h += 3
+                sz = 5
+                for xn in range(x-sz, x+sz):
+                    for yn in range(y-sz, y+sz):
+                        heightmap_image.putpixel((xn, yn), (h, h, h))
+                race = races[index % len(races)]
+                buildings_possible = buildings_mapping[race]
+                model_name, texture_name, parts_list, coefs, scale = buildings_possible['capital'].split('#')
+                results.append({
+                    'n': burg['name'],
+                    'r': f"{race.capitalize()} {states[burg['state']]['name']}",
+                    'u': cultures[burg['culture']]['name'],
+                    'x': x,
+                    'y': y,
+                    'd': 0,
+                    'm': model_name,
+                    't': texture_name,
+                    'p': parts_list,
+                    'c': coefs,
+                    's': scale,
+                })
+                # model_name, texture_name, parts_list, coefs, scale = buildings_possible['tower'].split('#')
+                # results.append({
+                #     'n': burg['name'],
+                #     'r': f"{race.capitalize()} {states[burg['state']]['name']}",
+                #     'u': cultures[burg['culture']]['name'],
+                #     'x': x + 5,
+                #     'y': y,
+                #     'd': 0,
+                #     'm': model_name,
+                #     't': texture_name,
+                #     'p': parts_list,
+                #     'c': coefs,
+                #     's': scale,
+                # })
+    return results
 
+
+def build_towers(data, heightmap_image):
+    pass
 
 # def capture_elevation_data(heightmap_image):
 #     _elevation_data = {}
@@ -901,9 +964,9 @@ def build_plants(data, tiles_image, tiles_map, cell_index_map, catalog_plants, h
             cell_index = cell_index_map[(x, y)]
             cell = cells[cell_index]
             biome = biomes_names[cell['biome']]
-            if biome not in trees_biomes_mapping:
+            if biome not in plants_mapping:
                 continue
-            for tile, possible_plants in trees_biomes_mapping[biome].items():
+            for tile, possible_plants in plants_mapping[biome].items():
                 if tiles_map[(x, y)] == tile:
                     rnd = random.randint(0, 10000) / 10000.0
                     selected_plant = None
@@ -944,20 +1007,20 @@ def build_plants(data, tiles_image, tiles_map, cell_index_map, catalog_plants, h
                     if not selected_plant:
                         continue
                     try:
-                        plant_biome, plant_kind = selected_plant.split(':')
-                        plant_variants = list(catalog_plants[plant_biome][plant_kind].keys())
-                        plant_variant = random.choice(plant_variants)
-                        plant_coefs_variants = catalog_plants[plant_biome][plant_kind][plant_variant].split(' ')
+                        # plant_biome, plant_kind = selected_plant.split(':')
+                        plant_variants = list(catalog_plants[selected_plant].keys())
+                        plant_template = random.choice(plant_variants)
+                        plant_coefs_variants = catalog_plants[selected_plant][plant_template].split(' ')
                         plant_coefs = random.choice(plant_coefs_variants)
                         plant_direction = random.randint(0, 360)
                         shift_x = random.randint(25, 75) / 100.0
                         shift_y = random.randint(25, 75) / 100.0
                         plant_x = x + shift_x
                         plant_y = y + shift_y
-                        if plant_variant not in result:
-                            result[plant_variant] = []
-                        plant_info_encoded = f'{plant_coefs} {plant_x} {plant_y} {plant_direction} {plant_biome} {plant_kind}'
-                        result[plant_variant].append(plant_info_encoded)
+                        if plant_template not in result:
+                            result[plant_template] = []
+                        plant_info_encoded = f'{plant_coefs} {plant_x} {plant_y} {plant_direction} {selected_plant} {plant_template}'
+                        result[plant_template].append(plant_info_encoded)
                         # if plant_kind in ['tree', 'frozen_tree', 'deadwood', ]:
                         #     zonemap_draw.point((x, y), fill=(0, 0, 0))
                     except Exception as e:
@@ -1037,13 +1100,14 @@ def transform_neighboring_tiles_conditionally(tiles_image, tiles_map, routes_map
     progress = 1
     attempts = 0
     while progress and cycles:
-        if attempts > 0:
-            attempt_snapshot_image = Image.new("RGB", tiles_image.size, "black")
-            for x in range(tiles_image.width):
-                for y in range(tiles_image.height):
-                    tile = tiles_map[(x, y)]
-                    attempt_snapshot_image.putpixel((x, y), tiles_colors[tile])
-            attempt_snapshot_image.save(f'/tmp/attempt{attempts}.png')
+        if False:
+            if attempts > 0:
+                attempt_snapshot_image = Image.new("RGB", tiles_image.size, "black")
+                for x in range(tiles_image.width):
+                    for y in range(tiles_image.height):
+                        tile = tiles_map[(x, y)]
+                        attempt_snapshot_image.putpixel((x, y), tiles_colors[tile])
+                attempt_snapshot_image.save(f'tiles{attempts}.png')
         attempts += 1
         cycles -= 1
         progress = 0
@@ -1081,10 +1145,12 @@ def transform_neighboring_tiles_conditionally(tiles_image, tiles_map, routes_map
                         h = heightmap_image.getpixel((x, y))[0]
                         if h <= INPUT_WATER_LEVEL:
                             blocked = True
-                    if blocked or attempts > 5:
+                    if not blocked or attempts > 3:
                         tiles_map[(x, y)] = transform
                         changes += 1
                         progress += 1
+                if len(transform_list):
+                    print(f"    border line between {inner} and {outer} transform to {transform} with {len(transform_list)} changes")
             print(f"  transformed border line conditionally with {changes} changes, finished {attempts} attempt")
         if True:
             changes = 0
@@ -1156,7 +1222,7 @@ def transform_neighboring_tiles_conditionally(tiles_image, tiles_map, routes_map
                         t00 = tiles_map[(x, y)]
                         t10 = tiles_map[(x+1, y)]
                         change = None
-                        if attempts > 5:
+                        if attempts > 3:
                             change = random.randint(1, 2)
                         else:
                             for c1, c2 in transform_two_adjacent_diagonal_neighbors:
@@ -1424,7 +1490,7 @@ def encode_tiles(encoded_image, tiles, water_catalog_id):
     return catalog_stats
 
 
-def update_zonemap(zonemap_image, tiles_map, heightmap_image):
+def build_zonemap(zonemap_image, tiles_map, heightmap_image):
     h_cliff_min = None
     h_cliff_max = None
     for x in range(1, zonemap_image.width-1):
@@ -1553,7 +1619,7 @@ def main():
 
     biome_image = Image.new("RGB", (width, height), tuple(int(water_color[i:i+2], 16) for i in (0, 2, 4)))
     biome_draw = ImageDraw.Draw(biome_image)
-    biomes_count = render_biomes(data, biome_draw)
+    biomes_count = build_biomes(data, biome_draw)
     biome_image.save('assets/biome.png')
     biomes_map = capture_biomes_data(biome_image, biomes_colors)
     print(f'Rendered {biomes_count} biomes')
@@ -1563,7 +1629,7 @@ def main():
     heightmap_draw = ImageDraw.Draw(heightmap_image)
     heightmap_packed_image = Image.new("RGB", (width, height), (0, 0, 0))
     heightmap_packed_draw = ImageDraw.Draw(heightmap_packed_image)
-    bellow_water_count, above_cliffs_count = render_heightmap(data, heightmap_draw, heightmap_packed_draw, zonemap_draw)
+    bellow_water_count, above_cliffs_count = build_heightmap(data, heightmap_draw, heightmap_packed_draw, zonemap_draw)
     heightmap_packed_image.save('assets/heightmap_packed.png')
     # heightmap_image = heightmap_image.filter(ImageFilter.GaussianBlur(radius=1.0))
     # elevation_data = capture_elevation_data(heightmap_image)
@@ -1592,32 +1658,36 @@ def main():
     else:
         tiles_image = Image.new("RGB", (width, height), tiles_colors['water5'])
         tiles_draw = ImageDraw.Draw(tiles_image)
-        biomes_count = render_tiles(data, tiles_draw, tiles_colors)
+        biomes_count = build_tiles(data, tiles_draw, tiles_colors)
         print(f'Rendered {biomes_count} biomes')
 
         rivers_image = Image.new("RGB", (width, height), 'black')
         rivers_draw = ImageDraw.Draw(rivers_image)
-        rivers_count = render_rivers(data, tiles_draw, rivers_draw, zonemap_draw)
+        rivers_count = build_rivers(data, tiles_draw, rivers_draw, zonemap_draw)
         rivers_image.save('assets/rivers.png')
         print(f'Rendered {rivers_count} rivers')
 
         routes_image = Image.new("RGB", (width, height), "black")
         routes_draw = ImageDraw.Draw(routes_image)
-        routes_count = render_routes(data, tiles_draw, routes_draw, zonemap_draw)
+        routes_count = build_routes(data, tiles_draw, routes_draw, zonemap_draw)
         print(f'Rendered {routes_count} routes at {len(routes_map)} tiles')
 
         routes_image.save('assets/routes.png')
         tiles_image.save('assets/tiles_original.png')
-        
+
     routes_map = capture_routes_data(routes_image)
     print(f'Captured routes data with {len(routes_map)} tiles')
 
     rivers_map = capture_rivers_data(rivers_image)
     print(f'Captured rivers data with {len(rivers_map)} tiles')
 
+    buildings = build_capitals(data, heightmap_image)
+    open('assets/buildings.json', 'w').write(json.dumps(buildings, indent=2))
+    print(f"Rendered {len(buildings)} buildings")
+
     cell_index_image = Image.new("RGB", (width, height), "black")
     cell_index_draw = ImageDraw.Draw(cell_index_image)
-    cells_count = render_cell_index(data, cell_index_draw)
+    cells_count = build_cell_index(data, cell_index_draw)
     cell_index_image.save('assets/cell_index.png')
     cell_index_map = capture_cell_index_data(cell_index_image)
     print(f'Rendered cell index image and indexed {cells_count} cells coordinates')
@@ -1681,6 +1751,8 @@ def main():
     if missing_links:
         print(f"Found missing catalog items between different tile types:")
         print('  ' + ('\n  '.join([f'{pair[0]} - {pair[1]} at {coord[0]}:{coord[1]}' for pair, coord in missing_links.items()])))
+        heightmap_image.save('assets/heightmap_raw.png')
+        zonemap_image.save('assets/zonemap.png')
         raise Exception("Missing links detected")
 
     for x in range(0, tiles_image.width-1):
@@ -1739,12 +1811,9 @@ def main():
     open('assets/plants.json', 'w').write(json.dumps(plants, indent=2))
     print(f"Generated plants data with {len(plants)} plants")
 
-    changed = update_zonemap(zonemap_image, tiles_map, heightmap_image)
+    changed = build_zonemap(zonemap_image, tiles_map, heightmap_image)
     zonemap_image.save('assets/zonemap.png')
     print(f"Updated zonemap with {changed} changes")
-
-    burgs_map = {}
-    render_burgs(data, burgs_map)
 
     different_biomes = list(stats.keys())
     different_biomes.sort(key=lambda i: stats[i], reverse=True)

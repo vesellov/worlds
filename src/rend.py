@@ -8,6 +8,7 @@ _Debug = True
 
 from kivy.base import EventLoop
 from kivy.app import App
+from kivy.cache import Cache
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.uix.widget import Widget
@@ -76,6 +77,9 @@ class Renderer(Widget):
         self.this_template_name = None
         self.this_template_variant_index = None
         self.this_template_variant_coefs_index = None
+        self.this_template_model_kind = 0
+        self.this_template_coefs = [0.0, 0.0, 0.0]
+        self.this_template_scale = [1.0, 1.0, 1.0]
         super(Renderer, self).__init__(**kwargs)
         with self.canvas:
             self.cb = Callback(self.on_setup_gl_context)
@@ -173,7 +177,7 @@ class Renderer(Widget):
         self.keyboard_handler.unbind(on_key_down=self.on_keyboard_down)
         self.keyboard_handler = None
 
-    def _show_unit(self, template_data):
+    def _show_unit(self, template_data, scale=[1.0, 1.0, 1.0]):
         animated_units_onstage = []
         for unit in self.scene.units.values():
             if unit.static:
@@ -182,6 +186,7 @@ class Renderer(Widget):
         for name in animated_units_onstage:
             self.scene.remove_unit_from_stage(container=self.scene.container_animated_objects, unit_name=name)
         self.scene.meshes_index.clear()
+        coefs = [float(c) for c in (template_data['c'].split(' ')[self.this_template_variant_coefs_index]).split(':')]
         unit = self.scene.place_animated_unit_on_land(
             template=self.this_template_name,
             map_w=self.scene.area_center_w,
@@ -189,64 +194,69 @@ class Renderer(Widget):
             shift_w=0.5,
             shift_h=0.5,
             direction=0, # random.randint(0, 360),
+            selected_parts=template_data['p'] if template_data['p'] else None,
+            selected_animations='*',
             textures={'*': template_data['t'].lower()},
-            coefs=[float(c) for c in (template_data['c'].split(' ')[self.this_template_variant_coefs_index]).split(':')],
+            coefs=coefs,
+            scale=scale,
         )
+        if not unit:
+            return
         unit.max_speed = 0 # random.randint(1, 50) / 1000.0
         unit.acceleration = 0 # random.randint(1, 5) / 1000.0
         if _Debug:
             d = template_data.copy()
-            d.pop('c')
-            d.pop('p')
-            print(f'showing tempalte {self.this_template_name} variant {self.this_template_variant_index} coefs {self.this_template_variant_coefs_index}:\n{d}')
+            print(f'    showing template {self.this_template_name} variant {self.this_template_variant_index} with {len(unit.parts)} parts coefs={coefs} scale={scale}:\n    {d}')
 
     def on_keyboard_down(self, keyboard, keycode, text, modifiers):
         if keycode[1] == 'escape':
             App.get_running_app().stop()
-        # elif keycode[1] == 't':
-        #     self.camera_distance_to_center += 1.0
-        # elif keycode[1] == 'y':
-        #     self.camera_distance_to_center -= 1.0
-        # elif keycode[1] == 'l':
-        #     self.camera_angle_z += 1.0
-        # elif keycode[1] == 'j':
-        #     self.camera_angle_z -= 1.0
-        # elif keycode[1] == 'i':
-        #     self.camera_angle_y += 1.0
-        # elif keycode[1] == 'k':
-        #     self.camera_angle_y -= 1.0
         elif keycode[1] == 'u':
-            self.contrast += 0.1
+            # self.contrast += 0.1
+            # self.this_template_coefs[0] += 0.1
+            template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
+            # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
+            self.this_template_variant_coefs_index = 0
+            self.this_template_scale[0] += 0.1
+            self._show_unit(template_data, scale=self.this_template_scale)
         elif keycode[1] == 'i':
-            self.contrast -= 0.1
+            # self.contrast -= 0.1
+            # self.this_template_coefs[0] -= 0.1
+            template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
+            # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
+            self.this_template_variant_coefs_index = 0
+            self.this_template_scale[0] -= 0.1
+            self._show_unit(template_data, scale=self.this_template_scale)
         elif keycode[1] == 'o':
-            self.brightness += 0.1
+            # self.brightness += 0.1
+            # self.this_template_coefs[1] += 0.1
+            template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
+            # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
+            self.this_template_variant_coefs_index = 0
+            self.this_template_scale[1] += 0.1
+            self._show_unit(template_data, scale=self.this_template_scale)
         elif keycode[1] == 'p':
-            self.brightness -= 0.1
-        # elif keycode[1] == 'f':
-        #     self.fog_center_x += 1.0
-        #     if _Debug:
-        #         print(f'fog center is now {self.fog_center_x} {self.fog_center_y} {self.fog_center_z}')
-        # elif keycode[1] == 'g':
-        #     self.fog_center_x -= 1.0
-        #     if _Debug:
-        #         print(f'fog center is now {self.fog_center_x} {self.fog_center_y} {self.fog_center_z}')
-        # elif keycode[1] == 'h':
-        #     self.fog_center_y += 1.0
-        #     if _Debug:
-        #         print(f'fog center is now {self.fog_center_x} {self.fog_center_y} {self.fog_center_z}')
-        # elif keycode[1] == 'j':
-        #     self.fog_center_y -= 1.0
-        #     if _Debug:
-        #         print(f'fog center is now {self.fog_center_x} {self.fog_center_y} {self.fog_center_z}')
-        # elif keycode[1] == 'k':
-        #     self.fog_center_z += 1.0
-        #     if _Debug:
-        #         print(f'fog center is now {self.fog_center_x} {self.fog_center_y} {self.fog_center_z}')
-        # elif keycode[1] == 'l':
-        #     self.fog_center_z -= 1.0
-        #     if _Debug:
-        #         print(f'fog center is now {self.fog_center_x} {self.fog_center_y} {self.fog_center_z}')
+            # self.brightness -= 0.1
+            # self.this_template_coefs[1] -= 0.1
+            template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
+            # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
+            self.this_template_variant_coefs_index = 0
+            self.this_template_scale[1] -= 0.1
+            self._show_unit(template_data, scale=self.this_template_scale)
+        elif keycode[1] == 'l':
+            # self.this_template_coefs[2] += 0.1
+            template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
+            # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
+            self.this_template_variant_coefs_index = 0
+            self.this_template_scale[2] += 0.1
+            self._show_unit(template_data, scale=self.this_template_scale)
+        elif keycode[1] == 'k':
+            # self.this_template_coefs[2] -= 0.1
+            template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
+            # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
+            self.this_template_variant_coefs_index = 0
+            self.this_template_scale[2] -= 0.1
+            self._show_unit(template_data, scale=self.this_template_scale)
         elif keycode[1] == 'z':
             for unit in self.scene.units.values():
                 if not unit.animations_list:
@@ -276,12 +286,38 @@ class Renderer(Widget):
                 self.this_template_name = sorted(self.app_root.known_templates.keys())[0]
             else:
                 current_index = sorted(self.app_root.known_templates.keys()).index(self.this_template_name)
-                current_index += 1
-                if current_index >= len(self.app_root.known_templates):
-                    current_index = 0
-                self.this_template_name = sorted(self.app_root.known_templates.keys())[current_index]
+                template_name = None
+                while True:
+                    current_index += 1
+                    if current_index >= len(self.app_root.known_templates):
+                        current_index = 0
+                    template_name = sorted(self.app_root.known_templates.keys())[current_index]
+                    template_data = self.app_root.known_templates[template_name][0]
+                    if self.this_template_model_kind == 0:
+                        break
+                    if self.this_template_model_kind == 1:
+                        if template_data['k'] in ['house', 'building', 'bridge', 'gate', 'wall', 'ruins']:
+                            break
+                    if self.this_template_model_kind == 2:
+                        if template_data['t'].count('tree'):
+                            break
+                self.this_template_name = template_name
+                # current_index += 1
+                # if current_index >= len(self.app_root.known_templates):
+                #     current_index = 0
+                # self.this_template_name = sorted(self.app_root.known_templates.keys())[current_index]
             self.this_template_variant_index = 0
-            self.this_template_variant_coefs_index = 0
+            self.this_template_coefs = [0.0, 0.0, 0.0]
+            # null_variant_index = 0
+            # while True:
+            #     template_data = self.app_root.known_templates[self.this_template_name][null_variant_index]
+            #     if template_data['p'] is None or template_data['i'].endswith('null'):
+            #         break
+            #     null_variant_index += 1
+            #     if null_variant_index >= len(self.app_root.known_templates[self.this_template_name]):
+            #         null_variant_index = 0
+            #         break
+            self.this_template_variant_coefs_index = 0  # null_variant_index
             template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
             self._show_unit(template_data)
         elif keycode[1] == 'f':
@@ -295,6 +331,7 @@ class Renderer(Widget):
                 self.this_template_name = sorted(self.app_root.known_templates.keys())[current_index]
             self.this_template_variant_index = 0
             self.this_template_variant_coefs_index = 0
+            self.this_template_coefs = [0.0, 0.0, 0.0]
             template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
             self._show_unit(template_data)
         elif keycode[1] == 't':
@@ -324,8 +361,9 @@ class Renderer(Widget):
             if self.this_template_variant_index is None:
                 self.this_template_variant_index = 0
             else:
-                if self.this_template_variant_index > 0:
-                    self.this_template_variant_index -= 1
+                self.this_template_variant_index -= 1
+                if self.this_template_variant_index < 0:
+                    self.this_template_variant_index = len(self.app_root.known_templates[self.this_template_name]) - 1
             if self.this_template_variant_index >= len(self.app_root.known_templates[self.this_template_name]):
                 self.this_template_variant_index = 0
             self.this_template_variant_coefs_index = 0
@@ -360,6 +398,34 @@ class Renderer(Widget):
                     self.this_template_variant_coefs_index -= 1
             template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
             self._show_unit(template_data)
+        elif keycode[1] == 'n':
+            if self.this_template_name:
+                template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
+                texture_name = template_data['t'].lower()
+                image_file_path = os.path.join('textures', 'model', texture_name+'.png')
+                if os.path.isfile(image_file_path):
+                    from PIL import Image as PILImage
+                    from PIL.Image import Transpose as PILTranspose
+                    image = PILImage.open(image_file_path)
+                    image.load()
+                    flipped_image = image.transpose(PILTranspose.FLIP_TOP_BOTTOM)
+                    flipped_image.save(image_file_path)
+                    if _Debug:
+                        print(f'Flipped image {image_file_path} vertically')
+                    file_path_source = resource_find(image_file_path)
+                    if file_path_source:
+                        _tex = Cache.get('kv.texture', image_file_path)
+                        if _tex:
+                            Cache.remove('kv.texture', image_file_path)
+                            if _Debug:
+                                print(f'Cleared cached texture for {image_file_path}')
+                            self._show_unit(template_data)
+        elif keycode[1] == 'm':
+            self.this_template_model_kind += 1
+            if self.this_template_model_kind > 2:
+                self.this_template_model_kind = 0
+            if _Debug:
+                print(f'model kind is now {self.this_template_model_kind}')
         elif keycode[1] == 'b':
             if self.camera_unit_lock:
                 self.camera_unit_lock = None
