@@ -37,14 +37,17 @@ run: venv
 res_unpack:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
 	@cp -v tools/scan_models.py repack/EIrepack/
+	@cp -v tools/scan_figures.py repack/EIrepack/
 	@cp -v tools/unpack_all.py repack/EIrepack/Converters/
 	@cp -v tools/convert_model.py repack/EIrepack/Converters/
 	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:." ../../venv/bin/python3 scan_models.py ${SRC_DIR}/Maps/
 	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:." ../../venv/bin/python3 Converters/unpack_all.py ${SRC_DIR} ${DEST_DIR} --verbose
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 scan_figures.py ${DEST_DIR}/Res/figures/
 	@mv -v repack/EIrepack/templates.json assets/
 	@mv -v repack/EIrepack/figures.json assets/
 	@mv -v repack/EIrepack/catalog_buildings.json assets/
 	@mv -v repack/EIrepack/catalog_plants.json assets/
+	@mv -v repack/EIrepack/catalog_figures.json assets/
 
 tiles_build:
 	@rm -rf ${RES_DIR}/merged_hq/*
@@ -52,12 +55,14 @@ tiles_build:
 	@venv/bin/python3 src/tiles.py pack_tiles ${RES_DIR}/ready_hq/ ./assets/land/
 
 fmg_clean:
-	@rm -rf ./fmg/Fantasy-Map-Generator
+	@rm -rf fmg/Fantasy-Map-Generator
 
 fmg_build:
 	@if [ ! -d "./fmg/Fantasy-Map-Generator" ]; then git clone --depth=1 https://github.com/Azgaar/Fantasy-Map-Generator.git ./fmg/Fantasy-Map-Generator; fi
 	@mkdir -p fmg/Fantasy-Map-Generator/tests/custom/
 	@cp -v tools/options.js fmg/Fantasy-Map-Generator/public/modules/ui/
+	@cp -v tools/burgs-generator.ts fmg/Fantasy-Map-Generator/src/modules/
+	@cp -v tools/routes-generator.ts fmg/Fantasy-Map-Generator/src/modules/
 	@cp -v tools/heightmap-templates.js fmg/Fantasy-Map-Generator/public/config/ 
 	@cp -v tools/generate.spec.ts fmg/Fantasy-Map-Generator/tests/custom/
 	@cp -v tools/playwright.config.custom.ts fmg/Fantasy-Map-Generator/
@@ -71,4 +76,4 @@ fmg_generate:
 land_build:
 	@rm -rfv assets/tiles.png
 	@venv/bin/python src/land.py map.json 512 512
-	@open assets/tiles.png
+	@open assets/minimap.png

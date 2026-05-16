@@ -584,7 +584,8 @@ folder anymore".format(count))
                         if existing_index is not None:
                             models[model_name][existing_index] = model_data
                         else:
-                            models[model_name].append(model_data)
+                            if model_data['i'] not in [v['i'] for v in models[model_name]]:
+                                models[model_name].append(model_data)
                         if existing_index_root is None:
                             model_data_root = {
                                 'i': model_template_key_root,
@@ -597,7 +598,8 @@ folder anymore".format(count))
                                 'l': [],
                                 'u': culture,
                             }
-                            models[model_name].insert(0, model_data)
+                            if model_data['i'] not in [v['i'] for v in models[model_name]]:
+                                models[model_name].insert(0, model_data)
                         if model_type in ['building', 'house', 'bridge', 'gate', 'wall']:
                             if building_template_key not in buildings:
                                 buildings[building_template_key] = ''
@@ -758,7 +760,8 @@ folder anymore".format(count))
             'l': [],
             'u': 'unknown',
         }
-        models[model_name].append(model_data)
+        if model_data['i'] not in [v['i'] for v in models[model_name]]:
+            models[model_name].append(model_data)
 
     for model_name, variants in models.items():
         found = False
@@ -785,7 +788,8 @@ folder anymore".format(count))
             'l': [],
             'u': 'unknown',
         }
-        models[model_name].append(model_data_raw)
+        if model_data_raw['i'] not in [v['i'] for v in models[model_name]]:
+            models[model_name].insert(0, model_data_raw)
 
     for model_name, variants in models.items():
         for i in range(len(variants)):
@@ -847,6 +851,36 @@ folder anymore".format(count))
                         plants[plant_key][model_template_key] += f' {coefs_short_str}'
                     else:
                         plants[plant_key][model_template_key] = coefs_short_str
+
+    for model_name in list(models.keys()):
+        model_variants = models[model_name]
+        first_variant = model_variants[0]
+        model_template_key_root = f'{first_variant["m"]}#{first_variant["t"]}#null'
+        model_template_key_index = None
+        for i in range(len(model_variants)):
+            if model_variants[i]['i'] == model_template_key_root:
+                model_template_key_index = i
+                break
+        if model_template_key_index is None:
+            model_data_raw = {
+                'i': model_template_key_root,
+                'm': first_variant['m'],
+                't': first_variant['t'],
+                'c': first_variant['c'],
+                'p': None,
+                'k': first_variant['k'],
+                'b': [],
+                'l': [],
+                'u': first_variant['u'],
+            }
+            if model_template_key_root not in [v['i'] for v in models[model_name]]:
+                models[model_name].insert(0, model_data_raw)
+            continue
+        if model_template_key_index != 0:
+            model_data_raw = models[model_name].pop(model_template_key_index)
+            if model_data_raw['i'] not in [v['i'] for v in models[model_name]]:
+                models[model_name].insert(0, model_data_raw)
+            continue
 
     import json
     open('templates.json', 'wt').write(json.dumps(models, indent=2))

@@ -55,7 +55,10 @@ class Renderer(Widget):
         self.camera_distance_to_center = const.CAMERA_DISTANCE_TO_CENTER_INITIAL
         self.camera_angle_y = float(const.ROTATE_VERTICAL_INITIAL)
         self.camera_angle_z = 180.0
+        self.camera_acceleration = 0.0
+        self.camera_speed = 0.0
         self.camera_unit_lock = None
+        self.camera_capital_lock = 0
         self.camera_move_mode = 2
         self.global_eye_x = 0
         self.global_eye_y = 0
@@ -80,6 +83,8 @@ class Renderer(Widget):
         self.this_template_model_kind = 0
         self.this_template_coefs = [0.0, 0.0, 0.0]
         self.this_template_scale = [1.0, 1.0, 1.0]
+        self.this_template_figure_index = 80
+        self.this_template_figure_part_index = 0
         super(Renderer, self).__init__(**kwargs)
         with self.canvas:
             self.cb = Callback(self.on_setup_gl_context)
@@ -91,6 +96,7 @@ class Renderer(Widget):
         self.canvas['texture_id'] = 1
         self.keyboard_handler = Window.request_keyboard(self.on_keyboard_closed, self)
         self.keyboard_handler.bind(on_key_down=self.on_keyboard_down)
+        self.keyboard_handler.bind(on_key_up=self.on_keyboard_up)
         Clock.schedule_interval(self.on_update_glsl, 1 / 60)
         Clock.schedule_interval(self.scene.on_update_animations, 1 / 25)
         Clock.schedule_interval(self.scene.on_run_units, 1 / 60)
@@ -177,7 +183,9 @@ class Renderer(Widget):
         self.keyboard_handler.unbind(on_key_down=self.on_keyboard_down)
         self.keyboard_handler = None
 
-    def _show_unit(self, template_data, scale=[1.0, 1.0, 1.0]):
+    def _show_unit(self, template_data, scale=[1.0, 1.0, 1.0], coefs_index=None):
+        if coefs_index is None:
+            coefs_index = self.this_template_variant_coefs_index
         animated_units_onstage = []
         for unit in self.scene.units.values():
             if unit.static:
@@ -186,14 +194,15 @@ class Renderer(Widget):
         for name in animated_units_onstage:
             self.scene.remove_unit_from_stage(container=self.scene.container_animated_objects, unit_name=name)
         self.scene.meshes_index.clear()
-        coefs = [float(c) for c in (template_data['c'].split(' ')[self.this_template_variant_coefs_index]).split(':')]
+        coefs = [float(c) for c in (template_data['c'].split(' ')[coefs_index]).split(':')]
         unit = self.scene.place_animated_unit_on_land(
-            template=self.this_template_name,
+            template=template_data['m'],
             map_w=self.scene.area_center_w,
             map_h=self.scene.area_center_h,
             shift_w=0.5,
             shift_h=0.5,
             direction=0, # random.randint(0, 360),
+            elevation_correction=-5.0,
             selected_parts=template_data['p'] if template_data['p'] else None,
             selected_animations='*',
             textures={'*': template_data['t'].lower()},
@@ -206,57 +215,61 @@ class Renderer(Widget):
         unit.acceleration = 0 # random.randint(1, 5) / 1000.0
         if _Debug:
             d = template_data.copy()
-            print(f'    showing template {self.this_template_name} variant {self.this_template_variant_index} with {len(unit.parts)} parts coefs={coefs} scale={scale}:\n    {d}')
+            print(f'    showing template {template_data["m"]} with {len(unit.parts)} parts coefs={coefs} scale={scale}:\n    {d}')
 
+    def on_keyboard_up(self, keyboard, keycode, *largs):
+        self.camera_speed = 0.0
+        self.camera_acceleration = 0.0
+    
     def on_keyboard_down(self, keyboard, keycode, text, modifiers):
         if keycode[1] == 'escape':
             App.get_running_app().stop()
-        elif keycode[1] == 'u':
-            # self.contrast += 0.1
-            # self.this_template_coefs[0] += 0.1
-            template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
-            # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
-            self.this_template_variant_coefs_index = 0
-            self.this_template_scale[0] += 0.1
-            self._show_unit(template_data, scale=self.this_template_scale)
-        elif keycode[1] == 'i':
-            # self.contrast -= 0.1
-            # self.this_template_coefs[0] -= 0.1
-            template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
-            # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
-            self.this_template_variant_coefs_index = 0
-            self.this_template_scale[0] -= 0.1
-            self._show_unit(template_data, scale=self.this_template_scale)
-        elif keycode[1] == 'o':
-            # self.brightness += 0.1
-            # self.this_template_coefs[1] += 0.1
-            template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
-            # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
-            self.this_template_variant_coefs_index = 0
-            self.this_template_scale[1] += 0.1
-            self._show_unit(template_data, scale=self.this_template_scale)
-        elif keycode[1] == 'p':
-            # self.brightness -= 0.1
-            # self.this_template_coefs[1] -= 0.1
-            template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
-            # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
-            self.this_template_variant_coefs_index = 0
-            self.this_template_scale[1] -= 0.1
-            self._show_unit(template_data, scale=self.this_template_scale)
-        elif keycode[1] == 'l':
-            # self.this_template_coefs[2] += 0.1
-            template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
-            # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
-            self.this_template_variant_coefs_index = 0
-            self.this_template_scale[2] += 0.1
-            self._show_unit(template_data, scale=self.this_template_scale)
-        elif keycode[1] == 'k':
-            # self.this_template_coefs[2] -= 0.1
-            template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
-            # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
-            self.this_template_variant_coefs_index = 0
-            self.this_template_scale[2] -= 0.1
-            self._show_unit(template_data, scale=self.this_template_scale)
+        # elif keycode[1] == 'u':
+        #     # self.contrast += 0.1
+        #     # self.this_template_coefs[0] += 0.1
+        #     template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
+        #     # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
+        #     self.this_template_variant_coefs_index = 0
+        #     self.this_template_scale[0] += 0.1
+        #     self._show_unit(template_data, scale=self.this_template_scale)
+        # elif keycode[1] == 'i':
+        #     # self.contrast -= 0.1
+        #     # self.this_template_coefs[0] -= 0.1
+        #     template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
+        #     # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
+        #     self.this_template_variant_coefs_index = 0
+        #     self.this_template_scale[0] -= 0.1
+        #     self._show_unit(template_data, scale=self.this_template_scale)
+        # elif keycode[1] == 'o':
+        #     # self.brightness += 0.1
+        #     # self.this_template_coefs[1] += 0.1
+        #     template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
+        #     # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
+        #     self.this_template_variant_coefs_index = 0
+        #     self.this_template_scale[1] += 0.1
+        #     self._show_unit(template_data, scale=self.this_template_scale)
+        # elif keycode[1] == 'p':
+        #     # self.brightness -= 0.1
+        #     # self.this_template_coefs[1] -= 0.1
+        #     template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
+        #     # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
+        #     self.this_template_variant_coefs_index = 0
+        #     self.this_template_scale[1] -= 0.1
+        #     self._show_unit(template_data, scale=self.this_template_scale)
+        # elif keycode[1] == 'l':
+        #     # self.this_template_coefs[2] += 0.1
+        #     template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
+        #     # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
+        #     self.this_template_variant_coefs_index = 0
+        #     self.this_template_scale[2] += 0.1
+        #     self._show_unit(template_data, scale=self.this_template_scale)
+        # elif keycode[1] == 'k':
+        #     # self.this_template_coefs[2] -= 0.1
+        #     template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
+        #     # template_data['c'] = ':'.join(map(str, self.this_template_coefs))
+        #     self.this_template_variant_coefs_index = 0
+        #     self.this_template_scale[2] -= 0.1
+        #     self._show_unit(template_data, scale=self.this_template_scale)
         elif keycode[1] == 'z':
             for unit in self.scene.units.values():
                 if not unit.animations_list:
@@ -370,34 +383,119 @@ class Renderer(Widget):
             template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
             self._show_unit(template_data)
         elif keycode[1] == 'y':
-            if self.this_template_name is None:
-                self.this_template_name = sorted(self.app_root.known_templates.keys())[0]
-                self.this_template_variant_index = 0
-            if self.this_template_variant_index is None:
-                self.this_template_variant_index = 0
-                self.this_template_variant_coefs_index = 0
-            if self.this_template_variant_coefs_index is None:
-                self.this_template_variant_coefs_index = 0
-            else:
-                self.this_template_variant_coefs_index += 1
-            template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
-            if self.this_template_variant_coefs_index >= len(template_data['c'].split(' ')):
-                self.this_template_variant_coefs_index = 0
-            self._show_unit(template_data)
+            self.this_template_figure_index += 1
+            if self.this_template_figure_index >= len(self.app_root.known_figures_parts):
+                self.this_template_figure_index = 0
+            print(f'next figure index is {self.this_template_figure_index}')
+            self.this_template_figure_part_index = 0
+            model_name, tex_name, parts_list = self.app_root.known_figures_parts[self.this_template_figure_index].split('#')
+            parts_list = parts_list.split(':')
+            parts_list_out = parts_list[self.this_template_figure_part_index]
+            template_data = {
+                'i': f'{model_name}#{tex_name}#{parts_list_out}',
+                'm': model_name,
+                't': tex_name,
+                'p': [parts_list_out, ],
+                'c': '0.0:0.0:0.0',
+                's': '1.0:1.0:1.0',
+            }
+            try:
+                self._show_unit(template_data, coefs_index=0)
+            except:
+                import traceback
+                traceback.print_exc()
+            # if self.this_template_name is None:
+            #     self.this_template_name = sorted(self.app_root.known_templates.keys())[0]
+            #     self.this_template_variant_index = 0
+            # if self.this_template_variant_index is None:
+            #     self.this_template_variant_index = 0
+            #     self.this_template_variant_coefs_index = 0
+            # if self.this_template_variant_coefs_index is None:
+            #     self.this_template_variant_coefs_index = 0
+            # else:
+            #     self.this_template_variant_coefs_index += 1
+            # template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
+            # if self.this_template_variant_coefs_index >= len(template_data['c'].split(' ')):
+            #     self.this_template_variant_coefs_index = 0
+            # self._show_unit(template_data)
         elif keycode[1] == 'h':
-            if self.this_template_name is None:
-                self.this_template_name = sorted(self.app_root.known_templates.keys())[0]
-                self.this_template_variant_index = 0
-            if self.this_template_variant_index is None:
-                self.this_template_variant_index = 0
-                self.this_template_variant_coefs_index = 0
-            if self.this_template_variant_coefs_index is None:
-                self.this_template_variant_coefs_index = 0
-            else:
-                if self.this_template_variant_coefs_index > 0:
-                    self.this_template_variant_coefs_index -= 1
-            template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
-            self._show_unit(template_data)
+            self.this_template_figure_index -= 1
+            if self.this_template_figure_index < 0:
+                self.this_template_figure_index = len(self.app_root.known_figures_parts) - 1
+            self.this_template_figure_part_index = 0
+            model_name, tex_name, parts_list = self.app_root.known_figures_parts[self.this_template_figure_index].split('#')
+            parts_list = parts_list.split(':')
+            parts_list_out = parts_list[self.this_template_figure_part_index]
+            template_data = {
+                'i': f'{model_name}#{tex_name}#{parts_list_out}',
+                'm': model_name,
+                't': tex_name,
+                'p': [parts_list_out, ],
+                'c': '0.0:0.0:0.0',
+                's': '1.0:1.0:1.0',
+            }
+            try:
+                self._show_unit(template_data, coefs_index=0)
+            except:
+                import traceback
+                traceback.print_exc()
+            # if self.this_template_name is None:
+            #     self.this_template_name = sorted(self.app_root.known_templates.keys())[0]
+            #     self.this_template_variant_index = 0
+            # if self.this_template_variant_index is None:
+            #     self.this_template_variant_index = 0
+            #     self.this_template_variant_coefs_index = 0
+            # if self.this_template_variant_coefs_index is None:
+            #     self.this_template_variant_coefs_index = 0
+            # else:
+            #     if self.this_template_variant_coefs_index > 0:
+            #         self.this_template_variant_coefs_index -= 1
+            # template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
+            # self._show_unit(template_data)
+        elif keycode[1] == 'u':
+            model_name, tex_name, parts_list = self.app_root.known_figures_parts[self.this_template_figure_index].split('#')
+            parts_list = parts_list.split(':')
+            self.this_template_figure_part_index += 1
+            if self.this_template_figure_part_index >= len(parts_list):
+                self.this_template_figure_part_index = 0
+            parts_list_out = [parts_list[self.this_template_figure_part_index], ]
+            # if self.this_template_figure_part_index != 0:
+            #     parts_list_out = [parts_list[0], ] + parts_list_out
+            template_data = {
+                'i': f'{model_name}#{tex_name}#{":".join(parts_list_out)}',
+                'm': model_name,
+                't': tex_name,
+                'p': parts_list_out,
+                'c': '0.0:0.0:0.0',
+                's': '1.0:1.0:1.0',
+            }
+            try:
+                self._show_unit(template_data, coefs_index=0)
+            except:
+                import traceback
+                traceback.print_exc()
+        elif keycode[1] == 'j':
+            model_name, tex_name, parts_list = self.app_root.known_figures_parts[self.this_template_figure_index].split('#')
+            parts_list = parts_list.split(':')
+            self.this_template_figure_part_index -= 1
+            if self.this_template_figure_part_index < 0:
+                self.this_template_figure_part_index = len(parts_list) - 1
+            parts_list_out = [parts_list[self.this_template_figure_part_index], ]
+            # if self.this_template_figure_part_index != 0:
+            #     parts_list_out = [parts_list[0], ] + parts_list_out
+            template_data = {
+                'i': f'{model_name}#{tex_name}#{":".join(parts_list_out)}',
+                'm': model_name,
+                't': tex_name,
+                'p': parts_list_out,
+                'c': '0.0:0.0:0.0',
+                's': '1.0:1.0:1.0',
+            }
+            try:
+                self._show_unit(template_data, coefs_index=0)
+            except:
+                import traceback
+                traceback.print_exc()
         elif keycode[1] == 'n':
             if self.this_template_name:
                 template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
@@ -447,6 +545,15 @@ class Renderer(Widget):
             else:
                 if animated_units_onstage:
                     self.camera_unit_lock = animated_units_onstage[0]
+        elif keycode[1] == 'c':
+            if self.camera_unit_lock:
+                self.camera_unit_lock = None
+            self.camera_capital_lock += 1
+            if self.camera_capital_lock > len(self.scene.land.capitals):
+                self.camera_capital_lock = 0
+                print('camera unlocked from capital')
+            else:
+                print(f'camera locked to capital {self.scene.land.capitals[self.camera_capital_lock]["n"]}')
         elif keycode[1] == 'e':
             self.camera_move_mode = 3 - self.camera_move_mode
         elif keycode[1] == 'a':
@@ -463,12 +570,22 @@ class Renderer(Widget):
             if self.camera_move_mode == 1:
                 self.scene.land_shift(-const.LAND_MOVE_SPEED, 0)
             else:
-                self.scene.land_move(self.camera_angle_z, -const.LAND_MOVE_SPEED)
+                self.camera_acceleration -= const.LAND_MOVE_SPEED / 20.0
+                self.camera_speed += self.camera_acceleration
+                if self.camera_speed < -const.LAND_MOVE_SPEED:
+                    self.camera_speed = -const.LAND_MOVE_SPEED
+                self.scene.land_move(self.camera_angle_z, self.camera_speed)
+                self.camera_acceleration = 0.0
         elif keycode[1] == 'w':
             if self.camera_move_mode == 1:
                 self.scene.land_shift(const.LAND_MOVE_SPEED, 0)
             else:
-                self.scene.land_move(self.camera_angle_z, const.LAND_MOVE_SPEED)
+                self.camera_acceleration += const.LAND_MOVE_SPEED / 20.0
+                self.camera_speed += self.camera_acceleration
+                if self.camera_speed > const.LAND_MOVE_SPEED:
+                    self.camera_speed = const.LAND_MOVE_SPEED
+                self.scene.land_move(self.camera_angle_z, self.camera_speed)
+                self.camera_acceleration = 0.0
         return True
 
     @ignore_undertouch

@@ -30,6 +30,7 @@ class MeshData(object):
         self.vertices = []
         self.indices = []
         self.material = kwargs.get('material', None)
+        self.texture = kwargs.get('texture', {})
 
 
 class MeshTransformData(object):
@@ -357,6 +358,8 @@ class LandData(object):
         self.plants_map_data = {}
         self.plants_variants = {}
         self.buildings_map_data = {}
+        self.capitals = {}
+        self.towers = {}
 
     def load_tilemap_file(self, tilemap_file_name):
         tiles_list = json.loads(open('assets/tiles.json', 'rt').read())
@@ -512,6 +515,10 @@ class LandData(object):
             if (x, y) not in self.buildings_map_data:
                 self.buildings_map_data[(x, y)] = []
             self.buildings_map_data[(x, y)].append(building_info)
+            if building_info['k'] == 'capital':
+                self.capitals[building_info['i']] = building_info
+            elif building_info['k'] == 'tower':
+                self.towers[building_info['i']] = building_info
 
     def save_elevation_memmap(self, file_name_prefix, destination_dir):
         file_path = os.path.join(destination_dir, f'{file_name_prefix}.{self.width}.{self.height}.memmap')

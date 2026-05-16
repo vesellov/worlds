@@ -21,6 +21,7 @@ _Debug = True
 class AppRoot(App):
 
     known_templates = {}
+    known_figures_parts = {}
 
     def build(self):
         land = dat.LandData()
@@ -34,12 +35,13 @@ class AppRoot(App):
         scene.calculate_scaled_elevation_map()
         renderer = rend.Renderer(app_root=self, scene=scene)
         self.known_templates = json.loads(open('assets/templates.json', 'rt').read())
+        self.known_figures_parts = json.loads(open('assets/catalog_figures.json', 'rt').read())
         scene.renderer = renderer
         # self.test_id = sorted(self.known_templates.keys()).index
         # scene.init_scene(117, 835)
         # scene.init_scene(500, 550)
         # scene.init_scene(831,383)
-        scene.init_scene(369,313)
+        scene.init_scene(137,244)
         # scene.init_scene()
         return renderer
 

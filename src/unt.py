@@ -35,6 +35,7 @@ class Unit(object):
         self.animation_playing = None
         self.animation_frame = 0
         self.direction = 0.0
+        self.elevation_correction = None
         self.acceleration = 0.0
         self.speed = 0.0
         self.max_speed = 0.0
@@ -76,10 +77,10 @@ class Unit(object):
         h_diff = h_new - self.h
         self.w = w_new
         self.h = h_new
-        e_correction = 0
-        if self.root_mesh_center:
-            e_correction = self.root_mesh_center[0][2]
-        shift_vector = scene.coords_map2xyz(self.w, self.h, self.shift_w, self.shift_h) # , elevation_correction=e_correction)
+        # e_correction = 0
+        # if self.root_mesh_center:
+        #     e_correction = self.root_mesh_center[0][2]
+        shift_vector = scene.coords_map2xyz(self.w, self.h, self.shift_w, self.shift_h, elevation_correction=self.elevation_correction) # , elevation_correction=e_correction)
         self.translate_shift.xyz = shift_vector
         if w_diff != 0 or h_diff != 0:
             # if _Debug:

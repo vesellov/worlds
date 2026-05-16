@@ -15,6 +15,13 @@ assets/heightmap_packed.png
 assets/heightmap_raw.png
 assets/rivers.png
 assets/routes.png
+assets/minimap.png
+assets/tiles_raw.png
+assets/tiles.png
+assets/water1a.png
+assets/encoded.png
+assets/heightmap.png
+assets/zonemap.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

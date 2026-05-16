@@ -18,9 +18,9 @@ test.describe('map layers', () => {
     await page.click('#optionsTab')
 
     const culturesOutput = page.locator('#culturesOutput')
-    await page.locator('#culturesOutput').fill('3')
+    await page.locator('#culturesOutput').fill('4')
     const status = await page.evaluate(async () => {
-      document.getElementById('statesNumber').children.item(1).value = "6";
+      document.getElementById('statesNumber').children.item(1).value = "4";
       document.getElementById('lock_statesNumber').setAttribute('data-locked','1');
     })
 

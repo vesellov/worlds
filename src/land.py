@@ -3,12 +3,25 @@ import sys
 import json
 import pprint
 import random
+import math
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 from shapely.geometry import Point, Polygon
 import numpy as np
 
 import mth
+
+DEBUG = False
+
+GLOBAL_SCALE = 0.5
+INPUT_WATER_LEVEL = 20  # 20 is the water level in the input heightmap, 100 is the input max height
+CLIFFS_HEIGHT_MARGIN = 60
+CLIFFS_HEIGHT_DROP = 10
+TRANSFORM_CYCLES = 30
+RIVERS_MAX_ELEVATION_LEVEL = 3
+LAKES_MAX_ELEVATION_LEVEL = 2
+ROUTES_MIN_ELEVATION_LEVEL = 23
+BUILDINGS_MIN_ELEVATION_LEVEL = 24
 
 min_x = 0
 min_y = 0
@@ -18,22 +31,6 @@ width = 0
 height = 0
 min_elevation = 0
 max_elevation = 0
-# min_elevation_unpacked = 0
-# max_elevation_unpacked = 0
-# water_level_unpacked = 0
-# elevation_data = {}
-
-
-GLOBAL_SCALE = 0.5
-INPUT_WATER_LEVEL = 20  # 20 is the water level in the input heightmap, 100 is the input max height
-# ELEVATION_UNPACK_EXPONENT = 2.1
-# ELEVATION_UNPACK_UNDERWATER_FACTOR = 80.0
-CLIFFS_HEIGHT_MARGIN = 60
-CLIFFS_HEIGHT_DROP = 10
-TRANSFORM_CYCLES = 25
-RIVERS_MAX_ELEVATION_LEVEL = 3
-LAKES_MAX_ELEVATION_LEVEL = 2
-ROUTES_MIN_ELEVATION_LEVEL = 23
 
 # see: https://github.com/vesellov/worlds/blob/main/catalog.json
 tiles_colors = {
@@ -125,29 +122,29 @@ biomes_mapping = {
     # https://en.wikipedia.org/wiki/Marines
     'Marine':                       [('water5', 1.0), ],
     # https://en.wikipedia.org/wiki/Desert_climate#Hot_desert_climates
-    'Hot desert':                   [('mud2', 1.0), ],  # [('mud2', 0.25), ('sand1', 0.75), ('sand2', 1.0), ],
+    'Hot desert':                   [('mud2', 1.0), ],
     # https://en.wikipedia.org/wiki/Desert_climate#Cold_desert_climates
-    'Cold desert':                  [('dust1', 1.0), ],  # [('snow3', 0.1), ('dust1', 0.4), ('dirt1', 0.7), ('dirt2', 1.0), ],
+    'Cold desert':                  [('dirt1', 1.0), ],
     # https://en.wikipedia.org/wiki/Savanna
-    'Savanna':                      [('soil6', 1.0), ],  # [('soil3', 0.5), ('dust1', 0.75), ('dirt2', 1.0),],
+    'Savanna':                      [('soil6', 1.0), ],
     # https://en.wikipedia.org/wiki/Grassland
-    'Grassland':                    [('grass3', 1.0), ],  # [('soil3', 0.3), ('soil5', 0.6), ('grass2', 1.0), ],
+    'Grassland':                    [('grass3', 1.0), ],
     # https://en.wikipedia.org/wiki/Seasonal_tropical_forest
-    'Tropical seasonal forest':     [('soil5', 1.0), ],  #  [('soil5', 0.5), ('grass2', 1.0), ],
+    'Tropical seasonal forest':     [('soil5', 1.0), ],
     # https://en.wikipedia.org/wiki/Temperate_deciduous_forest
-    'Temperate deciduous forest':   [('soil4', 1.0), ],  # [('soil4', 0.5), ('grass1', 1.0), ],
+    'Temperate deciduous forest':   [('soil4', 1.0), ],
     # https://en.wikipedia.org/wiki/Tropical_rainforest
-    'Tropical rainforest':          [('dirt2', 1.0), ],  #  [('grass3', 0.5), ('grass2', 1.0), ],
+    'Tropical rainforest':          [('dirt2', 1.0), ],
     # https://en.wikipedia.org/wiki/Temperate_rainforest
-    'Temperate rainforest':         [('grass2', 1.0), ],  #  [('grass1', 0.5), ('grass2', 1.0), ],
+    'Temperate rainforest':         [('grass2', 1.0), ],
     # https://en.wikipedia.org/wiki/Taiga
-    'Taiga':                        [('grass1', 1.0), ], # [('grass1', 0.5), ('grass2', 1.0), ],
+    'Taiga':                        [('grass1', 1.0), ],
     # https://en.wikipedia.org/wiki/Tundra
-    'Tundra':                       [('soil3', 1.0), ],  # [('soil3', 0.3), ('dirt1', 0.6),  ('dirt2', 1.0), ],
+    'Tundra':                       [('soil3', 1.0), ],
     # https://en.wikipedia.org/wiki/Glacier
     'Glacier':                      [('snow3', 1.0), ],
     # https://en.wikipedia.org/wiki/Wetland
-    'Wetland':                      [('sand2', 1.0), ],  # [('grass2', 0.5), ('sand4', 1.0), ],                                    
+    'Wetland':                      [('sand2', 1.0), ],
 }
 
 plants_mapping = {
@@ -156,7 +153,7 @@ plants_mapping = {
         'mud2': [(0.2, 'desert_bush'), ],
     },
     'Cold desert': { # no trees, but plants
-        'dust1': [(0.05, 'winter_bush'), (0.1, 'winter_stump'), (0.15, 'winter_spruce'), (0.2, 'winter_deadwood'), ],
+        'dirt1': [(0.15, 'autumn_bush'), (0.18, 'autumn_stump'), (0.2, 'autumn_deadwood'), ],
     },
     'Savanna': {    # few trees, few plants
         'soil6': [(0.1, 'autumn_tree'), (0.67, 'autumn_bush'), (0.7, 'autumn_deadwood'), ],
@@ -171,10 +168,10 @@ plants_mapping = {
         'soil4': [(0.7, 'temperate_tree'), (0.97, 'temperate_bush'), (1.0, 'temperate_deadwood'), ],
     },
     'Tropical rainforest': {  # most amount of trees
-        'grass2': [(0.4, 'temperate_tree'), (0.97, 'temperate_bush'), (1.0, 'temperate_deadwood'), ],
+        'dirt2': [(0.4, 'temperate_tree'), (0.97, 'temperate_bush'), (1.0, 'temperate_deadwood'), ],
     },
     'Temperate rainforest': {  # average amount of trees, but more plants
-        'grass1': [(0.2, 'temperate_tree'), (0.97, 'temperate_bush'), (1.0, 'temperate_deadwood'), ],
+        'grass2': [(0.2, 'temperate_tree'), (0.97, 'temperate_bush'), (1.0, 'temperate_deadwood'), ],
     },
     'Taiga': {  # trees, bushes, deadwood, mushrooms
         'grass1': [(0.4, 'temperate_tree'), (0.8, 'temperate_bush'), (0.97, 'generic_mushroom'), (1.0, 'temperate_deadwood'), ],
@@ -183,7 +180,7 @@ plants_mapping = {
         'soil3': [(0.25, 'temperate_tree'), ],
     },
     'Glacier': {  # few frozen plants or trees
-        'snow3': [(0.125, 'winter_bush'), (0.125, 'winter_tree'), ],
+        'snow3': [(0.05, 'winter_bush'), (0.1, 'winter_stump'), (0.15, 'winter_spruce'), (0.2, 'winter_deadwood'), ],
     },
     'Wetland': {  # few trees, few plants
         'sand2': [(0.1, 'temperate_tree'), (0.23, 'temperate_reed'), (0.25, 'temperate_deadwood'), ],
@@ -206,145 +203,170 @@ roads_mapping = {
     'soil3': ['stone1', ],
     'soil4': ['stone1', ],
     'soil5': ['stone1', ],
+    'snow1': ['snow1', ],
+    'snow3': ['snow3', ],
 }
 
 buildings_mapping = {
     'north': {
-        'capital': 'stbuho22#quater00#null#0.0:0.0:0.0#2.0:2.0:2.0',
-        'tower': 'stbuto2#kaniantower00#null#0.0:0.3:0.5#1.0:1.0:1.0',
+        'capital': 'stbuho22#quater01#null#0.0:0.0:0.0#1.5:1.5:1.5#1.2',
+        'tower': 'stbuto2#kaniantower00#null#0.0:0.3:0.3#0.5:0.5:0.5#0.4',
+        'flag': 'ingm5#flag_north#flag1#0.0:0.0:0.0#2.5:2.5:2.2#0.3',
     },
     'south': {
-        'capital': 'stbuho11#tent02#null#0.5:0.5:0.8#0.5:0.5:0.5',
-        'tower': 'stwa13#hadoganwall01#null#0.9:0.1:2.0#0.25:0.5:1.5',
+        'capital': 'stbuho11#tent02#null#0.5:0.5:0.8#0.5:0.5:0.5#1.0',
+        'tower': 'stwa1#kanianwalls00#kanianwallset00#0.0:0.0:0.6#1.5:1.5:1.5#0.8',
+        'flag': 'ingm5#flag_south#flag1#0.0:0.0:0.5#2.5:2.5:2.2#0.3',
     },
     'east': {
-        'capital': 'stbuho30#jigranhouse02#null#0.0:0.0:0.0#1.0:1.0:1.0',
-        'tower': 'fireztower00#fireztower#null#0.0:0.0:0.0#0.4:0.4:0.4',
+        'capital': 'stbuho30#jigranhouse02#null#0.0:0.0:0.0#0.9:0.9:0.9#1.0',
+        'tower': 'fireztower00#fireztower#null#0.0:0.0:0.0#0.25:0.2:0.2#0.85',
+        'flag': 'ingm5#flag_east#flag1#0.0:0.0:0.0#2.5:2.5:2.2#0.3',
     },
     'undead': {
-        'capital': 'stbuho60#flyertemple00#null#0.0:0.0:0.0#0.5:0.5:0.5',
-        'tower': 'stbuho46#necrotower00#null#0.0:0.0:0.0#1.0:1.0:1.0',
+        'capital': 'stbuho46#necrotower00#null#0.0:0.0:0.0#1.3:1.3:1.3#0.9',
+        'tower': 'stst88#dome00#null#0.0:0.0:0.0#3.0:3.0:3.0#0.5',
+        'flag': 'ingm8#flag_undead#flag1#0.0:0.0:0.0#2.0:2.0:2.0#0.1',
     },
     'magic': {
-        'capital': 'stbuto1#dgunpyramid00#null#1.0:1.0:40.0#1.0:1.0:1.0',
-        'tower': 'stst114#jlion00#null#0.0:0.5:1.0#2.0:2.0:2.0',
+        'capital': 'stbuto1#dgunpyramid00#null#1.0:1.0:60.0#1.0:1.0:1.0#1.5',
+        'tower': 'stst114#jlion00#null#0.0:0.5:1.0#1.0:1.0:1.0#0.6',
+        'flag': 'stst49#kanianarc00#null#1.0:1.0:2.0#1.0:1.0:1.0#0.0',
     },
     'orc': {
-        'capital': 'stbuho23#headquaters00#null#0.0:0.0:0.0#2.0:2.0:2.0',
-        'tower': 'stst87#goblin00#null#0.0:0.0:0.0#15.0:15.0:15.0',
+        'capital': 'stbuho23#headquaters00#null#0.0:0.0:0.0#2.0:2.0:2.0#0.8',
+        'tower': 'stst87#goblin00#null#0.0:0.0:0.0#10.0:10.0:10.0#0.5',
+        'flag': 'ingm2#gipat2sys#scull#0.0:0.0:0.0#3.0:3.0:3.0#0.2',
     },
 }
 
 inner_outer_transform_before_borders_list = [
     ('soil1', 'dirt2', None),
+    ('soil1', 'stone1', 'dirt2'),
+
     ('soil3', 'dirt2', None),
-    ('soil4', 'dirt2', None),
+    ('soil3', 'stone1', 'dirt2'),
+
+    ('soil4', 'grass1', None),
+
     ('soil5', 'grass2', None),
+    ('soil5', 'stone1', 'dirt2'),
+
     ('soil6', 'sand2', None),
-    ('grass1', 'grass2', None),
-    ('grass3', 'grass2', None),
+    ('soil6', 'stone1', 'dirt2'),
+
     ('dirt1', 'dirt2', None),
-    ('dirt4', 'dirt2', None),
-    ('dust1', 'dirt2', None),
+    ('dirt1', 'stone1', 'dirt2'),
+
     ('snow1', 'snow2', None),
     ('snow2', 'snow3', None),
     ('snow3', 'cliff2', None),
     ('snow3', 'cliff1', None),
+
     ('mud2', 'sand2', None),
+    ('mud2', 'stone1', 'dirt2'),
+
     ('water1', 'water5', None),
     ('water5', 'grass2', 'sand4'),
-    ('soil1', 'stone1', 'dirt2'),
-    ('soil3', 'stone1', 'dirt2'),
-    ('soil5', 'stone1', 'dirt2'),
-    ('soil6', 'stone1', 'dirt2'),
+
     ('grass1', 'stone1', 'grass2'),
     ('grass3', 'stone1', 'grass2'),
-    ('dirt1', 'stone1', 'dirt2'),
-    ('dust1', 'stone1', 'dirt2'),
-    ('mud2', 'stone1', 'dirt2'),
 ]
 
 inner_outer_transform_borders_list = [
-    # ('cliff1', 'grass1', 'dirt2'),
-    ('cliff1', 'grass2', 'cliff2'),
-    ('cliff1', 'dirt2', 'cliff2'),
-    ('cliff1', 'dirt6', 'cliff2'),
-    ('cliff1', 'sand2', 'cliff2'),
-    ('cliff1', 'sand4', 'cliff2'),
-    ('cliff1', 'water5', 'cliff2'),
-    ('cliff2', 'stone1', 'dirt6'),
-    # ('cliff1', 'grass3', 'dirt2'),
-    # ('cliff1', 'soil5', 'dirt2'),
-    # ('cliff1', 'dirt6', 'sand2'),
-    # ('cliff1', 'sand4', 'sand2'),
-    # ('cliff1', 'water5', 'sand2'),
+    ('stone1', 'soil3', 'dirt2'),
+    ('stone1', 'soil4', 'dirt2'),
+    ('stone1', 'snow3', 'dirt2'),
+    ('stone1', 'grass1', 'dirt2'),
+
     ('sand1', 'grass1', 'sand2'),
     ('sand1', 'grass2', 'sand2'),
     ('sand1', 'dirt2', 'sand2'),
     ('sand1', 'sand4', 'sand2'),
     ('sand1', 'cliff2', 'sand2'),
-    # ('snow1', 'sand2', 'snow2'),
+
     ('sand2', 'stone1', 'sand4'),
-    ('sand2', 'dirt6', 'sand4'),
-    # ('cliff2', 'grass2', 'grass1'),
+
+    ('sand4', 'snow3', 'dirt2'),
+
+    ('snow3', 'grass2', 'dirt2'),
+    ('snow3', 'water5', 'dirt2'),
     ('snow3', 'cliff2', 'cliff1'),
-    ('snow3', 'dirt2', 'cliff1'),
-    ('snow3', 'dirt6', 'cliff1'),
-    ('snow3', 'sand4', 'sand2'),
-    ('snow3', 'grass2', 'cliff1'),
-    ('snow3', 'grass3', 'cliff1'),
-    # ('grass1', 'soil5', 'grass2'),
+
     ('grass1', 'grass3', 'grass2'),
     ('grass1', 'sand4', 'grass2'),
     ('grass1', 'sand2', 'grass2'),
     ('grass1', 'dirt2', 'grass2'),
-    # ('grass1', 'stone1', 'dirt2'),
-    # ('grass1', 'cliff2', 'dirt2'),
-    # ('grass2', 'cliff2', 'sand2'),
-    # ('grass3', 'sand1', 'dirt2'),
-    # ('grass3', 'sand2', 'dirt2'),
-    # ('grass2', 'cliff2', 'grass1'),
-    # ('grass2', 'stone1', 'dirt6'),
+
     ('grass2', 'soil4', 'dirt2'),
+    ('grass2', 'snow3', 'dirt2'),
+
     ('grass3', 'sand4', 'grass2'),
     ('grass3', 'sand2', 'grass2'),
     ('grass3', 'dirt6', 'grass2'),
+    ('grass3', 'soil4', 'grass2'),
+    ('grass3', 'soil6', 'grass2'),
     ('grass3', 'stone1', 'grass2'),
-    ('dirt1', 'sand4', 'dirt2'),
-    ('dirt2', 'dirt6', 'sand4'),
-    # ('dirt4', 'dirt2', 'sand2'),
-    # ('dust1', 'grass2', 'dirt2'),
-    # ('dust1', 'sand2', 'dirt2'),
+    ('grass3', 'snow3', 'dirt2'),
+
     ('dust1', 'sand4', 'dirt2'),
-    # ('dust1', 'dirt6', 'dirt2'),
+
     ('soil3', 'sand2', 'dirt2'),
     ('soil3', 'sand4', 'dirt2'),
-    # ('soil3', 'dirt6', 'dirt2'),
+    ('soil3', 'grass1', 'dirt2'),
+    ('soil3', 'grass3', 'dirt2'),
+    ('soil3', 'dirt1', 'dirt2'),
+    ('soil3', 'dirt6', 'dirt2'),
+    ('soil3', 'soil4', 'dirt2'),
+    ('soil3', 'snow3', 'dirt2'),
+
     ('soil4', 'grass2', 'dirt2'),
     ('soil4', 'sand4', 'dirt2'),
-    # ('soil4', 'sand2', 'grass1'),
-    # ('soil4', 'cliff2', 'grass1'),
-    ('soil4', 'dirt6', 'dirt2'),
-    # ('soil5', 'grass3', 'grass2'),
+    ('soil4', 'sand2', 'dirt2'),
+    ('soil4', 'dirt1', 'dirt2'),
+    ('soil4', 'stone1', 'dirt2'),
+    ('soil4', 'snow3', 'dirt2'),
+
     ('soil5', 'sand2', 'grass2'),
     ('soil5', 'sand4', 'grass2'),
     ('soil5', 'grass1', 'grass2'),
-    # ('soil5', 'sand4', 'grass2'),
-    ('soil5', 'dirt6', 'grass2'),
+    ('soil5', 'grass3', 'grass2'),
     ('soil5', 'cliff2', 'dirt2'),
     ('soil5', 'stone1', 'dirt2'),
+    ('soil5', 'soil4', 'dirt2'),
+    ('soil5', 'snow3', 'dirt2'),
+
     ('soil6', 'grass2', 'sand2'),
     ('soil6', 'sand4', 'sand2'),
     ('soil6', 'cliff2', 'sand2'),
     ('soil6', 'dirt2', 'sand2'),
-    # ('mud2', 'sand4', 'sand2'),
+    ('soil6', 'soil4', 'sand2'),
+    ('soil6', 'soil5', 'sand2'),
+    ('soil6', 'stone1', 'sand2'),
+    ('soil6', 'water1', 'sand2'),
+    ('soil6', 'water5', 'sand2'),
+    ('soil6', 'snow3', 'sand2'),
+
+    ('mud2', 'grass2', 'sand2'),
+    ('mud2', 'dirt1', 'sand2'),
     ('mud2', 'dirt2', 'sand2'),
     ('mud2', 'sand4', 'sand2'),
-    # ('mud2', 'grass2', 'sand2'),
-    # ('water5', 'stone1', 'dirt6'),
+    ('mud2', 'soil6', 'sand2'),
+    ('mud2', 'cliff2', 'sand2'),
+
+    ('water1', 'grass1', 'dirt6'),
+    ('water1', 'grass2', 'dirt6'),
+    ('water1', 'grass3', 'dirt6'),
+    ('water1', 'sand4', 'dirt6'),
+    ('water1', 'sand2', 'dirt6'),
+    ('water1', 'mud2', 'dirt6'),
+    ('water1', 'dirt6', 'water5'),
+    ('water1', 'stone1', 'dirt6'),
+    ('water1', 'soil3', 'dirt6'),
+    ('water1', 'soil4', 'dirt6'),
+    ('water1', 'soil5', 'dirt6'),
+
     ('water5', 'cliff2', 'dirt6'),
-    ('water5', 'sand1', 'sand4'),
-    ('water5', 'sand2', 'sand4'),
     ('water5', 'grass1', 'grass2'),
     ('water5', 'grass3', 'dirt2'),
     ('water5', 'dirt2', 'sand4'),
@@ -354,44 +376,35 @@ inner_outer_transform_borders_list = [
     ('water5', 'soil5', 'grass2'),
     ('water5', 'mud2', 'sand2'),
     ('water5', 'stone1', 'dirt6'),
-    # ('water1', 'sand1', 'water5'),
-    # ('water1', 'sand2', 'water5'),
-    # ('water1', 'grass1', 'water5'),
-    ('water1', 'grass2', 'dirt6'),
-    ('water1', 'sand4', 'dirt6'),
-    ('water1', 'dirt6', 'water5'),
-    ('water1', 'stone1', 'dirt6'),
-    # ('water1', 'grass3', 'water5'),
-    # ('water1', 'dirt1', 'water5'),
-    # ('water1', 'dirt2', 'water5'),
-    # ('water1', 'dust1', 'water5'),
-    # ('water1', 'soil3', 'water5'),
-    # ('water1', 'soil4', 'water5'),
-    # ('water1', 'soil5', 'water5'),
-    # ('water1', 'mud2', 'water5'),
+    ('water5', 'sand1', 'sand4'),
+    ('water5', 'sand2', 'sand4'),
+    ('water5', 'snow3', 'dirt2'),
+
+    ('dirt1', 'stone1', 'dirt2'),
+    ('dirt1', 'sand2', 'dirt2'),
+    ('dirt1', 'sand4', 'dirt2'),
+    ('dirt1', 'grass1', 'dirt2'),
+    ('dirt1', 'grass3', 'dirt2'),
+    ('dirt1', 'snow3', 'dirt2'),
+
+    ('dirt6', 'dirt2', 'sand4'),
     ('dirt6', 'sand2', 'sand4'),
-    ('stone1', 'grass1', 'dirt2'),
+    ('dirt6', 'soil5', 'grass2'),
+    ('dirt6', 'soil4', 'dirt2'),
+    ('dirt6', 'snow3', 'dirt2'),
 
+    ('cliff1', 'grass2', 'cliff2'),
+    ('cliff1', 'grass3', 'cliff2'),
+    ('cliff1', 'dirt2', 'cliff2'),
+    ('cliff1', 'dirt6', 'cliff2'),
+    ('cliff1', 'soil3', 'cliff2'),
+    ('cliff1', 'soil4', 'cliff2'),
+    ('cliff1', 'sand2', 'cliff2'),
+    ('cliff1', 'sand4', 'cliff2'),
+    ('cliff1', 'water5', 'cliff2'),
 ]
 
-transform_two_adjacent_diagonal_neighbors = [
-    # ('grass1', 'grass2'),
-    # ('soil4', 'grass1'),
-    # ('snow3', 'snow2'),
-    # ('dirt4', 'dirt2'),
-    # ('grass2', 'sand2'),
-    # ('soil5', 'grass2'),
-    # ('dirt2', 'grass2'),
-    # ('sand4', 'sand2'),
-    # ('dirt2', 'sand2'),
-    # ('grass2', 'grass3'),
-    # ('grass2', 'water5', ),
-    # ('sand2', 'water5', ),
-    # ('sand2', 'water5'),
-    # ('soil4', 'water5', ),
-    # ('sand4', 'water5'),
-    # ('water1', 'water5'),
-]
+transform_two_adjacent_diagonal_neighbors = []
 
 
 def color_distance(c1, c2):
@@ -441,21 +454,12 @@ def detect_elevation_bounds(data):
 
 
 def enrich_data_with_tiles_mapping(data):
-    # biomes_colors_array = data['biomesData']['color']
     biomes_names = data['biomesData']['name']
     tiles_stats = {}
     for i in range(len(data['pack']['cells'])):
         cell = data['pack']['cells'][i]
         h = cell['h']
-        # hex_color = biomes_colors_array[cell['biome']].lstrip('#')
-        # biome_color = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-        # best_color_dist = None
         best_biome = biomes_names[cell['biome']]
-        # for c in biomes_colors.keys():
-        #     diff_dist = color_distance(biome_color, c)
-        #     if best_color_dist is None or diff_dist < best_color_dist:
-        #         best_color_dist = diff_dist
-        #         best_biome = biomes_colors[c]
         biome_tile = None
         cell_feature = data['pack']['features'][cell['f']]
         if cell_feature['type'] == 'lake':
@@ -470,11 +474,6 @@ def enrich_data_with_tiles_mapping(data):
                 if rnd <= chance:
                     biome_tile = tile
                     break
-        # if True:
-        #     if biome_tile in ['snow1', 'snow2', 'snow3', ]:
-        #         if h < CLIFFS_HEIGHT_MARGIN - CLIFFS_HEIGHT_DROP:
-        #             import pdb; pdb.set_trace()
-        #             biome_tile = 'mud2'
         data['pack']['cells'][i]['tile'] = biome_tile
         tiles_stats[biome_tile] = tiles_stats.get(biome_tile, 0) + 1
     return tiles_stats
@@ -556,7 +555,7 @@ def capture_cell_index_data(cell_index_image):
     return cell_index_map
 
 
-def build_tiles(data, draw, tiles_colors):
+def build_tiles(data, tiles_draw, tiles_colors):
     cells = data['pack']['cells']
     vertices = data['pack']['vertices']
     count = 0
@@ -568,19 +567,20 @@ def build_tiles(data, draw, tiles_colors):
             coord = xy2draw(x, y)
             points.append(coord)
         biome_tile_color = tiles_colors[cell['tile']]
-        draw.polygon(points, fill=biome_tile_color)
+        tiles_draw.polygon(points, fill=biome_tile_color)
         count += 1
     return count
 
 
-def build_routes(data, draw, routes_draw, zonemap_draw):
+def build_routes(data, tiles_draw, routes_draw=None, zonemap_draw=None, highlight_routes=False, show_trails=False):
     cells = data['pack']['cells']
     count = 0
     for route in data['pack']['routes']:
         if route['group'] == 'searoutes':
             continue
+        is_trail = False
         if route['group'] == 'trails':
-            continue
+            is_trail = True
         segments = []
         prev_x, prev_y, prev_cell_index = route['points'][0]
         for i in range(1, len(route['points'])):
@@ -595,9 +595,15 @@ def build_routes(data, draw, routes_draw, zonemap_draw):
         for segment in segments:
             road_tile, p1, p2 = segment
             road_color = tiles_colors[road_tile]
-            draw.line([(p1[0], p1[1]), (p2[0], p2[1])], fill=road_color, width=3)
-            routes_draw.line([(p1[0], p1[1]), (p2[0], p2[1])], fill=(255, 0, 0) if route['group'] == 'roads' else (0, 0, 255), width=3)
-            zonemap_draw.line([(p1[0], p1[1]), (p2[0], p2[1])], fill=(255, 255, 255), width=3)
+            if not is_trail or show_trails:
+                color = road_color
+                if highlight_routes:
+                    color = (0, (count % 4) * 64, 255 - ((count - 2) % 4) * 64) if is_trail else (255 - (count % 4) * 64, 0, ((count + 2) % 4)* 64)
+                tiles_draw.line([(p1[0], p1[1]), (p2[0], p2[1])], fill=color, width=1 if highlight_routes else 3)
+            if zonemap_draw:
+                zonemap_draw.line([(p1[0], p1[1]), (p2[0], p2[1])], fill=(255, 255, 255), width=3)
+            if routes_draw:
+                routes_draw.line([(p1[0], p1[1]), (p2[0], p2[1])], fill=(255, 0, 0) if route['group'] == 'roads' else (0, 0, 255), width=2)
         count += 1
     return count
 
@@ -657,47 +663,10 @@ def update_routes_elevation(heightmap_image, routes_map, min_route_elevation, ro
         if not routes_map.get((x, y-1), None):
             heightmap_image.putpixel((x, y-1), (h, h, h))
         changes += 1
-        # h_diff_max = None
-        # h_value = None
-        # for xn, yn in [
-        #     (x-1, y-1),
-        #     (x-1, y),
-        #     (x-1, y+1),
-        #     (x,   y-1),
-        #     (x,   y+1),
-        #     (x+1, y-1),
-        #     (x+1, y),
-        #     (x+1, y+1),
-        # ]:
-        #     neighbor = routes_map.get((xn, yn), None)
-        #     if neighbor:
-        #         neighbor_h = heightmap_image.getpixel((xn, yn))[0]
-        #         h_diff = abs(h - neighbor_h)
-        #         if h_diff_max is None or h_diff > h_diff_max:
-        #             h_diff_max = h_diff
-        #             h_value = neighbor_h
-        # if h_diff_max is not None and h_diff_max > road_steep_threshold:
-        #     if h > h_value:
-        #         h = h_value + road_steep_threshold
-        #     else:
-        #         h = h_value - road_steep_threshold
-        #     if h < min_route_elevation:
-        #         h = min_route_elevation
-        #     heightmap_image.putpixel((x, y), (h, h, h))
-        #     # if not routes_map.get((x+1, y), None):
-        #     #     heightmap_image.putpixel((x+1, y), (h, h, h))
-        #     # if not routes_map.get((x, y+1), None):
-        #     #     heightmap_image.putpixel((x, y+1), (h, h, h))
-        #     # if not routes_map.get((x-1, y), None):
-        #     #     heightmap_image.putpixel((x-1, y), (h, h, h))
-        #     # if not routes_map.get((x, y-1), None):
-        #     #     heightmap_image.putpixel((x, y-1), (h, h, h))
-        #     changes += 1
-        #     continue
     return changes
 
 
-def build_rivers(data, draw, rivers_draw, zonemap_draw, max_rivers=5):
+def build_rivers(data, draw, rivers_draw, zonemap_draw, max_rivers=25, min_length=100):
     river_shallow_tile = 'dirt6'
     river_deep_tile = 'water5'
     cells = data['pack']['cells']
@@ -708,10 +677,13 @@ def build_rivers(data, draw, rivers_draw, zonemap_draw, max_rivers=5):
         rivers_draw.line(points, fill=fill, width=width)
         zonemap_draw.line(points, fill=(0, 0, 0), width=width)
 
-    rivers = data['pack']['rivers']
-    rivers = sorted(rivers, key=lambda r: r['length'], reverse=True)[:max_rivers]
-    for river in data['pack']['rivers']:
-        if  river['type'] != 'River':
+    rivers = sorted(data['pack']['rivers'], key=lambda r: r['length'], reverse=True)
+    for river in rivers:
+        if river['type'] != 'River':
+            continue
+        if count >= max_rivers:
+            break
+        if river['length'] < min_length:
             continue
         points1 = []
         points2 = []
@@ -832,135 +804,348 @@ def build_heightmap(data, draw, packed_draw, zonemap_draw):
 
 
 def build_capitals(data, heightmap_image):
-    # cells = data['pack']['cells']
     cultures = data['pack']['cultures']
     states = data['pack']['states']
-    # grid_cells = data['grid']['cells']
-    results = []
-    races = list(sorted(buildings_mapping.keys()))
+    grid_cells = data['grid']['cells']
+    capitals = []
+    flags = []
+    capital_distance_from_burg = 5
+    races = list(sorted(buildings_mapping.keys())).copy()
+    random.shuffle(races)
+    choice = 1
     index = 0
+    # highest_h = None
+    # highest_burg = None
+    coldest_temp = None
+    coldest_burg = None
     for burg in data['pack']['burgs']:
-        index += 1
+        if isinstance(burg, dict):
+            if burg['group'] == 'capital':
+                cell = grid_cells[burg['cell']]
+                # h_cell = cell['h']
+                temp_cell = cell['temp']
+                # if highest_h is None or h_cell > highest_h:
+                #     highest_h = h_cell
+                #     highest_burg = burg
+                if coldest_temp is None or temp_cell < coldest_temp:
+                    coldest_temp = temp_cell
+                    coldest_burg = burg
+    # print(f"  highest burg is {highest_burg['name']} with h={highest_h}")
+    print(f"  coldest burg is {coldest_burg['name']} with temp={coldest_temp}")
+    selected_races = set()
+    for burg in data['pack']['burgs']:
         if isinstance(burg, dict):
             if burg['group'] == 'capital':
                 x, y = xy2draw(burg['x'], burg['y'])
-                x = int(round(x))
-                y = int(round(y))
-                h = heightmap_image.getpixel((x, y))[0]
-                if h < INPUT_WATER_LEVEL:
-                    h = INPUT_WATER_LEVEL
-                h += 3
-                sz = 5
-                for xn in range(x-sz, x+sz):
-                    for yn in range(y-sz, y+sz):
-                        heightmap_image.putpixel((xn, yn), (h, h, h))
-                race = races[index % len(races)]
+                if coldest_burg and burg['i'] == coldest_burg['i']:
+                    race = 'north'
+                # elif highest_burg and burg['i'] == highest_burg['i']:
+                #     race = 'east'
+                else:
+                    choice += 1
+                    if choice >= len(races):
+                        choice = 0
+                    race = races[choice]
+                    while race in selected_races or race in ['north', ]:
+                        choice += 1
+                        if choice >= len(races):
+                            choice = 0
+                        race = races[choice]
+                selected_races.add(race)
                 buildings_possible = buildings_mapping[race]
-                model_name, texture_name, parts_list, coefs, scale = buildings_possible['capital'].split('#')
-                results.append({
-                    'n': burg['name'],
-                    'r': f"{race.capitalize()} {states[burg['state']]['name']}",
-                    'u': cultures[burg['culture']]['name'],
-                    'x': x,
-                    'y': y,
-                    'd': 0,
+                model_name, texture_name, parts_list, coefs, scale, elevation = buildings_possible['capital'].split('#')
+                full_name = f"{race}:{burg['name']}:{states[burg['state']]['name']}:{cultures[burg['culture']]['name']}"
+                direction_towards_center = math.atan2((heightmap_image.height / 2) - y, (heightmap_image.width / 2) - x) * 180.0 / math.pi
+                direction_quantized = round(round(direction_towards_center / 90.0, 0) * 90.0, 1)
+                capital_x = x + math.cos(math.radians(direction_towards_center + 180.0)) * capital_distance_from_burg
+                capital_y = y + math.sin(math.radians(direction_towards_center + 180.0)) * capital_distance_from_burg
+                index += 1
+                capitals.append({
+                    'i': index,
+                    'k': 'capital',
+                    'n': full_name,
+                    'r': race,
+                    'x': int(round(capital_x)),
+                    'y': int(round(capital_y)),
+                    'd': direction_quantized,
                     'm': model_name,
                     't': texture_name,
-                    'p': parts_list,
+                    'p': None if parts_list in ['None', None, 'null', ''] else parts_list,
                     'c': coefs,
                     's': scale,
+                    'e': float(elevation),
+                    'h': heightmap_image.getpixel((x, y))[0],
                 })
-                # model_name, texture_name, parts_list, coefs, scale = buildings_possible['tower'].split('#')
-                # results.append({
-                #     'n': burg['name'],
-                #     'r': f"{race.capitalize()} {states[burg['state']]['name']}",
-                #     'u': cultures[burg['culture']]['name'],
-                #     'x': x + 5,
-                #     'y': y,
-                #     'd': 0,
-                #     'm': model_name,
-                #     't': texture_name,
-                #     'p': parts_list,
-                #     'c': coefs,
-                #     's': scale,
-                # })
-    return results
+                print(f'    capital {index} is {full_name} at {burg["x"]},{burg["y"]} -> {x},{y}')
+                model_name, texture_name, parts_list, coefs, scale, elevation = buildings_possible['flag'].split('#')
+                flags.append({
+                    'i': index,
+                    'k': 'flag',
+                    'n': f'{race} flag',
+                    'r': race,
+                    'x': int(round(x)),
+                    'y': int(round(y)),
+                    'd': direction_towards_center,
+                    'm': model_name,
+                    't': texture_name,
+                    'p': None if parts_list in ['None', None, 'null', ''] else parts_list,
+                    'c': coefs,
+                    's': scale,
+                    'e': float(elevation),
+                    'h': heightmap_image.getpixel((x, y))[0],
+                })
+                if race == 'undead':
+                    flags.append({
+                        'i': index,
+                        'k': 'flag',
+                        'n': f'{race} flag',
+                        'r': race,
+                        'x': int(round(x)),
+                        'y': int(round(y)),
+                        'd': (direction_towards_center + 180.0) % 360.0,
+                        'm': model_name,
+                        't': texture_name,
+                        'p': None if parts_list in ['None', None, 'null', ''] else parts_list,
+                        'c': coefs,
+                        's': scale,
+                        'e': float(elevation),
+                        'h': heightmap_image.getpixel((x, y))[0],
+                    })
+    return capitals, flags
 
 
-def build_towers(data, heightmap_image):
-    pass
-
-# def capture_elevation_data(heightmap_image):
-#     _elevation_data = {}
-#     for x in range(heightmap_image.width):
-#         for y in range(heightmap_image.height):
-#             heightmap_imagebiome_pixel = heightmap_image.getpixel((x, y))
-#             # saceled_e = float(heightmap_imagebiome_pixel[0])
-#             _elevation_data[(x, y)] = heightmap_imagebiome_pixel[0]
-#     return _elevation_data
-
-
-def build_beach_area(tiles_image, tiles_map):
-    # NOT USED
-    beach_area = set()
-    for x in range(1, tiles_image.width-1):
-        for y in range(1, tiles_image.height-1):
-            if (x, y) in beach_area:
+def build_towers(data, capitals, flags, heightmap_image):
+    # places a tower on the route next to each capital
+    capitals_index = {c['i']: c for c in capitals}
+    flags_index = {f['i']: f for f in flags}
+    routes_index = {r['i']: r for r in data['pack']['routes']}
+    capitals_routes_map = {}
+    routes_graph = {}
+    towers = []
+    for route in data['pack']['routes']:
+        route_id = route['i']
+        if route['group'] == 'searoutes':
+            continue
+        if route['group'] == 'trails':
+            continue
+        x1, y1, _ = route['points'][0]
+        x2, y2, _ = route['points'][-1]
+        print(f'  checking route{route_id} with {len(route["points"])} points from {round(x1,2)},{round(y1,2)} to {round(x2,2)},{round(y2,2)}')
+        for other_route in data['pack']['routes']:
+            other_route_id = other_route['i']
+            if other_route_id == route_id:
                 continue
-            if tiles_map[(x, y)] == 'water5':  #  and elevation_data.get((x, y), 0) <= INPUT_WATER_LEVEL:
-                for xn, yn in [
-                    (x-1, y-1),
-                    (x-1, y),
-                    (x-1, y+1),
-                    (x,   y-1),
-                    (x,   y+1),
-                    (x+1, y-1),
-                    (x+1, y),
-                    (x+1, y+1),
-                ]:
-                    neighbor = tiles_map[(xn, yn)]
-                    if neighbor != 'water5' and neighbor not in ['sand4', 'dirt6', 'grass2', 'dirt2']:
-                        beach_area.add((x, y))
-    for x, y in beach_area:
-        tiles_map[(x, y)] = 'dirt6'
-    return beach_area
-
-
-def build_cliffs(tiles_image, tiles_map, heightmap_image):
-    # NOT USED
-    cliffs = set()
-    for x in range(1, tiles_image.width-1):
-        for y in range(1, tiles_image.height-1):
-            if (x, y) in cliffs:
+            if other_route['group'] == 'searoutes':
                 continue
-            h = heightmap_image.getpixel((x, y))[0]
-            # h = elevation_data.get((x, y), 0)
-            if h > CLIFFS_HEIGHT_MARGIN:
-                for xn, yn in [
-                    (x-1, y-1),
-                    (x-1, y),
-                    (x-1, y+1),
-                    (x,   y-1),
-                    (x,   y+1),
-                    (x+1, y-1),
-                    (x+1, y),
-                    (x+1, y+1),
-                ]:
-                    # neighbor_h = elevation_data.get((xn, yn), 0)
-                    neighbor_h = heightmap_image.getpixel((xn, yn))[0]
-                    if neighbor_h <= CLIFFS_HEIGHT_MARGIN:
-                        cliffs.add((x, y))
-    for x, y in cliffs:
-        tiles_map[(x, y)] = 'cliff1'
-    return cliffs
+            if other_route['group'] == 'trails':
+                continue
+            for i in range(len(route['points'])):
+                x1, y1, _ = route['points'][i]
+                for j in range(len(other_route['points'])):
+                    x2, y2, _ = other_route['points'][j]
+                    dist = ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5
+                    if dist <= 3.0:
+                        if route_id not in routes_graph:
+                            routes_graph[route_id] = {}
+                        routes_graph[route_id][i] = ('route', route_id, other_route_id, j)
+                        print(f'      route{route_id} at point {i} is intersecting with route{other_route_id} at point {j} with distance {dist}')
+        capitals_on_route = []
+        for flag in flags:
+            ci = flag['i']
+            flag_x = flag['x']
+            flag_y = flag['y']
+            closest_point_index = None
+            closest_point_dist = None
+            for i in range(len(route['points'])):
+                point = route['points'][i]
+                px, py, _ = point
+                px, py = xy2draw(px, py)
+                dist = ((flag_x - px) ** 2 + (flag_y - py) ** 2) ** 0.5
+                if closest_point_dist is None or dist < closest_point_dist:
+                    closest_point_dist = dist
+                    closest_point_index = i
+            if closest_point_dist is not None and closest_point_dist <= 2.0:
+                capitals_on_route.append((flag, closest_point_index))
+                if ci not in capitals_routes_map:
+                    capitals_routes_map[ci] = []
+                capitals_routes_map[ci].append((route_id, closest_point_index))
+                if route_id not in routes_graph:
+                    routes_graph[route_id] = {}
+                routes_graph[route_id][closest_point_index] = ('capital', ci, None, None)
+                print(f'      capital{ci} is on the route{route_id} at point {closest_point_index} with distance {closest_point_dist}')
+    capitals_directions = {}
+    for flag in flags:
+        ci = flag['i']
+        if ci not in capitals_directions:
+            capitals_directions[ci] = {}
+        for connected_route_id, closest_point_index in capitals_routes_map.get(ci, []):
+            intersections = routes_graph.get(connected_route_id, {})
+            intersections_points_ind = list(intersections.keys())
+            intersections_points_ind.sort()
+            this_capital_intersection_index = None
+            for i in range(len(intersections_points_ind)):
+                intersection_index = intersections_points_ind[i]
+                item = intersections[intersection_index]
+                if item[0] == 'capital' and item[1] == ci:
+                    this_capital_intersection_index = i
+                    break
+            if this_capital_intersection_index is None:
+                continue
+            print(f'        capital{ci} intersection at {this_capital_intersection_index} with {intersections_points_ind[this_capital_intersection_index]}')
+            if this_capital_intersection_index > 0:
+                prev_intersection = intersections_points_ind[this_capital_intersection_index-1]
+                if connected_route_id not in capitals_directions[ci]:
+                    capitals_directions[ci][connected_route_id] = []
+                capitals_directions[ci][connected_route_id].append((connected_route_id, closest_point_index, prev_intersection))
+                print(f'          capital{ci} previous intersection on route{connected_route_id} {closest_point_index} -> {prev_intersection}')
+            if this_capital_intersection_index < len(intersections_points_ind) - 1:
+                next_intersection = intersections_points_ind[this_capital_intersection_index+1]
+                if connected_route_id not in capitals_directions[ci]:
+                    capitals_directions[ci][connected_route_id] = []
+                capitals_directions[ci][connected_route_id].append((connected_route_id, closest_point_index, next_intersection))
+                print(f'          capital{ci} next intersection on route{connected_route_id} {closest_point_index} -> {next_intersection}')
+    index = 0
+    tower_distance_from_flag = 5.0
+    tower_shift_from_road = 4.0
+    for flag_i in capitals_directions.keys():
+        capital = capitals_index[flag_i]
+        flag = flags_index[flag_i]
+        flag_x = flag['x']
+        flag_y = flag['y']
+        direction_towards_center = math.atan2((heightmap_image.height / 2) - flag_y, (heightmap_image.width / 2) - flag_x) * 180 / math.pi
+        race = flags_index[flag_i]['r']
+        tower_x = None
+        tower_y = None
+        if len(capitals_directions[flag_i]) == 1 and len(list(capitals_directions[flag_i].values())[0]) == 1:
+            connected_route_id, point_index_begin, point_index_end = list(capitals_directions[flag_i].values())[0][0]
+            print(f'        capital{flag_i} has only one intersection with route{connected_route_id} at point {point_index_begin}, next intersection is at point {point_index_end}')
+            route = routes_index[connected_route_id]
+            for point_index in range(point_index_begin, point_index_end, 1 if point_index_end > point_index_begin else -1):
+                px, py, _ = route['points'][point_index]
+                px, py = xy2draw(px, py)
+                dist_to_capital = ((flag_x - px) ** 2 + (flag_y - py) ** 2) ** 0.5
+                if dist_to_capital < tower_distance_from_flag:
+                    continue
+                direction_from_capital = math.atan2(py - flag_y, px - flag_x) * 180 / math.pi
+                route_point_x = int(flag_x + tower_distance_from_flag * math.cos(math.radians(direction_from_capital)))
+                route_point_y = int(flag_y + tower_distance_from_flag * math.sin(math.radians(direction_from_capital)))
+                direction_from_route_point = direction_from_capital + 90.0
+                tower_x = route_point_x + int(tower_shift_from_road * math.cos(math.radians(direction_from_route_point)))
+                tower_y = route_point_y + int(tower_shift_from_road * math.sin(math.radians(direction_from_route_point)))
+                break
+        if tower_x is None or tower_y is None:
+            tower_x = int(flag_x + tower_distance_from_flag * math.cos(math.radians(direction_towards_center)))
+            tower_y = int(flag_y + tower_distance_from_flag * math.sin(math.radians(direction_towards_center)))
+            print(f'        for capital{flag_i} did not found point on route, placing tower in direction towards center at {tower_x},{tower_y}')
+        direction_quantized = round(round(direction_towards_center / 90.0, 0) * 90.0, 1)
+        buildings_possible = buildings_mapping[race]
+        model_name, texture_name, parts_list, coefs, scale, elevation = buildings_possible['tower'].split('#')
+        index += 1
+        towers.append({
+            'i': index,
+            'k': 'tower',
+            'n': f"{race} tower",
+            'r': race,
+            'x': tower_x,
+            'y': tower_y,
+            'd': (direction_quantized + 180.0) % 360.0,
+            'm': model_name,
+            't': texture_name,
+            'p': None if parts_list in ['None', None, 'null', ''] else parts_list,
+            'c': coefs,
+            's': scale,
+            'e': float(elevation),
+            'h': heightmap_image.getpixel((tower_x, tower_y))[0],
+        })
+        print(f'    {race} tower{index} for capital{flag_i} {capital["n"]} is at {tower_x},{tower_y}')
+    return towers
 
 
-def build_plants(data, tiles_image, tiles_map, cell_index_map, catalog_plants, heightmap_image, zonemap_draw):
+def build_buildings_tiles(tiles_image, buildings):
+    buildings_map = {}
+    for building in buildings:
+        x = int(building['x'])
+        y = int(building['y'])
+        sz = 1
+        if building['k'] == 'capital':
+            sz = 3
+            if building['r'] == 'north':
+                sz = 7
+        elif building['k'] == 'tower':
+            sz = 2
+            if building['r'] == 'north':
+                sz = 3
+        elif building['k'] == 'flag':
+            sz = 2
+            if building['r'] == 'north':
+                sz = 3
+        for xn in range(x-sz, x+sz):
+            for yn in range(y-sz, y+sz):
+                dist_to_center = ((x - xn + 0.0) ** 2 + (y - yn + 0.0) ** 2) ** 0.5
+                if dist_to_center > sz:
+                    continue
+                tile_color = tiles_colors['stone1']
+                if building['r'] == 'north':
+                    tile_color = tiles_colors['snow3']
+                    if dist_to_center == sz or dist_to_center == sz - 1:
+                        tile_color = tiles_colors['dirt2']
+                tiles_image.putpixel((xn, yn), tile_color)
+                buildings_map[(xn, yn)] = building
+    return buildings_map
+
+
+def update_buildings_elevation(heightmap_image, buildings, min_building_elevation):
+    changes = 0
+    for building in buildings:
+        x = int(building['x'])
+        y = int(building['y'])
+        h = building['h']
+        if h < min_building_elevation:
+            h = min_building_elevation
+        sz = 1
+        if building['k'] == 'capital':
+            h += 2
+            sz = 4
+            if building['r'] == 'north':
+                sz = 8
+        elif building['k'] == 'tower':
+            if building['r'] == 'undead':
+                h += 0
+            else:
+                h += 2
+            sz = 2
+            if building['r'] == 'north':
+                sz = 6
+        for xn in range(x-sz, x+sz):
+            for yn in range(y-sz, y+sz):
+                dist_to_center = ((x - xn + 0.0) ** 2 + (y - yn + 0.0) ** 2) ** 0.5
+                if dist_to_center > sz:
+                    continue
+                up = 6 - int((float(dist_to_center) / sz) * 6.0)
+                _h = heightmap_image.getpixel((xn, yn))[0]
+                if _h != h + up:
+                    _h = h + up
+                    heightmap_image.putpixel((xn, yn), (_h, _h, _h))
+                    changes += 1
+    return changes
+
+
+def build_plants(data, buildings, tiles_image, tiles_map, cell_index_map, catalog_plants, heightmap_image, zonemap_draw):
     cells = data['pack']['cells']
     biomes_names = data['biomesData']['name']
     result = {}
+    buildings_coords = set()
+    for building in buildings:
+        x = int(building['x'])
+        y = int(building['y'])
+        sz = 4 if building['k'] == 'capital' else 2
+        for xn in range(x-sz, x+sz):
+            for yn in range(y-sz, y+sz):
+                buildings_coords.add((xn, yn))
     for x in range(2, tiles_image.width-2):
         for y in range(2, tiles_image.height-2):
+            if (x, y) in buildings_coords:
+                continue
             cell_index = cell_index_map[(x, y)]
             cell = cells[cell_index]
             biome = biomes_names[cell['biome']]
@@ -985,14 +1170,6 @@ def build_plants(data, tiles_image, tiles_map, cell_index_map, catalog_plants, h
                         (x+1, y-1),
                         (x+1, y),
                         (x+1, y+1),
-                        # (x-2, y-2),
-                        # (x-2, y),
-                        # (x-2, y+2),
-                        # (x,   y-2),
-                        # (x,   y+2),
-                        # (x+2, y-2),
-                        # (x+2, y),
-                        # (x+2, y+2),
                     ]:
                         neighbor = tiles_map[(xn, yn)]
                         if neighbor in ['water1', 'water5', 'stone1', 'cliff1', 'cliff2', ]:
@@ -1007,7 +1184,6 @@ def build_plants(data, tiles_image, tiles_map, cell_index_map, catalog_plants, h
                     if not selected_plant:
                         continue
                     try:
-                        # plant_biome, plant_kind = selected_plant.split(':')
                         plant_variants = list(catalog_plants[selected_plant].keys())
                         plant_template = random.choice(plant_variants)
                         plant_coefs_variants = catalog_plants[selected_plant][plant_template].split(' ')
@@ -1021,8 +1197,6 @@ def build_plants(data, tiles_image, tiles_map, cell_index_map, catalog_plants, h
                             result[plant_template] = []
                         plant_info_encoded = f'{plant_coefs} {plant_x} {plant_y} {plant_direction} {selected_plant} {plant_template}'
                         result[plant_template].append(plant_info_encoded)
-                        # if plant_kind in ['tree', 'frozen_tree', 'deadwood', ]:
-                        #     zonemap_draw.point((x, y), fill=(0, 0, 0))
                     except Exception as e:
                         print(f"Error processing plant {selected_plant} for biome {biome} at {(x, y)}: {e}")
                         continue
@@ -1030,15 +1204,16 @@ def build_plants(data, tiles_image, tiles_map, cell_index_map, catalog_plants, h
     return result
 
 
-def flood_bellow_water_tiles(tiles_image, tiles_map, heightmap_image, flood_level):
+def flood_bellow_water_tiles(tiles_image, tiles_map, buildings_map, heightmap_image, flood_level):
     flooded = 0
     for x in range(tiles_image.width):
         for y in range(tiles_image.height):
-            h = heightmap_image.getpixel((x, y))[0]
-            if h <= flood_level:
-                if tiles_map[(x, y)] not in ['water1', 'water5', 'sand4', 'dirt6', ]:
-                    tiles_map[(x, y)] = 'water5'
-                    flooded += 1
+            if (x, y) not in buildings_map:
+                h = heightmap_image.getpixel((x, y))[0]
+                if h <= flood_level:
+                    if tiles_map[(x, y)] not in ['water1', 'water5', 'sand4', 'dirt6', ]:
+                        tiles_map[(x, y)] = 'water5'
+                        flooded += 1
     return flooded
 
 
@@ -1054,7 +1229,14 @@ def shallow_water_tiles(tiles_image, tiles_map, heightmap_image, shallow_level):
     return changes
 
 
-def transform_inner_outer_areas_borders(tiles_image, tiles_map, routes_map, rivers_map):
+def transform_inner_outer_areas_borders(tiles_image, tiles_map, routes_map, rivers_map, buildings_map):
+    if DEBUG:
+        attempt_snapshot_image = Image.new("RGB", tiles_image.size, "black")
+        for x in range(tiles_image.width):
+            for y in range(tiles_image.height):
+                tile = tiles_map[(x, y)]
+                attempt_snapshot_image.putpixel((x, y), tiles_colors[tile])
+        attempt_snapshot_image.save(f'tiles0_before.png')
     for inner, outer, transform in inner_outer_transform_before_borders_list:
         replacing_list = set()
         transform_list = set()
@@ -1083,24 +1265,33 @@ def transform_inner_outer_areas_borders(tiles_image, tiles_map, routes_map, rive
                                 break
         if transform is not None:
             for x, y in transform_list:
-                if (x, y) not in routes_map and (x, y) not in rivers_map:
+                if (x, y) not in routes_map and (x, y) not in rivers_map and (x, y) not in buildings_map:
                     tiles_map[(x, y)] = transform
             if transform_list:
                 print(f"  transformed border line conditionally between {inner} and {outer} with {transform} length: {len(transform_list)}")
         else:
             for x, y in replacing_list:
-                if (x, y) not in routes_map and (x, y) not in rivers_map:
+                if (x, y) not in routes_map and (x, y) not in rivers_map and (x, y) not in buildings_map:
                     tiles_map[(x, y)] = outer
             if replacing_list:
                 print(f"  placed border line between {inner} and {outer} with {outer} length: {len(replacing_list)}")
+    if DEBUG:
+        attempt_snapshot_image = Image.new("RGB", tiles_image.size, "black")
+        for x in range(tiles_image.width):
+            for y in range(tiles_image.height):
+                tile = tiles_map[(x, y)]
+                attempt_snapshot_image.putpixel((x, y), tiles_colors[tile])
+        attempt_snapshot_image.save(f'tiles0_after.png')
 
 
-def transform_neighboring_tiles_conditionally(tiles_image, tiles_map, routes_map, rivers_map, heightmap_image, catalog, max_cycles=12):
+def transform_neighboring_tiles_conditionally(tiles_image, tiles_map, routes_map, rivers_map, buildings_map, heightmap_image, catalog, max_cycles=12):
     cycles = max_cycles
     progress = 1
     attempts = 0
+    prev_updates = set()
+    new_updates = set()
     while progress and cycles:
-        if False:
+        if DEBUG:
             if attempts > 0:
                 attempt_snapshot_image = Image.new("RGB", tiles_image.size, "black")
                 for x in range(tiles_image.width):
@@ -1137,21 +1328,35 @@ def transform_neighboring_tiles_conditionally(tiles_image, tiles_map, routes_map
                                     break
                 for x, y in transform_list:
                     blocked = False
+                    undesired = False
                     if (x, y) in routes_map:
-                        blocked = True
+                        undesired = True
                     if (x, y) in rivers_map:
+                        undesired = True
+                    if (x, y) in buildings_map:
+                        undesired = True
                         blocked = True
-                    if transform in ['water5', 'water1'] and tiles_map[(x, y)] not in ['water5', 'water1']:
+                    if transform in ['water5', 'water1'] and tiles_map[(x, y)] not in ['water5', 'water1', 'dirt6', 'sand4', 'sand2', ]:
                         h = heightmap_image.getpixel((x, y))[0]
                         if h <= INPUT_WATER_LEVEL:
-                            blocked = True
-                    if not blocked or attempts > 3:
+                            undesired = True
+                    if blocked and attempts <= max_cycles / 2 + 1:
+                        continue
+                    if not undesired or attempts > 3:
                         tiles_map[(x, y)] = transform
                         changes += 1
                         progress += 1
-                if len(transform_list):
-                    print(f"    border line between {inner} and {outer} transform to {transform} with {len(transform_list)} changes")
+                        new_updates.add((x, y))
+                # if len(transform_list):
+                #     print(f"    border line between {inner} and {outer} transform to {transform} with {len(transform_list)} changes")
             print(f"  transformed border line conditionally with {changes} changes, finished {attempts} attempt")
+            if prev_updates and new_updates and len(prev_updates) == len(new_updates):
+                if not prev_updates.difference(new_updates):
+                    if attempts > max_cycles / 2:
+                        print(f"  no new updates, stopping with {attempts} attempts. last updates: {new_updates}")
+                        break
+            prev_updates = new_updates.copy()
+            new_updates.clear()
         if True:
             changes = 0
             for x in range(0, tiles_image.width-1):
@@ -1555,6 +1760,19 @@ def build_zonemap(zonemap_image, tiles_map, heightmap_image):
     return len(expanded)
 
 
+def build_minimap(data, buildings, minimap_image):
+    minimap_draw = ImageDraw.Draw(minimap_image)
+    build_routes(data, minimap_draw, highlight_routes=True)
+    for building in buildings:
+        x = building['x']
+        y = building['y']
+        if building['k'] == 'capital':
+            minimap_draw.ellipse((x-6, y-5, x+6, y+7), fill = 'black', outline ='gray')
+            minimap_draw.text((x-3, y-4, x+2, y+0), str(building['i']), fill='white')
+        elif building['k'] == 'tower':
+            minimap_draw.ellipse((x-3, y-3, x+3, y+3), fill = 'gray', outline ='white')
+
+
 def main():
     global min_x, min_y, input_width, input_height, width, height
     global min_elevation, max_elevation
@@ -1564,11 +1782,12 @@ def main():
     catalog = json.loads(open('assets/catalog.json', 'rt').read())
     catalog_plants = json.loads(open('assets/catalog_plants.json', 'rt').read())
 
-    biomes_map = {}
-    tiles_map = {}
-    cell_index_map = {}
-    routes_map = {}
-    rivers_map = {}
+    biomes_map = {}  # @UnusedVariable
+    tiles_map = {}  # @UnusedVariable
+    cell_index_map = {}  # @UnusedVariable
+    routes_map = {}  # @UnusedVariable
+    rivers_map = {}  # @UnusedVariable
+    buildings_map = {}  # @UnusedVariable
 
     singles = set()
     pairs = set()
@@ -1598,9 +1817,6 @@ def main():
     print(f"Bounds are x=({min_x}:{max_x}) y=({min_y}:{max_y}) width={input_width} height={input_height}")
 
     min_elevation, max_elevation = detect_elevation_bounds(data)
-    # min_elevation_unpacked = elevation_unpack(min_elevation)
-    # max_elevation_unpacked = elevation_unpack(max_elevation)
-    # water_level_unpacked = elevation_unpack(INPUT_WATER_LEVEL)
     print(f"Elevations are from {min_elevation} to {max_elevation}, water level is {INPUT_WATER_LEVEL}")
 
     biomes_colors_data = data['biomesData']['color']
@@ -1624,7 +1840,6 @@ def main():
     biomes_map = capture_biomes_data(biome_image, biomes_colors)
     print(f'Rendered {biomes_count} biomes')
 
-    # deep = elevation_to_scale_255(elevation_unpack(1))
     heightmap_image = Image.new("RGB", (width, height), (min_elevation, min_elevation, min_elevation))
     heightmap_draw = ImageDraw.Draw(heightmap_image)
     heightmap_packed_image = Image.new("RGB", (width, height), (0, 0, 0))
@@ -1634,8 +1849,6 @@ def main():
     # heightmap_image = heightmap_image.filter(ImageFilter.GaussianBlur(radius=1.0))
     # elevation_data = capture_elevation_data(heightmap_image)
     print(f'Rendered heightmap, {bellow_water_count} tiles are bellow water level, {above_cliffs_count} tiles are above cliffs, min elevation is {min_elevation}, max elevation is {max_elevation}')
-
-    # tiles_stats = enrich_data_with_tiles_mapping(data)
 
     if heightmap_image.size != biome_image.size:
         raise Exception("Height map and biome map sizes do not match")
@@ -1669,7 +1882,7 @@ def main():
 
         routes_image = Image.new("RGB", (width, height), "black")
         routes_draw = ImageDraw.Draw(routes_image)
-        routes_count = build_routes(data, tiles_draw, routes_draw, zonemap_draw)
+        routes_count = build_routes(data, tiles_draw, routes_draw=routes_draw, zonemap_draw=zonemap_draw)
         print(f'Rendered {routes_count} routes at {len(routes_map)} tiles')
 
         routes_image.save('assets/routes.png')
@@ -1681,9 +1894,18 @@ def main():
     rivers_map = capture_rivers_data(rivers_image)
     print(f'Captured rivers data with {len(rivers_map)} tiles')
 
-    buildings = build_capitals(data, heightmap_image)
+    capitals, flags = build_capitals(data, heightmap_image)
+    print(f"Placed {len(capitals)} capitals")
+
+    towers = build_towers(data, capitals, flags, heightmap_image)
+    print(f"Placed {len(towers)} towers")
+
+    buildings = []
+    buildings.extend(capitals)
+    buildings.extend(towers)
+    buildings.extend(flags)
+    print(f"Total {len(buildings)} buildings generated")
     open('assets/buildings.json', 'w').write(json.dumps(buildings, indent=2))
-    print(f"Rendered {len(buildings)} buildings")
 
     cell_index_image = Image.new("RGB", (width, height), "black")
     cell_index_draw = ImageDraw.Draw(cell_index_image)
@@ -1697,24 +1919,22 @@ def main():
         print(f'Read {len(tiles_map)} tiles from existing image')
 
     else:
+        buildings_map = build_buildings_tiles(tiles_image, buildings)
+        print(f'Updated {len(buildings_map)} tiles under buildings')
+
         tiles_map = capture_tiles_data(tiles_image)
         print(f'Read {len(tiles_map)} tiles from the rendered image')
 
-        # scaled_water_level = elevation_to_scale_255(elevation_unpack(INPUT_WATER_LEVEL))
-        flooded = flood_bellow_water_tiles(tiles_image, tiles_map, heightmap_image, flood_level=INPUT_WATER_LEVEL)
+        flooded = flood_bellow_water_tiles(tiles_image, tiles_map, buildings_map, heightmap_image, flood_level=INPUT_WATER_LEVEL)
         print(f"Flooded {flooded} tiles based on heightmap data, water level is {INPUT_WATER_LEVEL}")
 
-        # beach_area = build_beach_area(tiles_image, tiles_map)
-        # print(f"Added {len(beach_area)} beach area tiles")
-
-        # cliffs = build_cliffs(tiles_image, tiles_map, heightmap_image)
-        # print(f"Added {len(cliffs)} cliff tiles")
+        tiles_image.save('assets/tiles_raw.png')
 
         print(f"Transforming inner-outer areas borders based on {len(inner_outer_transform_before_borders_list)} rules:")
-        transform_inner_outer_areas_borders(tiles_image, tiles_map, routes_map, rivers_map)
+        transform_inner_outer_areas_borders(tiles_image, tiles_map, routes_map, rivers_map, buildings_map)
 
         print(f"Transform neighboring tiles conditionally:")
-        transform_neighboring_tiles_conditionally(tiles_image, tiles_map, routes_map, rivers_map, heightmap_image, catalog, max_cycles=TRANSFORM_CYCLES)
+        transform_neighboring_tiles_conditionally(tiles_image, tiles_map, routes_map, rivers_map, buildings_map, heightmap_image, catalog, max_cycles=TRANSFORM_CYCLES)
 
         stats = {}
         tiles_image_output = Image.new("RGB", biome_image.size, "black")
@@ -1775,17 +1995,16 @@ def main():
                 if len(diag1) == 1 and len(diag2) == 1:
                     raise Exception(f"Found neighboring tiles with 2 different types in diagonal at ({x}, {y}): {list(neighbors_counts.keys())}")
 
-    # changes = shallow_water_tiles(tiles_image, tiles_map, heightmap_image, shallow_level=INPUT_WATER_LEVEL-1)
-    # print(f"Updated heightmap to set shallow of the bellow water tiles with {changes} changes")
-
     changes = update_rivers_elevation(heightmap_image, rivers_map, max_river_elevation=RIVERS_MAX_ELEVATION_LEVEL)
     print(f"Updated rivers elevation with {changes} changes")
 
     changes = update_routes_elevation(heightmap_image, routes_map, min_route_elevation=ROUTES_MIN_ELEVATION_LEVEL)
     print(f"Updated routes elevation with {changes} changes")
 
+    changes = update_buildings_elevation(heightmap_image, buildings, min_building_elevation=BUILDINGS_MIN_ELEVATION_LEVEL)
+    print(f"Updated buildings elevation with {changes} changes")
+
     heightmap_image.save('assets/heightmap_raw.png')
-    # heightmap_image = heightmap_image.filter(ImageFilter.GaussianBlur(radius=0.75))
     heightmap_image = heightmap_image.filter(ImageFilter.BoxBlur(radius=1))
 
     changes = update_rivers_elevation(heightmap_image, rivers_map, max_river_elevation=RIVERS_MAX_ELEVATION_LEVEL)
@@ -1793,6 +2012,9 @@ def main():
 
     changes = update_routes_elevation(heightmap_image, routes_map, min_route_elevation=ROUTES_MIN_ELEVATION_LEVEL)
     print(f"Updated routes elevation second time with {changes} changes")
+
+    changes = update_buildings_elevation(heightmap_image, buildings, min_building_elevation=BUILDINGS_MIN_ELEVATION_LEVEL)
+    print(f"Updated buildings elevation second time with {changes} changes")
 
     heightmap_image.save('assets/heightmap.png')
     print(f"Generated heightmap image, elevations are from {min_elevation} to {max_elevation}")
@@ -1806,14 +2028,18 @@ def main():
     encoded_image.save('assets/encoded.png')
     print(f"Generated encoded tiles image")
 
-    # data = read_full_fantasy_map_generator_json_file(sys.argv[1])
-    plants = build_plants(data, tiles_image, tiles_map, cell_index_map, catalog_plants, heightmap_image, zonemap_draw)
+    plants = build_plants(data, buildings, tiles_image, tiles_map, cell_index_map, catalog_plants, heightmap_image, zonemap_draw)
     open('assets/plants.json', 'w').write(json.dumps(plants, indent=2))
     print(f"Generated plants data with {len(plants)} plants")
 
     changed = build_zonemap(zonemap_image, tiles_map, heightmap_image)
     zonemap_image.save('assets/zonemap.png')
     print(f"Updated zonemap with {changed} changes")
+
+    minimap_image = tiles_image_output.copy()
+    build_minimap(data, buildings, minimap_image)
+    minimap_image.save('assets/minimap.png')
+    print(f"Generated minimap image")
 
     different_biomes = list(stats.keys())
     different_biomes.sort(key=lambda i: stats[i], reverse=True)

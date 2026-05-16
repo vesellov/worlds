@@ -408,6 +408,7 @@ class Scene(object):
         mesh = dat.MeshData(
             name=name,
             material={'map_Kd': 'textures/model/' + texture + '.png'} if texture else None,
+            texture=texture,
         )
         mesh.coefs = coefs
         vert_buf = []
@@ -478,6 +479,8 @@ class Scene(object):
             for texture in textures.values():
                 tex_file_path = 'textures/model/' + texture + '.png'
                 if not os.path.isfile(tex_file_path):
+                    if _Debug:
+                        print(f'    loading texture {texture} from data/textures.res and unpacking into textures/')
                     m.unpack_texture('data/textures.res', 'textures/model', texture)
                 tex_file_path_source = resource_find(tex_file_path)
                 if tex_file_path_source:
@@ -508,7 +511,7 @@ class Scene(object):
         for exclude in excluded_parts:
             if exclude in selected_parts:
                 selected_parts.remove(exclude)
-        o.root_part_name = selected_parts[0]
+        o.root_part_name = ordered_parts_list[0]
         # if _Debug:
         #     print(f'about to prepare unit ({ao.name}) with {len(selected_parts)} parts and {len(ao.animations_loaded)} animations from model {{{template}}}')
         # t1 = time.time()
@@ -523,11 +526,15 @@ class Scene(object):
                 mth.trilinear([part_info[i][2] for i in range(8)], coefs) * scale[2],
             ])
             mesh_key = self.mesh_key(o.template, part_name, coefs)
+            texture = o.textures[part_name] if part_name in o.textures else o.textures['*']
+            mesh = None
             if mesh_key in self.meshes_index:
-                mesh = self.meshes[self.meshes_index[mesh_key]]
-                if _Debug:
-                    print(f'    reused mesh {mesh.name} for part {o.name}:{part_name} with texture {mesh.material["map_Kd"]}')
-            else:
+                _mesh = self.meshes[self.meshes_index[mesh_key]]
+                if _mesh.texture and _mesh.texture == texture:
+                    mesh = _mesh
+                    if _Debug:
+                        print(f'    reused mesh {mesh.name} for part {o.name}:{part_name} with texture {mesh.material["map_Kd"]}')
+            if not mesh:
                 mesh = self.create_mesh_from_fig_data(
                     fig_data=m.figures[part_name],
                     prefix=o.template + '_' + part_name,
@@ -570,7 +577,7 @@ class Scene(object):
         #     print(f'  {"static" if static else "animated"} object {o.name} with {len(selected_parts)} parts and {len(o.animations_loaded)} animations created in {t2 - t1} sec from template {template}')
         return o
 
-    def construct_unit_from_object_data(self, container, object_name, angle_coords, static=True, onstage=True, shift_vector=None, direction=0, w=0, h=0, shift_w=0, shift_h=0, area_w=0, area_h=0):
+    def construct_unit_from_object_data(self, container, object_name, angle_coords, static=True, onstage=True, shift_vector=None, direction=0, elevation_correction=None, w=0, h=0, shift_w=0, shift_h=0, area_w=0, area_h=0):
         global _NextUnitID
         _source_dict = self.static_objects if static else self.animated_objects
         if object_name not in _source_dict:
@@ -588,6 +595,7 @@ class Scene(object):
             unit.animations_list = source_object.animations_loaded.copy()
         unit.root_mesh_center = source_object.root_mesh_center
         unit.direction = direction
+        unit.elevation_correction = elevation_correction
         unit.w = w
         unit.h = h
         unit.shift_w = shift_w
@@ -638,7 +646,10 @@ class Scene(object):
         unit.container_unit.add(unit.rotate_vertical)
         unit.container_unit.add(unit.context_state)
         # push unit meshes recursively
-        source_object.walk_parts_ordered(_visitor)
+        ordered_tree = None
+        if source_object.parts and source_object.root_part_name and source_object.root_part_name != source_object.parts[0]:
+            ordered_tree = [source_object.parts[0], source_object.parts[1:]]
+        source_object.walk_parts_ordered(_visitor, ordered_tree=ordered_tree)
         # close unit context
         unit.container_unit.add(ChangeState(material_density=0.0, group=unit.name))
         unit.container_unit.add(PopMatrix(group=unit.name))  # unit rotate
@@ -1028,11 +1039,12 @@ class Scene(object):
                 textures = {'*': building['t']}
                 building_so = self.create_object_data_from_model_data(
                     template=model_name,
+                    textures=textures,
+                    selected_parts=building['p'].split(':') if building['p'] not in ['null', None, 'None', ''] else None,
                     coefs=coefs,
                     scale=scale,
-                    textures=textures,
                 )
-                shift_vector = self.coords_map2xyz(w_t, h_t, 0.5, 0.5)
+                shift_vector = self.coords_map2xyz(w_t, h_t, 0.0, 0.0, elevation_correction=building['e'])
                 building_unit = self.construct_unit_from_object_data(
                     container=self.container_static_objects,
                     object_name=building_so.name,
@@ -1046,8 +1058,8 @@ class Scene(object):
                     onstage=True,
                     w=map_w,
                     h=map_h,
-                    shift_w=0.5,
-                    shift_h=0.5,
+                    shift_w=0.0,
+                    shift_h=0.0,
                     area_w=area_w,
                     area_h=area_h,
                 )
@@ -1171,7 +1183,12 @@ class Scene(object):
     def place_animated_unit_on_land(
             self,
             template,
-            map_w, map_h, shift_w=0.5, shift_h=0.5, direction=0,
+            map_w,
+            map_h,
+            shift_w=0.5,
+            shift_h=0.5,
+            direction=0,
+            elevation_correction=None,
             selected_parts=[],
             excluded_parts=[],
             selected_animations=None,
@@ -1194,11 +1211,11 @@ class Scene(object):
         map_h = int(map_h)
         area_w = map_w - int(self.area_center_w) 
         area_h = map_h - int(self.area_center_h)
-        e_correction = 0
-        if ao.root_mesh_center:
-            e_correction = ao.root_mesh_center[0][2] * const.MODELS_SCALE_FACTOR
+        # e_correction = 0
+        # if ao.root_mesh_center:
+        #     e_correction = ao.root_mesh_center[0][2] * const.MODELS_SCALE_FACTOR
         segment_angle_x, segment_angle_z = self.coords_area2angles(area_w, area_h)
-        shift_vector = self.coords_map2xyz(map_w, map_h, shift_w, shift_h) # , elevation_correction=e_correction)
+        shift_vector = self.coords_map2xyz(map_w, map_h, shift_w, shift_h, elevation_correction=elevation_correction)
         unit = self.construct_unit_from_object_data(
             container=self.container_animated_objects,
             object_name=ao.name,
@@ -1208,6 +1225,7 @@ class Scene(object):
             ),
             shift_vector=shift_vector,
             direction=direction,
+            elevation_correction=elevation_correction,
             static=False,
             w=map_w,
             h=map_h,
@@ -1230,6 +1248,11 @@ class Scene(object):
             u = self.units.get(self.renderer.camera_unit_lock)
             if u:
                 self.update_land(new_position=(u.w, u.h, u.shift_w, u.shift_h))
+        elif self.renderer.camera_capital_lock > 0:
+            capital = self.land.capitals.get(self.renderer.camera_capital_lock, None)
+            if capital:
+                if self.area_center_w != capital['x'] or self.area_center_h != capital['y']:
+                    self.update_land(new_position=(capital['x'], capital['y'], 0, 0))
         for unit in self.units.values():
             if not unit.static:
                 unit.run(self)

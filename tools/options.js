@@ -601,7 +601,7 @@ function randomizeOptions() {
   // 'Options' settings
   if (randomize || !locked("points")) changeCellsDensity(4); // reset to default, no need to randomize
   if (randomize || !locked("template")) randomizeHeightmapTemplate();
-  if (randomize || !locked("statesNumber")) statesNumber.value = 6;  // PATCH! gauss(18, 5, 2, 30);
+  if (randomize || !locked("statesNumber")) statesNumber.value = 4;  // PATCH! gauss(18, 5, 2, 30);
   if (randomize || !locked("provincesRatio")) provincesRatio.value = gauss(20, 10, 20, 100);
   if (randomize || !locked("manors")) {
     manorsInput.value = 1000;
@@ -610,7 +610,7 @@ function randomizeOptions() {
   if (randomize || !locked("religionsNumber")) religionsNumber.value = 3;  // PATCH! gauss(6, 3, 2, 10);
   if (randomize || !locked("sizeVariety")) sizeVariety.value = 0;  // PATCH! gauss(4, 2, 0, 10, 1);
   if (randomize || !locked("growthRate")) growthRate.value = rn(1 + Math.random(), 1);
-  if (randomize || !locked("cultures")) culturesInput.value = 3;  // PATCH! culturesOutput.value = gauss(12, 3, 5, 30);
+  if (randomize || !locked("cultures")) culturesInput.value = 4;  // PATCH! culturesOutput.value = gauss(12, 3, 5, 30);
   if (randomize || !locked("culturesSet")) randomizeCultureSet();
 
   // 'Configure World' settings
