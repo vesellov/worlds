@@ -34,20 +34,54 @@ venv:
 run: venv
 	@$(PYTHON) src/main.py
 
-res_unpack:
+ei_res_unpack:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
-	@cp -v tools/scan_models.py repack/EIrepack/
-	@cp -v tools/scan_figures.py repack/EIrepack/
 	@cp -v tools/unpack_all.py repack/EIrepack/Converters/
 	@cp -v tools/convert_model.py repack/EIrepack/Converters/
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:." ../../venv/bin/python3 Converters/unpack_all.py ${SRC_DIR} ${UNPACK_DIR} --verbose
+	@mv -v repack/EIrepack/figures.json catalog/
+	@mv -v repack/EIrepack/figures_samples.json catalog/
+	@mv -v repack/EIrepack/buildings.json catalog/
+	@mv -v repack/EIrepack/plants.json catalog/
+
+ei_models_scan:
+	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
+	@cp -v tools/scan_models.py repack/EIrepack/
 	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:." ../../venv/bin/python3 scan_models.py ${SRC_DIR}/Maps/
-	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:." ../../venv/bin/python3 Converters/unpack_all.py ${SRC_DIR} ${DEST_DIR} --verbose
-	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 scan_figures.py ${DEST_DIR}/Res/figures/
-	@mv -v repack/EIrepack/templates.json assets/
-	@mv -v repack/EIrepack/figures.json assets/
-	@mv -v repack/EIrepack/catalog_buildings.json assets/
-	@mv -v repack/EIrepack/catalog_plants.json assets/
-	@mv -v repack/EIrepack/catalog_figures.json assets/
+	@mv -v repack/EIrepack/figures_names.json catalog/
+	@mv -v repack/EIrepack/textures.json catalog/
+
+ei_figures_scan:
+	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
+	@cp -v tools/scan_figures.py repack/EIrepack/
+	@cp -v catalog/figures.json repack/EIrepack/
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 scan_figures.py ${UNPACK_DIR}/Res/figures/
+	@mv -v repack/EIrepack/figures.json catalog/
+
+ei_db_scan:
+	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
+	@cp -v tools/extract_db_data.py repack/EIrepack/
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 extract_db_data.py ${UNPACK_DIR}/Res/databaselmp/units.udb dblmp
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 extract_db_data.py ${UNPACK_DIR}/Res/database/prints.db db
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 extract_db_data.py ${UNPACK_DIR}/Res/database/items.idb db
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 extract_db_data.py ${UNPACK_DIR}/Res/database/levers.ldb db
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 extract_db_data.py ${UNPACK_DIR}/Res/database/perks.pdb db
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 extract_db_data.py ${UNPACK_DIR}/Res/database/spells.sdb db
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 extract_db_data.py ${UNPACK_DIR}/Res/database/units.udb db
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 extract_db_data.py ${UNPACK_DIR}/Res/databaselmp/prints.db dblmp
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 extract_db_data.py ${UNPACK_DIR}/Res/databaselmp/items.idb dblmp
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 extract_db_data.py ${UNPACK_DIR}/Res/databaselmp/levers.ldb dblmp
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 extract_db_data.py ${UNPACK_DIR}/Res/databaselmp/perks.pdb dblmp
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 extract_db_data.py ${UNPACK_DIR}/Res/databaselmp/spells.sdb dblmp
+
+ei_compile:
+	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
+	@cp -v tools/compile_data.py repack/EIrepack/
+	@cp -v catalog/figures.json repack/EIrepack/
+	@cp -v catalog/figures_names.json repack/EIrepack/
+	@cp -v catalog/textures.json repack/EIrepack/
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv/bin/python3 compile_data.py
+
 
 tiles_build:
 	@rm -rf ${RES_DIR}/merged_hq/*

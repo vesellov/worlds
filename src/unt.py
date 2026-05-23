@@ -125,6 +125,8 @@ class Unit(object):
             part_animation = animation.parts.get(part_name)
             if not part_animation:
                 continue
+            if part_name not in self.meshes_transforms:
+                continue
             r = part_animation.rotation_frames[frame]
             t = part_animation.translation_frames[frame]
             mesh_transform = self.meshes_transforms[part_name]

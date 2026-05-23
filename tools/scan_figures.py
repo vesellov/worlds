@@ -64,7 +64,7 @@ def read_lnk_info(file_name):
 
 
 def main():
-    figures_catalog = []
+    figures_extended = json.loads(open('figures.json', 'rt').read())
     for model_name in os.listdir(sys.argv[1]):
         model_name = model_name.lower()
         dir_path = os.path.join(sys.argv[1], model_name)
@@ -76,12 +76,13 @@ def main():
             continue
         lst, tree, parents, childs = read_lnk_info(lnk_path)
         parts_list = flat_tree(lst)
-        texture_name = textures.get(model_name, ['default0', ])[0]
-        template_name = f"{model_name}#{texture_name}#{':'.join(parts_list)}"
-        figures_catalog.append(template_name)
-        print(template_name)
-    figures_catalog.sort()
-    open('catalog_figures.json', 'wt').write(json.dumps(figures_catalog, indent=2))
+        if model_name in figures_extended:
+            if figures_extended[model_name] != lst:
+                raise Exception(f"WARNING: {model_name} has different parts list in extended catalog")
+        else:
+            figures_extended[model_name] = lst
+            print(model_name, lst)
+    open('figures.json', 'wt').write(json.dumps(figures_extended, indent=2))
 
 
 if __name__ == '__main__':

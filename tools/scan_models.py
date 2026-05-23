@@ -21,6 +21,8 @@ def scan_node(node, buf, level=0, map_name=None):
                 k, v = subnode[1][i]
                 obj[k.lower()] = v
             template = obj.get("objtemplate", None)
+            if template not in model_texture:
+                model_texture[template] = ''
             name = obj.get("objname", None)
             parent_template = obj.get("parenttemplate", None)
             texture = obj.get("objprimtxtr", '').lower()
@@ -36,14 +38,14 @@ def scan_node(node, buf, level=0, map_name=None):
             key = f'{template}#{texture}#{parts}'
             if key not in reg:
                 reg[key] = ''
-            if map_name:
-                if not reg[key].count(map_name):
-                    reg[key] = map_name + ' ' + reg[key]
-            if template not in model_texture:
-                model_texture[template] = ''
+            # if map_name:
+            #     if not reg[key].count(map_name):
+            #         reg[key] = map_name + ' ' + reg[key]
+            if parent_template:
+                if not reg[key].count(parent_template):
+                    reg[key] = (parent_template + ' ' + reg[key]).strip()
             if not model_texture[template].count(texture):
-                model_texture[template] += ' ' + texture
-                model_texture[template] = model_texture[template].strip()
+                model_texture[template] = (texture + ' ' + model_texture[template]).strip()
         if type(subnode[1]) == str:
             subnode[1] = subnode[1].replace("\r\n", "\\n")
             subnode[1] = subnode[1].replace("\n", "\\n")
@@ -399,8 +401,8 @@ def main():
         if info:
             buf = [""]
             scan_node(info, buf, map_name=map_name)
-    open('registry.json', 'w').write(json.dumps(reg, indent=2))
-    open('textures.json', 'w').write(json.dumps(model_texture, indent=2))
+    open('figures_names.json', 'w').write(json.dumps(reg, indent=2))
+    open('textures_registry.json', 'w').write(json.dumps(model_texture, indent=2))
 
 if __name__ == '__main__':
     main()

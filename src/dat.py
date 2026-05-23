@@ -79,10 +79,10 @@ class ObjectData(object):
         self.template = None
         self.meshes = {}
         self.parts = []
-        self.parts_tree = {}
+        # self.parts_tree = {}
         self.parts_tree_ordered = []
         self.bones = {}
-        self.parts_parents = {}
+        # self.parts_parents = {}
         self.textures = {}
         self.root_part_name = None
         self.root_mesh_name = None
@@ -90,27 +90,27 @@ class ObjectData(object):
         self.animations = {}
         self.animations_loaded = []
 
-    def list_parents(self, part_name):
-        if part_name not in self.parts_parents:
-            return []
-        parents = []
-        current_part = part_name
-        while current_part and current_part in self.parts_parents:
-            next_parent = self.parts_parents[current_part]
-            if next_parent:
-                parents.insert(0, next_parent)
-            current_part = next_parent
-        return parents
+    # def list_parents(self, part_name):
+    #     if part_name not in self.parts_parents:
+    #         return []
+    #     parents = []
+    #     current_part = part_name
+    #     while current_part and current_part in self.parts_parents:
+    #         next_parent = self.parts_parents[current_part]
+    #         if next_parent:
+    #             parents.insert(0, next_parent)
+    #         current_part = next_parent
+    #     return parents
 
-    def walk_parts(self, visitor_before, visitor_after=None, tree=None):
-        if tree is None:
-            tree = self.parts_tree
-        for part_name, other_parts in tree.items():
-            if part_name in self.parts:
-                visitor_before(self, part_name)
-                self.walk_parts(visitor_before, visitor_after, other_parts)
-                if visitor_after:
-                    visitor_after(self, part_name)
+    # def walk_parts(self, visitor_before, visitor_after=None, tree=None):
+    #     if tree is None:
+    #         tree = self.parts_tree
+    #     for part_name, other_parts in tree.items():
+    #         if part_name in self.parts:
+    #             visitor_before(self, part_name)
+    #             self.walk_parts(visitor_before, visitor_after, other_parts)
+    #             if visitor_after:
+    #                 visitor_after(self, part_name)
 
     def walk_parts_ordered(self, visitor, ordered_tree=None, parent_part_name=None):
         if ordered_tree is None:
@@ -124,18 +124,18 @@ class ObjectData(object):
             for branch in this_part_branches:
                 self.walk_parts_ordered(visitor, ordered_tree=branch, parent_part_name=this_part_name)
 
-    def walk_parts_before_after(self, visitor_before, visitor_after, ordered_tree=None, parent_part_name=None):
-        if ordered_tree is None:
-            ordered_tree = self.parts_tree_ordered
-        this_part_name = ordered_tree[0]
-        if this_part_name not in self.parts:
-            return
-        this_part_branches = ordered_tree[1]
-        visitor_before(this_part_name, parent_part_name)
-        if this_part_branches:
-            for branch in this_part_branches:
-                self.walk_parts_before_after(visitor_before, visitor_after, ordered_tree=branch, parent_part_name=this_part_name)
-        visitor_after(this_part_name, parent_part_name)
+    # def walk_parts_before_after(self, visitor_before, visitor_after, ordered_tree=None, parent_part_name=None):
+    #     if ordered_tree is None:
+    #         ordered_tree = self.parts_tree_ordered
+    #     this_part_name = ordered_tree[0]
+    #     if this_part_name not in self.parts:
+    #         return
+    #     this_part_branches = ordered_tree[1]
+    #     visitor_before(this_part_name, parent_part_name)
+    #     if this_part_branches:
+    #         for branch in this_part_branches:
+    #             self.walk_parts_before_after(visitor_before, visitor_after, ordered_tree=branch, parent_part_name=this_part_name)
+    #     visitor_after(this_part_name, parent_part_name)
 
     def calculate_animations(self):
 
@@ -229,27 +229,30 @@ class ModelData(object):
         lnk_list, lnk_tree, lnk_parents, _ = res.read_lnk_info(lnk_file_path)
         self.links[template] = {
             'ordered': lnk_list,
-            'tree': lnk_tree,
-            'parents': lnk_parents,
+            # 'tree': lnk_tree,
+            # 'parents': lnk_parents,
         }
         anm_count = 0
         for file_name in os.listdir(figure_dir_path):
             file_name = file_name.lower()
-            if file_name.endswith('.fig'):
-                fig_file_path = os.path.join(figure_dir_path, file_name)
-                try:
-                    fig_info = res.read_fig_info(fig_file_path)
-                except Exception as exc:
-                    if _Debug:
-                        print(f'error reading figure file {fig_file_path}: {exc}')
-                    continue
-                self.figures[file_name[:-4]] = fig_info
-                continue
-            if file_name.endswith('.bon'):
-                bon_file_path = os.path.join(figure_dir_path, file_name)
-                self.bones[file_name[:-4]] = res.read_bon_info(bon_file_path)
             sub_path = os.path.join(figure_dir_path, file_name)
-            if os.path.isdir(sub_path):
+            if os.path.isfile(sub_path):
+                if file_name.endswith('.fig'):
+                    fig_file_path = os.path.join(figure_dir_path, file_name)
+                    try:
+                        fig_info = res.read_fig_info(fig_file_path)
+                    except Exception as exc:
+                        if _Debug:
+                            print(f'error reading figure file {fig_file_path}: {exc}')
+                        continue
+                    self.figures[file_name[:-4]] = fig_info
+                    continue
+                if file_name.endswith('.bon'):
+                    bon_file_path = os.path.join(figure_dir_path, file_name)
+                    self.bones[file_name[:-4]] = res.read_bon_info(bon_file_path)
+            elif os.path.isdir(sub_path):
+                if file_name not in self.animations:
+                    self.animations[file_name] = {}
                 for sub_file_name in os.listdir(sub_path):
                     sub_file_name = sub_file_name.lower()
                     if sub_file_name.endswith('.anm'):

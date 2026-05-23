@@ -737,20 +737,6 @@ def update_rivers_elevation(heightmap_image, rivers_map, max_river_elevation):
     return changes
 
 
-# def elevation_unpack(h):
-#     if h > INPUT_WATER_LEVEL:
-#         return pow(h - 18, ELEVATION_UNPACK_EXPONENT)
-#     if h <= 0:
-#         return -1 * (INPUT_WATER_LEVEL - 1) * ELEVATION_UNPACK_UNDERWATER_FACTOR
-#     return (float(h - INPUT_WATER_LEVEL) / h) * float(ELEVATION_UNPACK_UNDERWATER_FACTOR)
-
-
-# def elevation_to_scale_255(e):
-#     global min_elevation_unpacked, max_elevation_unpacked, water_level_unpacked
-#     delta = float(max_elevation_unpacked - min_elevation_unpacked)
-#     return int(float(e - min_elevation_unpacked) * 255.0 / delta)
-
-
 def build_heightmap(data, draw, packed_draw, zonemap_draw):
     biomes_names = data['biomesData']['name']
     cells = data['pack']['cells']
@@ -809,28 +795,21 @@ def build_capitals(data, heightmap_image):
     grid_cells = data['grid']['cells']
     capitals = []
     flags = []
-    capital_distance_from_burg = 5
+    capital_distance_from_burg = 7
     races = list(sorted(buildings_mapping.keys())).copy()
     random.shuffle(races)
     choice = 1
     index = 0
-    # highest_h = None
-    # highest_burg = None
     coldest_temp = None
     coldest_burg = None
     for burg in data['pack']['burgs']:
         if isinstance(burg, dict):
             if burg['group'] == 'capital':
                 cell = grid_cells[burg['cell']]
-                # h_cell = cell['h']
                 temp_cell = cell['temp']
-                # if highest_h is None or h_cell > highest_h:
-                #     highest_h = h_cell
-                #     highest_burg = burg
                 if coldest_temp is None or temp_cell < coldest_temp:
                     coldest_temp = temp_cell
                     coldest_burg = burg
-    # print(f"  highest burg is {highest_burg['name']} with h={highest_h}")
     print(f"  coldest burg is {coldest_burg['name']} with temp={coldest_temp}")
     selected_races = set()
     for burg in data['pack']['burgs']:
@@ -839,8 +818,6 @@ def build_capitals(data, heightmap_image):
                 x, y = xy2draw(burg['x'], burg['y'])
                 if coldest_burg and burg['i'] == coldest_burg['i']:
                     race = 'north'
-                # elif highest_burg and burg['i'] == highest_burg['i']:
-                #     race = 'east'
                 else:
                     choice += 1
                     if choice >= len(races):
@@ -1005,13 +982,16 @@ def build_towers(data, capitals, flags, heightmap_image):
                 capitals_directions[ci][connected_route_id].append((connected_route_id, closest_point_index, next_intersection))
                 print(f'          capital{ci} next intersection on route{connected_route_id} {closest_point_index} -> {next_intersection}')
     index = 0
-    tower_distance_from_flag = 5.0
-    tower_shift_from_road = 4.0
+    tower_distance_from_flag = 7.0
+    tower_distance_from_capital = 7.0
+    tower_shift_from_road = 5.0
     for flag_i in capitals_directions.keys():
         capital = capitals_index[flag_i]
         flag = flags_index[flag_i]
         flag_x = flag['x']
         flag_y = flag['y']
+        capital_x = capital['x']
+        capital_y = capital['y']
         direction_towards_center = math.atan2((heightmap_image.height / 2) - flag_y, (heightmap_image.width / 2) - flag_x) * 180 / math.pi
         race = flags_index[flag_i]['r']
         tower_x = None
@@ -1023,8 +1003,9 @@ def build_towers(data, capitals, flags, heightmap_image):
             for point_index in range(point_index_begin, point_index_end, 1 if point_index_end > point_index_begin else -1):
                 px, py, _ = route['points'][point_index]
                 px, py = xy2draw(px, py)
-                dist_to_capital = ((flag_x - px) ** 2 + (flag_y - py) ** 2) ** 0.5
-                if dist_to_capital < tower_distance_from_flag:
+                dist_to_flag = ((flag_x - px) ** 2 + (flag_y - py) ** 2) ** 0.5
+                dist_to_capital = ((capital_x - px) ** 2 + (capital_y - py) ** 2) ** 0.5
+                if dist_to_capital < tower_distance_from_capital or dist_to_flag < tower_distance_from_flag:
                     continue
                 direction_from_capital = math.atan2(py - flag_y, px - flag_x) * 180 / math.pi
                 route_point_x = int(flag_x + tower_distance_from_flag * math.cos(math.radians(direction_from_capital)))

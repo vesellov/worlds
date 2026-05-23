@@ -80,8 +80,7 @@ figures = {}
 plants = {}
 buildings = {}
 
-textures = json.loads(open("textures.json", "rt").read())
-registry = json.loads(open("registry.json", "rt").read())
+registry = json.loads(open("../../catalog/figures_names.json", "rt").read())
 
 
 def to_positive_zero(v):
@@ -409,13 +408,13 @@ folder anymore".format(count))
                                                 tex_name=s_obj[2],
                                                 need_parts=s_obj[6])
 
-                        model_name = s_obj[0]
+                        model_name = s_obj[0].lower()
                         map_name = i[1].lower()
                         if model_name in broken_models:
                             continue
-                        if model_name.lower().startswith('un'):
+                        # if model_name.lower().startswith('un'):
                             # skip animated models for now
-                            continue
+                        #     continue
                         texture_name = s_obj[2].lower()
                         related_biomes = set()
                         for biome, maps_list in biomes.items():
@@ -650,7 +649,7 @@ folder anymore".format(count))
 
         count = 0
         for i in figs:
-            print_log(i[0])
+            # print_log(i[0])
             try:
                 if convert_model.convert_model(os.path.join(i[0], i[1])) is not None:
                     continue
@@ -670,10 +669,11 @@ folder anymore".format(count))
             filelist = convert_model.flat_tree(fig_tree)
             count += 1 + len(filelist) * 2
             update_progress(1 + len(filelist) * 2)
-            model_name = i[1]
+            model_name = i[1].lower()
             if model_name in figures:
                 raise Exception("Duplicate figure name: {}".format(model_name))
-            figures[model_name] = ':'.join(filelist)
+            figures[model_name] = fig_tree
+            # print(model_name, fig_tree)
 
             if False:
                 for j in filelist:
@@ -883,10 +883,10 @@ folder anymore".format(count))
             continue
 
     import json
-    open('templates.json', 'wt').write(json.dumps(models, indent=2))
+    open('figures_samples.json', 'wt').write(json.dumps(models, indent=2))
     open('figures.json', 'wt').write(json.dumps(figures, indent=2))
-    open('catalog_plants.json', 'wt').write(json.dumps(plants, indent=2))
-    open('catalog_buildings.json', 'wt').write(json.dumps(buildings, indent=2))
+    open('plants.json', 'wt').write(json.dumps(plants, indent=2))
+    open('buildings.json', 'wt').write(json.dumps(buildings, indent=2))
 
 
 def phldr(val=1):
@@ -914,9 +914,10 @@ if __name__ == "__main__":
         print_log = print
         update_progress = phldr
         args = parser.parse_args()
-        if args.src_dir == 'build_figures':
-            models = json.loads(open('templates.json', 'rt').read())
-            figures = build_figures(models)
-            open('figures.json', 'wt').write(json.dumps(figures, indent=2))
-        else:
+        # if args.src_dir == 'build_figures':
+        #     models = json.loads(open('templates.json', 'rt').read())
+        #     figures = build_figures(models)
+        #     open('figures.json', 'wt').write(json.dumps(figures, indent=2))
+        # else:
+        if True:
             unpack(args)

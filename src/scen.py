@@ -4,9 +4,12 @@ import json
 import time
 import math
 import random
+import hashlib
+import traceback
+
 import numpy as np
 
-from kivy.core.image import Image
+from kivy.core.image import Image as CoreImage
 from kivy.clock import Clock
 from kivy.cache import Cache
 from kivy.resources import resource_find
@@ -19,6 +22,8 @@ from kivy.graphics import (
 from kivy.graphics.instructions import InstructionGroup  # @UnresolvedImport
 from kivy.graphics.context_instructions import Transform  # @UnresolvedImport
 
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
+from PIL.Image import Transpose
 
 import const
 import res
@@ -379,7 +384,7 @@ class Scene(object):
     def add_model_template(self, template, model):
         self.models[template] = model
 
-    def create_mesh_from_fig_data(self, fig_data, prefix='', texture=None, coefs=[0, 0, 0], scale=[1.0, 1.0, 1.0]):
+    def create_mesh_from_fig_data(self, fig_data, prefix='', texture=None, material=None, coefs=[0, 0, 0], scale=[1.0, 1.0, 1.0]):
         """
         fig_data fields list:
             0:"blocks",
@@ -405,9 +410,11 @@ class Scene(object):
         global _NextMeshID
         _NextMeshID += 1
         name = prefix + '_' + str(_NextMeshID)
+        if material is None:
+            material = {'map_Kd': 'textures/model/' + texture + '.png'} if texture else None
         mesh = dat.MeshData(
             name=name,
-            material={'map_Kd': 'textures/model/' + texture + '.png'} if texture else None,
+            material=material,
             texture=texture,
         )
         mesh.coefs = coefs
@@ -452,44 +459,140 @@ class Scene(object):
         mesh.max = fig_data[11]
         mesh.radius = fig_data[12]
         self.meshes[name] = mesh
-        if _Debug:
-            print(f'  prepared mesh {name} with {idx} faces texture:{texture} coefs:{coefs}')
+        # if _Debug:
+        #     print(f'  prepared mesh {name} with {idx} faces texture:{texture} coefs:{coefs}')
             # center:{mesh.center} min:{mesh.min} max:{mesh.max} radius:{mesh.radius} 
         return mesh
 
-    def create_object_data_from_model_data(self, template, coefs=[0, 0, 0], scale=[1.0, 1.0, 1.0], selected_parts=[], excluded_parts=[], selected_animations=None, textures=None):
+    def create_object_data_from_model_data(
+        self,
+        template,
+        coefs=[0, 0, 0],
+        scale=[1.0, 1.0, 1.0],
+        selected_parts=[],
+        excluded_parts=[],
+        hidden_parts=[],
+        textures=None,
+        single_texture=False,
+        selected_animations=None,
+    ):
         global _NextObjectID
         _NextObjectID += 1
         if textures is None:
             textures = {'*': 'default0'}
         if template == 'jbuho00':
             textures['towerbroken01'] = 'jigrantower00'
+        materials = {}
         if template not in self.models:
             m = dat.ModelData()
             if os.path.isdir('models/' + template):
-                try:
-                    m.load_figure_data('models/' + template, template)
-                except Exception as e:
-                    print(f'    error loading template {template} : {e}')
-                    return None
+                m.load_figure_data('models/' + template, template)
             else:
                 if _Debug:
                     print(f'    loading template {template} from data/figures.res and unpacking into models/')
                 m.unpack_figure_data('data/figures.res', 'models', template=template)
             for texture in textures.values():
+                if texture.count(':') == 1:
+                    texture = texture[:-2]
                 tex_file_path = 'textures/model/' + texture + '.png'
                 if not os.path.isfile(tex_file_path):
                     if _Debug:
                         print(f'    loading texture {texture} from data/textures.res and unpacking into textures/')
-                    m.unpack_texture('data/textures.res', 'textures/model', texture)
-                tex_file_path_source = resource_find(tex_file_path)
-                if tex_file_path_source:
-                    _tex = Cache.get('kv.texture', tex_file_path)
-                    if not _tex:
-                        _tex = Image(tex_file_path_source).texture
-                        Cache.append('kv.texture', tex_file_path, _tex)
+                    if not m.unpack_texture('data/textures.res', 'textures/model', texture):
+                        m.unpack_texture('data/redress.res', 'textures/model', texture)
+                if not single_texture:
+                    tex_file_path_source = resource_find(tex_file_path)
+                    if tex_file_path_source:
+                        _tex = Cache.get('kv.texture', tex_file_path)
+                        if not _tex:
+                            _tex = CoreImage(tex_file_path_source).texture
+                            Cache.append('kv.texture', tex_file_path, _tex)
+                            if _Debug:
+                                print(f'    cached texture {texture} at {tex_file_path} for model {template}')
+            if single_texture and len(textures) > 1:
+                parts_tree_ordered = m.links[template]['ordered']
+                ordered_parts_list = res.flat_tree(parts_tree_ordered)
+                combined_texture_hash_bases = {}
+                if '*' in textures:
+                    texture = textures['*']
+                    texture_layer = '0'
+                    if texture.count(':') == 1:
+                        texture_layer = texture[-1]
+                        texture = texture[:-2]
+                    if texture_layer not in combined_texture_hash_bases:
+                        combined_texture_hash_bases[texture_layer] = ''
+                    combined_texture_hash_bases[texture_layer] += f'*:{texture}'
+                for part_name in ordered_parts_list:
+                    if part_name in textures:
+                        texture = textures[part_name]
+                        texture_layer = '0'
+                        if texture.count(':') == 1:
+                            texture_layer = texture[-1]
+                            texture = texture[:-2]
+                        if texture_layer not in combined_texture_hash_bases:
+                            combined_texture_hash_bases[texture_layer] = ''
+                        combined_texture_hash_bases[texture_layer] += f'#{part_name}:{texture}'
+                if _Debug:
+                    print(f'    combined texture layers are {list(combined_texture_hash_bases.keys())}')
+                layers = {}
+                for texture_layer in combined_texture_hash_bases.keys():
+                    combined_texture_hash = hashlib.md5(combined_texture_hash_bases[texture_layer].encode()).hexdigest()
+                    combined_texture_file_name = f'{template}_{texture_layer}_{combined_texture_hash}'
+                    combined_tex_file_path = 'textures/combined/' + combined_texture_file_name + '.png'
+                    if os.path.isfile(combined_tex_file_path):
                         if _Debug:
-                            print(f'    cached texture {texture} at {tex_file_path} for model {template}')
+                            print(f'    found existing combined texture {combined_tex_file_path}')
+                    else:
+                        sz = (256, 256)
+                        if texture_layer in ['2', '3']:
+                            sz = (128, 128)
+                        image_combined = Image.new("RGBA", sz, (0, 0, 0, 0))
+                        if '*' in textures:
+                            texture = textures['*']
+                            this_texture_layer = '0'
+                            if texture.count(':') == 1:
+                                this_texture_layer = texture[-1]
+                                texture = texture[:-2]
+                            if this_texture_layer == texture_layer or texture_layer == '1':
+                                tex_file_path = 'textures/model/' + texture + '.png'
+                                tex_image = Image.open(tex_file_path)
+                                image_combined.paste(tex_image, (0, 0))
+                        for ordered_part_name in ordered_parts_list:
+                            for part_name, texture in textures.items():
+                                if part_name == '*':
+                                    continue
+                                this_texture_layer = '0'
+                                if texture.count(':') == 1:
+                                    this_texture_layer = texture[-1]
+                                    texture = texture[:-2]
+                                if this_texture_layer != texture_layer:
+                                    continue
+                                if part_name.startswith(ordered_part_name):
+                                    tex_file_path = 'textures/model/' + texture + '.png'
+                                    tex_image = Image.open(tex_file_path)
+                                    image_combined.paste(tex_image, (0, 0), tex_image.convert('RGBA'))
+                                    break
+                        image_combined.save(combined_tex_file_path)
+                        if _Debug:
+                            print(f'    generated combined texture at {combined_tex_file_path}')
+                    combined_tex_file_path_source = resource_find(combined_tex_file_path)
+                    if combined_tex_file_path_source:
+                        _tex = Cache.get('kv.texture', combined_tex_file_path)
+                        if not _tex:
+                            _tex = CoreImage(combined_tex_file_path_source).texture
+                            Cache.append('kv.texture', combined_tex_file_path, _tex)
+                            if _Debug:
+                                print(f'    cached combined texture at {combined_tex_file_path}')
+                    layers[texture_layer] = combined_texture_file_name
+                textures_layers = {}
+                for part_name, texture in textures.items():
+                    texture_layer = '0'
+                    if texture.count(':') == 1:
+                        texture_layer = texture[-1]
+                        texture = texture[:-2]
+                    textures_layers[part_name] = layers[texture_layer]
+                    materials[part_name] = {'map_Kd': 'textures/combined/' + layers[texture_layer] + '.png'}
+                textures = textures_layers.copy()
             self.add_model_template(template, m)
         m = self.models[template]
         static = False if selected_animations else True
@@ -498,8 +601,8 @@ class Scene(object):
         o.template = template
         o.textures = textures
         o.parts_tree_ordered = m.links[template]['ordered']
-        o.parts_tree = m.links[template]['tree']
-        o.parts_parents = m.links[template]['parents']
+        # o.parts_tree = m.links[template]['tree']
+        # o.parts_parents = m.links[template]['parents']
         ordered_parts_list = res.flat_tree(o.parts_tree_ordered)
         if selected_animations:
             if selected_animations == '*':
@@ -527,25 +630,34 @@ class Scene(object):
             ])
             mesh_key = self.mesh_key(o.template, part_name, coefs)
             texture = o.textures[part_name] if part_name in o.textures else o.textures['*']
-            mesh = None
-            if mesh_key in self.meshes_index:
-                _mesh = self.meshes[self.meshes_index[mesh_key]]
-                if _mesh.texture and _mesh.texture == texture:
-                    mesh = _mesh
-                    if _Debug:
-                        print(f'    reused mesh {mesh.name} for part {o.name}:{part_name} with texture {mesh.material["map_Kd"]}')
-            if not mesh:
-                mesh = self.create_mesh_from_fig_data(
-                    fig_data=m.figures[part_name],
-                    prefix=o.template + '_' + part_name,
-                    texture=o.textures[part_name] if part_name in o.textures else o.textures['*'],
-                    coefs=coefs,
-                    scale=scale,
-                )
-                mesh.object_name = o.name
-                mesh.object_part_name = part_name
-                self.meshes_index[mesh_key] = mesh.name
-            o.meshes[part_name] = mesh.name
+            material = materials[part_name] if part_name in materials else None
+            if single_texture and not material:
+                material = {'map_Kd': 'textures/combined/' + o.textures['*'] + '.png'}
+            if part_name not in hidden_parts:
+                mesh = None
+                if mesh_key in self.meshes_index:
+                    _mesh = self.meshes[self.meshes_index[mesh_key]]
+                    if _mesh.texture and _mesh.texture == texture:
+                        mesh = _mesh
+                        if _Debug:
+                            print(f'    reused mesh {mesh.name} for part {o.name}:{part_name} with texture {mesh.material["map_Kd"]}')
+                if not mesh:
+                    print(part_name, texture, o.textures.get(part_name))
+                    mesh = self.create_mesh_from_fig_data(
+                        fig_data=m.figures[part_name],
+                        prefix=o.template + '_' + part_name,
+                        texture=texture,
+                        material=material,
+                        coefs=coefs,
+                        scale=scale,
+                    )
+                    mesh.object_name = o.name
+                    mesh.object_part_name = part_name
+                    self.meshes_index[mesh_key] = mesh.name
+                o.meshes[part_name] = mesh.name
+                if part_name == o.root_part_name:
+                    o.root_mesh_name = mesh.name
+                    o.root_mesh_center = mesh.center
             for anim_name in o.animations_loaded:
                 if part_name not in m.animations[anim_name]:
                     continue
@@ -564,9 +676,6 @@ class Scene(object):
                     a.morphing_frames_input = morphing_frames
                 a.frames = len(a.rotation_frames_input)
                 o.animations[anim_name].parts[part_name] = a
-            if part_name == o.root_part_name:
-                o.root_mesh_name = mesh.name
-                o.root_mesh_center = mesh.center
         if static:
             self.static_objects[o.name] = o
         else:
@@ -577,7 +686,23 @@ class Scene(object):
         #     print(f'  {"static" if static else "animated"} object {o.name} with {len(selected_parts)} parts and {len(o.animations_loaded)} animations created in {t2 - t1} sec from template {template}')
         return o
 
-    def construct_unit_from_object_data(self, container, object_name, angle_coords, static=True, onstage=True, shift_vector=None, direction=0, elevation_correction=None, w=0, h=0, shift_w=0, shift_h=0, area_w=0, area_h=0):
+    def construct_unit_from_object_data(
+        self,
+        container,
+        object_name,
+        angle_coords,
+        static=True,
+        onstage=True,
+        shift_vector=None,
+        direction=0,
+        elevation_correction=None,
+        w=0,
+        h=0,
+        shift_w=0,
+        shift_h=0,
+        area_w=0,
+        area_h=0,
+    ):
         global _NextUnitID
         _source_dict = self.static_objects if static else self.animated_objects
         if object_name not in _source_dict:
@@ -604,7 +729,9 @@ class Scene(object):
         unit.area_h = area_h
 
         def _visitor(part_name, parent_part_name):
-            mesh_name = source_object.meshes[part_name]
+            mesh_name = source_object.meshes.get(part_name)
+            if not mesh_name:
+                return
             mesh = self.meshes[mesh_name]
             if part_name in unit.meshes_transforms:
                 raise Exception(f'Mesh transform for part [{part_name}] of unit ({unit.name}) already exists')
@@ -706,44 +833,7 @@ class Scene(object):
         unit = self.units[unit_name]
         if unit.onstage:
             raise Exception(f'Unit {unit_name} is already visible')
-        # source_object = self.static_objects[unit.object_name] if unit.static else self.animated_objects[unit.object_name]
         container.add(unit.container_unit)
-
-        # def _visitor(part_name, parent_part_name):
-        #     mesh_name = unit.meshes_names[part_name]
-        #     mesh = self.meshes[mesh_name]
-        #     mesh_transform = unit.meshes_transforms[part_name]
-        #     container.add(PushMatrix(group=unit.name))
-        #     container.add(mesh_transform.part_translate)
-        #     container.add(PushMatrix(group=unit.name))
-        #     container.add(mesh_transform.part_rotate)
-        #     container.add(BindTexture(source=mesh.material['map_Kd'], index=1, group=unit.name))
-        #     container.add(Mesh(
-        #         vertices=mesh.vertices,
-        #         indices=mesh.indices,
-        #         fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
-        #         mode='triangles',
-        #         group=unit.name,
-        #     ))
-        #     container.add(PopMatrix(group=unit.name))  # part_rotate
-        #     container.add(PopMatrix(group=unit.name))  # part_translate
-
-        # # open unit context and prepare transforms and state
-        # container.add(PushMatrix(group=unit.name))  # unit
-        # container.add(unit.rotate_axis_x)
-        # container.add(unit.rotate_axis_z)
-        # container.add(PushMatrix(group=unit.name))  # unit shift
-        # container.add(unit.translate_shift)
-        # container.add(PushMatrix(group=unit.name))  # unit rotate
-        # container.add(unit.rotate_vertical)
-        # container.add(unit.context_state)
-        # # push unit meshes
-        # source_object.walk_parts_ordered(_visitor)
-        # # close unit context
-        # container.add(ChangeState(material_density=0.0, group=unit.name))
-        # container.add(PopMatrix(group=unit.name))  # unit rotate
-        # container.add(PopMatrix(group=unit.name))  # unit shift
-        # container.add(PopMatrix(group=unit.name))  # unit
         unit.onstage = True
         if _Debug:
             print(f'  unit {unit.name} was shown')
@@ -795,8 +885,8 @@ class Scene(object):
         added = 0
         removed = 0
         if abs(wd) > 3 or abs(hd) > 3:
-            if _Debug:
-                print(f'  big shift for land update at {w_i} {h_i} with shift {self.segment_shift_w} {self.segment_shift_h} and delta {wd} {hd}')
+            # if _Debug:
+            #     print(f'  big shift for land update at {w_i} {h_i} with shift {self.segment_shift_w} {self.segment_shift_h} and delta {wd} {hd}')
             self.segments_cleanup_queue.clear()
         if new_position or wd != 0 or hd != 0:
             for unit_name in self.units.keys():
@@ -857,8 +947,8 @@ class Scene(object):
                         self.segments_queue.append((w_t, h_t, dist_to_center))
                         self.segments_waiting.add((w_t, h_t))
                         added += 1
-        if _Debug:
-            print(f'visible area at {w_i} {h_i} with {added} added and {removed} removed segments, elevation is {e} / {planet_shift_y}, queue is {len(self.segments_waiting)} / {len(self.segments_cleanup_queue)}')
+        # if _Debug:
+        #     print(f'visible area at {w_i} {h_i} with {added} added and {removed} removed segments, elevation is {e} / {planet_shift_y}, queue is {len(self.segments_waiting)} / {len(self.segments_cleanup_queue)}')
         self.update_segments()
 
     def update_segments(self, dt=None):
@@ -900,13 +990,13 @@ class Scene(object):
                     removed += 1
         if added:
             Clock.schedule_once(self.update_segments, 0.2 * (1.0 / 120.0))
-            if _Debug:
-                print(f'  land updated at {w_i},{h_i} added:{added} removed:{removed} visible:{len(self.land_tiles_visible)}')
+            # if _Debug:
+            #     print(f'  land updated at {w_i},{h_i} added:{added} removed:{removed} visible:{len(self.land_tiles_visible)}')
             return
         if removed:
             Clock.schedule_once(self.update_segments, 10.0)
-            if _Debug:
-                print(f'  land cleaned at {w_i},{h_i} added:{added} removed:{removed} visible:{len(self.land_tiles_visible)}')
+            # if _Debug:
+            #     print(f'  land cleaned at {w_i},{h_i} added:{added} removed:{removed} visible:{len(self.land_tiles_visible)}')
             return
 
     def add_land_segment(self, map_w, map_h, area_w, area_h, dist_to_center):
@@ -1039,10 +1129,10 @@ class Scene(object):
                 textures = {'*': building['t']}
                 building_so = self.create_object_data_from_model_data(
                     template=model_name,
-                    textures=textures,
-                    selected_parts=building['p'].split(':') if building['p'] not in ['null', None, 'None', ''] else None,
                     coefs=coefs,
                     scale=scale,
+                    selected_parts=building['p'].split(':') if building['p'] not in ['null', None, 'None', ''] else None,
+                    textures=textures,
                 )
                 shift_vector = self.coords_map2xyz(w_t, h_t, 0.0, 0.0, elevation_correction=building['e'])
                 building_unit = self.construct_unit_from_object_data(
@@ -1181,29 +1271,33 @@ class Scene(object):
         self.land_shift(shift_w, shift_h)
 
     def place_animated_unit_on_land(
-            self,
-            template,
-            map_w,
-            map_h,
-            shift_w=0.5,
-            shift_h=0.5,
-            direction=0,
-            elevation_correction=None,
-            selected_parts=[],
-            excluded_parts=[],
-            selected_animations=None,
-            textures=None,
-            coefs=[0, 0, 0],
-            scale=[1.0, 1.0, 1.0],
-        ):
+        self,
+        template,
+        map_w,
+        map_h,
+        shift_w=0.5,
+        shift_h=0.5,
+        direction=0,
+        elevation_correction=None,
+        coefs=[0.0, 0.0, 0.0],
+        scale=[1.0, 1.0, 1.0],
+        selected_parts=[],
+        excluded_parts=[],
+        hidden_parts=[],
+        textures=None,
+        single_texture=False,
+        selected_animations=None,
+    ):
         ao = self.create_object_data_from_model_data(
             template=template,
-            selected_parts=selected_parts,
-            excluded_parts=excluded_parts,
-            selected_animations=selected_animations,
-            textures=textures,
             coefs=coefs,
             scale=scale,
+            selected_parts=selected_parts,
+            excluded_parts=excluded_parts,
+            hidden_parts=hidden_parts,
+            textures=textures,
+            single_texture=single_texture,
+            selected_animations=selected_animations,
         )
         if not ao:
             return None

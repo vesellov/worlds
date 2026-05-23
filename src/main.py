@@ -23,6 +23,33 @@ class AppRoot(App):
     known_templates = {}
     known_figures_parts = {}
 
+    def create_human_hero(self, scene):
+        # selected_animations = [
+            # 'cidle01',
+            # 'cwalk02', 'cidle07', 'crun01',
+        # ]
+        compiled_models = json.loads(open('repack/EIrepack/compiled.json', 'rt').read())
+        m = compiled_models['zone1dun1 Human Thief M']
+        selected_parts = [p.replace('.hidden', '') for p in m['parts']]
+        hidden_parts = [p.replace('.hidden', '') for p in m['parts'] if p.endswith('.hidden')]        
+        unit = scene.place_animated_unit_on_land(
+            template=m['model'],
+            coefs=[0.5, 0.5, 0.5],
+            # scale=scale,
+            map_w=140,
+            map_h=244,
+            shift_w=0.5,
+            shift_h=0.5,
+            direction=0, # random.randint(0, 360),
+            # elevation_correction=-5.0,
+            selected_parts=selected_parts,
+            hidden_parts=hidden_parts,
+            textures=m['textures'],
+            single_texture=True,
+            selected_animations='*',  #  selected_animations,
+        )
+        return unit
+
     def build(self):
         land = dat.LandData()
         land.load_heightmap_file(heightmap_file_name='assets/heightmap.png')
@@ -41,8 +68,9 @@ class AppRoot(App):
         # scene.init_scene(117, 835)
         # scene.init_scene(500, 550)
         # scene.init_scene(831,383)
-        scene.init_scene(137,244)
+        scene.init_scene(140,244)
         # scene.init_scene()
+        self.create_human_hero(scene)
         return renderer
 
 
