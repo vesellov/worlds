@@ -519,6 +519,7 @@ class Scene(object):
                     if texture.count(':') == 1:
                         texture_layer = texture[-1]
                         texture = texture[:-2]
+                    # print('texture layer',  '*', texture, texture_layer)
                     if texture_layer not in combined_texture_hash_bases:
                         combined_texture_hash_bases[texture_layer] = ''
                     combined_texture_hash_bases[texture_layer] += f'*:{texture}'
@@ -529,6 +530,7 @@ class Scene(object):
                         if texture.count(':') == 1:
                             texture_layer = texture[-1]
                             texture = texture[:-2]
+                            # print('texture layer', part_name, texture, texture_layer)
                         if texture_layer not in combined_texture_hash_bases:
                             combined_texture_hash_bases[texture_layer] = ''
                         combined_texture_hash_bases[texture_layer] += f'#{part_name}:{texture}'
@@ -553,7 +555,7 @@ class Scene(object):
                             if texture.count(':') == 1:
                                 this_texture_layer = texture[-1]
                                 texture = texture[:-2]
-                            if this_texture_layer == texture_layer or texture_layer == '1':
+                            if this_texture_layer == texture_layer:
                                 tex_file_path = 'textures/model/' + texture + '.png'
                                 tex_image = Image.open(tex_file_path)
                                 image_combined.paste(tex_image, (0, 0))
@@ -642,7 +644,6 @@ class Scene(object):
                         if _Debug:
                             print(f'    reused mesh {mesh.name} for part {o.name}:{part_name} with texture {mesh.material["map_Kd"]}')
                 if not mesh:
-                    print(part_name, texture, o.textures.get(part_name))
                     mesh = self.create_mesh_from_fig_data(
                         fig_data=m.figures[part_name],
                         prefix=o.template + '_' + part_name,

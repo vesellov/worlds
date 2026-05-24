@@ -24,12 +24,21 @@ class AppRoot(App):
     known_figures_parts = {}
 
     def create_human_hero(self, scene):
-        # selected_animations = [
+        selected_animations = '*'
+        [
+            'uattack01', 'uattack02', 'uattack03', 'uattack14', 'uattack15', 'uattack16',
             # 'cidle01',
             # 'cwalk02', 'cidle07', 'crun01',
-        # ]
+        ]
         compiled_models = json.loads(open('repack/EIrepack/compiled.json', 'rt').read())
-        m = compiled_models['zone1dun1 Human Thief M']
+        m = compiled_models['zone9 Human Mage1 F']
+        # zone9 Orc Archer1 F
+        # zone9 Orc Fighter1 M
+        # zone35 Undead Archer M
+        # zone3 Human Archer1 F
+        # zone23 Human Fighter3 M
+        # zone23 Human Fighter3 M
+        # zone2 Human Fighter2 M
         selected_parts = [p.replace('.hidden', '') for p in m['parts']]
         hidden_parts = [p.replace('.hidden', '') for p in m['parts'] if p.endswith('.hidden')]        
         unit = scene.place_animated_unit_on_land(
@@ -46,7 +55,7 @@ class AppRoot(App):
             hidden_parts=hidden_parts,
             textures=m['textures'],
             single_texture=True,
-            selected_animations='*',  #  selected_animations,
+            selected_animations=selected_animations,
         )
         return unit
 

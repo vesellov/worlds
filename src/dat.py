@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import traceback
+import pprint
 import numpy as np
 
 from kivy.core.image import Image
@@ -239,17 +240,20 @@ class ModelData(object):
             if os.path.isfile(sub_path):
                 if file_name.endswith('.fig'):
                     fig_file_path = os.path.join(figure_dir_path, file_name)
-                    try:
-                        fig_info = res.read_fig_info(fig_file_path)
-                    except Exception as exc:
-                        if _Debug:
-                            print(f'error reading figure file {fig_file_path}: {exc}')
-                        continue
+                    # try:
+                    fig_info = res.read_fig_info(fig_file_path)
+                    # except Exception as exc:
+                    #     if _Debug:
+                    #         print(f'error reading figure file {fig_file_path}: {exc}')
+                    #     continue
                     self.figures[file_name[:-4]] = fig_info
                     continue
                 if file_name.endswith('.bon'):
                     bon_file_path = os.path.join(figure_dir_path, file_name)
                     self.bones[file_name[:-4]] = res.read_bon_info(bon_file_path)
+                    # if file_name[:-4] == 'rh3':
+                    #     print('bon_file_path', bon_file_path, file_name[:-4])
+                    #     self.bones['rh3.arrow00'] = self.bones['rh3'].copy()
             elif os.path.isdir(sub_path):
                 if file_name not in self.animations:
                     self.animations[file_name] = {}
@@ -273,20 +277,24 @@ class ModelData(object):
         with open(figures_res_file_path, 'rb') as figures_file:
             res_filetree_dict = res.read_res_filetree(figures_file, return_dict=True)
             res_mod_element = res_filetree_dict.get(template + '.mod')
+            # if template == 'unhufe':
+            #     pprint.pprint(res_filetree_dict)
             if res_mod_element:
                 mod_file_name = res.unpack_res_element(figures_file, res_mod_element, dest_file_name=os.path.join(destination_sub_dir, template + '.mod'))
                 mod_filetree = res.unpack_mod_info(mod_file_name, destination_dir=destination_sub_dir)
-                for mod_element in mod_filetree:
+                # print('mod_filetree', mod_file_name, mod_filetree)
+                for mod_element in sorted(mod_filetree):
                     el = mod_element[0][:-4]
                     if mod_element[0].lower().endswith('.fig'):
                         if not selected_parts or el in selected_parts:
                             fig_file_name = os.path.join(destination_sub_dir, mod_element[0])
-                            try:
-                                fig_info = res.read_fig_info(fig_file_name)
-                            except Exception as exc:
-                                if _Debug:
-                                    print(f'error reading figure file {fig_file_name}: {exc}')
-                                continue
+                            # try:
+                            fig_info = res.read_fig_info(fig_file_name)
+                            # except Exception as exc:
+                            #     if _Debug:
+                            #         print(f'error reading figure file {fig_file_name}: {exc}')
+                            #     continue
+                            # print('fig_file_name', fig_file_name, mod_element[0][:-4])
                             self.figures[mod_element[0][:-4]] = fig_info
                             fig_count += 1
                     elif mod_element[0].lower().endswith('.lnk'):
@@ -303,6 +311,9 @@ class ModelData(object):
                 anm_file_name = res.unpack_res_element(figures_file, res_anm_element, dest_file_name=os.path.join(destination_sub_dir, template + '.anm'))
                 with open(anm_file_name, 'rb') as anm_file:
                     anm_filetree = res.read_res_filetree(anm_file)
+                    # if template == 'unhufe':
+                        # print('!!!!!!!!!!!!!', anm_file_name)
+                    #     pprint.pprint(anm_filetree)
                     for anm_element in anm_filetree:
                         if not os.path.isdir(os.path.join(destination_sub_dir, anm_element[0])):
                             os.makedirs(os.path.join(destination_sub_dir, anm_element[0]))
@@ -314,6 +325,7 @@ class ModelData(object):
                             one_anm_file_name = os.path.join(destination_sub_dir, anm_element[0])
                             with open(one_anm_file_name, 'rb') as one_anm_file:
                                 one_anm_filetree = res.read_res_filetree(one_anm_file)
+                                # print('one_anm_filetree', one_anm_file, one_anm_filetree)
                                 self.animations[anm_element[0][:-4]] = {}
                                 for one_anm_element in one_anm_filetree:
                                     el_part = one_anm_element[0]
@@ -323,10 +335,15 @@ class ModelData(object):
                                         self.animations[anm_element[0][:-4]][one_anm_element[0]] = res.read_anm_info(one_anm_dest_file_name)
                                         anm_count += 1
             res_bon_element = res_filetree_dict.get(template + '.bon')
+            # if template == 'unhufe':
+            #     pprint.pprint(res_bon_element)
             if res_bon_element:
                 bon_file_name = res.unpack_res_element(figures_file, res_bon_element, dest_file_name=os.path.join(destination_sub_dir, template + '.bon'))
                 with open(bon_file_name, 'rb') as bon_file:
                     bon_filetree = res.read_res_filetree(bon_file)
+                    # if template == 'unhufe':
+                        # print('!!!!!!!!!!!!!', bon_file_name)
+                    #     pprint.pprint(bon_filetree)
                     for bon_element in bon_filetree:
                         bon_element[0] += '.bon'
                     res.unpack_res(bon_file, bon_filetree, destination_dir=destination_sub_dir)
@@ -334,6 +351,10 @@ class ModelData(object):
                         one_bon_file_name = os.path.join(destination_sub_dir, bon_element[0])
                         self.bones[bon_element[0][:-4]] = res.read_bon_info(one_bon_file_name)
                         bon_count += 1
+                        # if bon_element[0][:-4] == 'rh3':
+                        #     print('bon_filetree', bon_element[0])
+                        #     self.bones['rh3.arrow00'] = self.bones['rh3'].copy()
+                        #     bon_count += 1
         if _Debug:
             print(f'for model {{{template}}} unpacked {lnk_count} links, {fig_count} figures, {bon_count} bones and {anm_count} animations')
         if save_json:
@@ -560,7 +581,19 @@ class LandData(object):
 
 def main():
     cmd = sys.argv[1]
-    if cmd == 'list_models':
+    if cmd.startswith('list_') and len(sys.argv) > 2:
+        md = ModelData()
+        st = md.scan_figures_data(sys.argv[2])
+        print('\n'.join(sorted(st[sys.argv[1].replace('list_', '')])))
+    elif cmd.startswith('show_') and len(sys.argv) > 3:
+        md = ModelData()
+        st = md.scan_figures_data(sys.argv[2])
+        print('\n'.join(sorted(st[sys.argv[1].replace('show_', '')])))
+    elif cmd == 'list' and len(sys.argv) == 3:
+        md = ModelData()
+        st = md.scan_figures_data(sys.argv[2])
+        print('\n'.join(sorted(st.keys())))
+    elif cmd == 'list_models':
         md = ModelData()
         st = md.scan_figures_data(sys.argv[2])
         print('\n'.join(sorted(st['mod'])))

@@ -98,7 +98,7 @@ class Renderer(Widget):
         self.keyboard_handler.bind(on_key_down=self.on_keyboard_down)
         self.keyboard_handler.bind(on_key_up=self.on_keyboard_up)
         Clock.schedule_interval(self.on_update_glsl, 1 / 60)
-        Clock.schedule_interval(self.scene.on_update_animations, 1 / 25)
+        Clock.schedule_interval(self.scene.on_update_animations, 1 / 15)
         Clock.schedule_interval(self.scene.on_run_units, 1 / 60)
 
     def create_sky_background(self):
