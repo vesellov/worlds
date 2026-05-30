@@ -30,11 +30,10 @@ import res
 import mth
 import dat
 import unt
+import hero
 
 
 _Debug = True
-
-QUADRO_SEGMENTS = False
 
 _NextUnitID = 0
 _NextObjectID = 0
@@ -44,9 +43,10 @@ _NextMeshID = 0
 class Scene(object):
 
     def __init__(self, land, catalog):
-        self.land = land
-        self.catalog = catalog
         self.renderer = None
+        self.catalog = catalog
+        self.land = land
+        self.hero = None
         self.models = {}
         self.meshes = {}
         self.meshes_index = {}
@@ -69,12 +69,8 @@ class Scene(object):
         self.global_water_translate_after = None
         self.global_water_rotate_x = None
         self.global_water_rotate_z = None
-        if QUADRO_SEGMENTS:
-            self.map_width = int(self.land.width / 2)
-            self.map_height = int(self.land.height / 2)
-        else:
-            self.map_width = int(self.land.width)
-            self.map_height = int(self.land.height)
+        self.map_width = int(self.land.width)
+        self.map_height = int(self.land.height)
         self.area_center_w = None
         self.area_center_h = None
         self.segment_shift_w = None
@@ -117,21 +113,14 @@ class Scene(object):
                 dist = int(math.sqrt(_w * _w + _h * _h))
                 if dist < const.VISIBLE_AREA_SIZE_SEGMENTS_HALF:
                     self.visible_area_mask[(_w, _h)] = dist
-        if QUADRO_SEGMENTS:
-            self.area_center_w = int(map_center_w / 2)
-            self.area_center_h = int(map_center_h / 2)
-        else:
-            self.area_center_w = int(map_center_w)
-            self.area_center_h = int(map_center_h)
+        self.area_center_w = int(map_center_w)
+        self.area_center_h = int(map_center_h)
         self.segment_shift_w = 0.5
         self.segment_shift_h = 0.5
         w = int(self.area_center_w)
         h = int(self.area_center_h)
         camera_shift_angle_x, camera_shift_angle_z = self.coords_area2angles(0.5-self.segment_shift_w, 0.5-self.segment_shift_h)
-        if QUADRO_SEGMENTS:
-            elevation_at_center = self.land.get_elevation(w * 2, h * 2)
-        else:
-            elevation_at_center = self.land.get_elevation(w, h)
+        elevation_at_center = self.land.get_elevation(w, h)
         # elevation_at_center = 0.25
         planet_shift_y = const.PLANET_RADIUS + elevation_at_center * const.ELEVATION_FACTOR + const.ELEVATION_CORRECTION
         self.global_translate_before = Translate(0, -planet_shift_y, 0, group='land')
@@ -224,17 +213,6 @@ class Scene(object):
         return f'{template}_{part_name}_{c[0]}_{c[1]}_{c[2]}'
 
     def get_segment_elevation(self, map_w, map_h):
-        if QUADRO_SEGMENTS:
-            e00 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2,     map_h * 2    ) * const.ELEVATION_FACTOR
-            e01 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2,     map_h * 2 + 1) * const.ELEVATION_FACTOR
-            e02 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2,     map_h * 2 + 2) * const.ELEVATION_FACTOR
-            e10 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 1, map_h * 2    ) * const.ELEVATION_FACTOR
-            e11 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 1, map_h * 2 + 1) * const.ELEVATION_FACTOR
-            e12 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 1, map_h * 2 + 2) * const.ELEVATION_FACTOR
-            e20 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 2, map_h * 2    ) * const.ELEVATION_FACTOR
-            e21 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 2, map_h * 2 + 1) * const.ELEVATION_FACTOR
-            e22 = const.PLANET_RADIUS + self.land.get_elevation(map_w * 2 + 2, map_h * 2 + 2) * const.ELEVATION_FACTOR
-            return e00, e01, e02, e10, e11, e12, e20, e21, e22
         e00 = const.PLANET_RADIUS + self.land.get_elevation(map_w, map_h) * const.ELEVATION_FACTOR
         e01 = const.PLANET_RADIUS + self.land.get_elevation(map_w, map_h + 1) * const.ELEVATION_FACTOR
         e10 = const.PLANET_RADIUS + self.land.get_elevation(map_w + 1, map_h) * const.ELEVATION_FACTOR
@@ -253,46 +231,6 @@ class Scene(object):
         return (float(h - const.INPUT_WATER_LEVEL) / h) * float(const.ELEVATION_UNPACK_UNDERWATER_FACTOR)
 
     def calculate_elevation(self, w_i, h_i, shift_w, shift_h):
-        if QUADRO_SEGMENTS:
-            e00, e01, e02, e10, e11, e12, e20, e21, e22 = self.get_segment_elevation(w_i, h_i)
-            e_min = min(e00, e01, e02, e10, e11, e12, e20, e21, e22)
-            e_max = max(e00, e01, e02, e10, e11, e12, e20, e21, e22)
-            a2 = const.SEGMENT_ANGLE
-            a1 = a2 / 2.0
-            w_f = shift_w * a2
-            h_f = shift_h * a2
-            tl_br = None
-            if shift_w < 0.5:
-                if shift_h < 0.5:
-                    p00 = (0, 0, e00)
-                    p01 = (0, a1, e01)
-                    p10 = (a1, 0, e10)
-                    p11 = (a1, a1, e11)
-                    tl_br = True
-                else:
-                    p00 = (0, a1, e01)
-                    p01 = (0, a2, e02)
-                    p10 = (a1, a1, e11)
-                    p11 = (a1, a2, e12)
-                    tl_br = False
-            else:
-                if shift_h < 0.5:
-                    p00 = (a1, 0, e10)
-                    p01 = (a1, a1, e11)
-                    p10 = (a2, 0, e20)
-                    p11 = (a2, a1, e21)
-                    tl_br = False
-                else:
-                    p00 = (a1, a1, e11)
-                    p01 = (a1, a2, e12)
-                    p10 = (a2, a1, e21)
-                    p11 = (a2, a2, e22)
-                    tl_br = True
-            if mth.point_line_left_or_right(w_f, h_f, p01[0], p01[1], p10[0], p10[1]) == 1:
-                e = mth.get_z_in_triangle(w_f, h_f, p00, p01, p10)
-            else:
-                e = mth.get_z_in_triangle(w_f, h_f, p01, p10, p11)
-            return e, e_min, e_max
         e00, e01, e10, e11 = self.get_segment_elevation(w_i, h_i)
         e_min = min(e00, e01, e10, e11)
         e_max = max(e00, e01, e10, e11)
@@ -311,44 +249,6 @@ class Scene(object):
 
     def calculate_land_vertices(self):        
         t1 = time.time()
-        if QUADRO_SEGMENTS:
-            for w in range(1, self.map_width-1):
-                for h in range(1, self.map_height-1):
-                    e00, e01, e02, e10, e11, e12, e20, e21, e22 = self.get_segment_elevation(w, h)
-                    e_min = min(e00, e01, e02, e10, e11, e12, e20, e21, e22)
-                    e_max = max(e00, e01, e02, e10, e11, e12, e20, e21, e22)
-                    y00 = e00 * const.SEGMENT_COS
-                    y01 = e01 * const.SEGMENT_COS
-                    y02 = e02 * const.SEGMENT_COS
-                    y10 = e10 * const.SEGMENT_COS
-                    y11 = e11 * const.SEGMENT_COS
-                    y12 = e12 * const.SEGMENT_COS
-                    y20 = e20 * const.SEGMENT_COS
-                    y21 = e21 * const.SEGMENT_COS
-                    y22 = e22 * const.SEGMENT_COS
-                    c00 = e00 * const.SEGMENT_SIN
-                    c01 = e01 * const.SEGMENT_SIN
-                    c02 = e02 * const.SEGMENT_SIN
-                    c10 = e10 * const.SEGMENT_SIN
-                    c11 = e11 * const.SEGMENT_SIN
-                    c12 = e12 * const.SEGMENT_SIN
-                    c20 = e20 * const.SEGMENT_SIN
-                    c21 = e21 * const.SEGMENT_SIN
-                    c22 = e22 * const.SEGMENT_SIN
-                    v00 = ( c00 * const.PI_4_SIN,  y00,  -c00 * const.PI_4_COS)
-                    v01 = ( c01 * const.PI_4_COS,  y01,   c01 * 0)
-                    v02 = ( c02 * const.PI_4_COS,  y02,   c02 * const.PI_4_SIN)
-                    v10 = ( c10 * 0,              y10,  -c10 * const.PI_4_COS)
-                    v11 = ( c11 * 0,              y11,   c11 * 0)
-                    v12 = ( c12 * 0,              y12,   c12 * const.PI_4_SIN)
-                    v20 = (-c20 * const.PI_4_COS,  y20,  -c20 * const.PI_4_SIN)
-                    v21 = (-c21 * const.PI_4_COS,  y21,   c21 * 0)
-                    v22 = (-c22 * const.PI_4_SIN,  y22,   c22 * const.PI_4_COS)
-                    self.land_vertices[(w, h)] = (v00, v01, v02, v10, v11, v12, v20, v21, v22, e_min, e_max)
-            t2 = time.time()
-            if _Debug:
-                print(f'calculated {len(self.land_vertices)} land vertices segments in {t2 - t1} sec')
-            return
         for w, h in self.land.elevation_map_data.keys():
             e00, e01, e10, e11 = self.get_segment_elevation(w, h)
             e_min = min(e00, e01, e10, e11)
@@ -1014,45 +914,14 @@ class Scene(object):
         h_t = int(map_h)
         w = float(area_w)
         h = float(area_h)
-        if QUADRO_SEGMENTS:
-            v00, v01, v02, v10, v11, v12, v20, v21, v22, e_min, e_max = self.land_vertices[(w_t, h_t)]
-            tex00_file_path, tex00_coord00, tex00_coord01, tex00_coord10, tex00_coord11 = _get_texture(w_t*2, h_t*2)
-            tex01_file_path, tex01_coord00, tex01_coord01, tex01_coord10, tex01_coord11 = _get_texture(w_t*2, h_t*2+1)
-            tex10_file_path, tex10_coord00, tex10_coord01, tex10_coord10, tex10_coord11 = _get_texture(w_t*2+1, h_t*2)
-            tex11_file_path, tex11_coord00, tex11_coord01, tex11_coord10, tex11_coord11 = _get_texture(w_t*2+1, h_t*2+1)
-            vert00 = [
-                v00[0], v00[1], v00[2], 1, 0, 0, tex00_coord00[0], tex00_coord00[1],
-                v01[0], v01[1], v01[2], 1, 0, 0, tex00_coord01[0], tex00_coord01[1],
-                v10[0], v10[1], v10[2], 1, 0, 0, tex00_coord10[0], tex00_coord10[1],
-                v11[0], v11[1], v11[2], 1, 0, 0, tex00_coord11[0], tex00_coord11[1],
-            ]
-            vert01 = [
-                v01[0], v01[1], v01[2], 1, 0, 0, tex01_coord00[0], tex01_coord00[1],
-                v02[0], v02[1], v02[2], 1, 0, 0, tex01_coord01[0], tex01_coord01[1],
-                v11[0], v11[1], v11[2], 1, 0, 0, tex01_coord10[0], tex01_coord10[1],
-                v12[0], v12[1], v12[2], 1, 0, 0, tex01_coord11[0], tex01_coord11[1],
-            ]
-            vert10 = [
-                v10[0], v10[1], v10[2], 1, 0, 0, tex10_coord00[0], tex10_coord00[1],
-                v11[0], v11[1], v11[2], 1, 0, 0, tex10_coord01[0], tex10_coord01[1],
-                v20[0], v20[1], v20[2], 1, 0, 0, tex10_coord10[0], tex10_coord10[1],
-                v21[0], v21[1], v21[2], 1, 0, 0, tex10_coord11[0], tex10_coord11[1],
-            ]
-            vert11 = [
-                v11[0], v11[1], v11[2], 1, 0, 0, tex11_coord00[0], tex11_coord00[1],
-                v12[0], v12[1], v12[2], 1, 0, 0, tex11_coord01[0], tex11_coord01[1],
-                v21[0], v21[1], v21[2], 1, 0, 0, tex11_coord10[0], tex11_coord10[1],
-                v22[0], v22[1], v22[2], 1, 0, 0, tex11_coord11[0], tex11_coord11[1],
-            ]        
-        else:
-            v00, v01, v10, v11, e_min, e_max = self.land_vertices[(w_t, h_t)]
-            tex_file_path, tex_coord00, tex_coord01, tex_coord10, tex_coord11 = _get_texture(w_t, h_t)
-            vert = [
-                v00[0], v00[1], v00[2], 1, 0, 0, tex_coord00[0], tex_coord00[1],
-                v01[0], v01[1], v01[2], 1, 0, 0, tex_coord01[0], tex_coord01[1],
-                v10[0], v10[1], v10[2], 1, 0, 0, tex_coord10[0], tex_coord10[1],
-                v11[0], v11[1], v11[2], 1, 0, 0, tex_coord11[0], tex_coord11[1],
-            ]
+        v00, v01, v10, v11, e_min, e_max = self.land_vertices[(w_t, h_t)]
+        tex_file_path, tex_coord00, tex_coord01, tex_coord10, tex_coord11 = _get_texture(w_t, h_t)
+        vert = [
+            v00[0], v00[1], v00[2], 1, 0, 0, tex_coord00[0], tex_coord00[1],
+            v01[0], v01[1], v01[2], 1, 0, 0, tex_coord01[0], tex_coord01[1],
+            v10[0], v10[1], v10[2], 1, 0, 0, tex_coord10[0], tex_coord10[1],
+            v11[0], v11[1], v11[2], 1, 0, 0, tex_coord11[0], tex_coord11[1],
+        ]
         e_correction = 0
         # e_correction = (e_max - e_min) * 0.05
         segment_group_name = f'l_{map_w}_{map_h}'
@@ -1072,62 +941,18 @@ class Scene(object):
         segment_state = ChangeState(material_density=0.0, group=segment_group_name)
         # self.container_land_tiles.add(segment_state)
         container_land_tile.add(segment_state)
-        if QUADRO_SEGMENTS:
-            self.container_land_tiles.add(BindTexture(source=tex00_file_path, index=1, group=segment_group_name))
-            self.container_land_tiles.add(Mesh(
-                vertices=vert00,
-                indices=[0, 1, 2, 1, 3, 2],
-                fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
-                mode='triangles',
-                group=segment_group_name,
-            ))
-            self.container_land_tiles.add(BindTexture(source=tex01_file_path, index=1, group=segment_group_name))
-            self.container_land_tiles.add(Mesh(
-                vertices=vert01,
-                indices=[0, 1, 3, 3, 2, 0],
-                fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
-                mode='triangles',
-                group=segment_group_name,
-            ))
-            self.container_land_tiles.add(BindTexture(source=tex10_file_path, index=1, group=segment_group_name))
-            self.container_land_tiles.add(Mesh(
-                vertices=vert10,
-                indices=[0, 1, 3, 3, 2, 0],
-                fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
-                mode='triangles',
-                group=segment_group_name,
-            ))
-            self.container_land_tiles.add(BindTexture(source=tex11_file_path, index=1, group=segment_group_name))
-            self.container_land_tiles.add(Mesh(
-                vertices=vert11,
-                indices=[0, 1, 2, 1, 2, 3],
-                fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
-                mode='triangles',
-                group=segment_group_name,
-            ))
-        else:
-            container_land_tile.add(BindTexture(source=tex_file_path, index=1, group=segment_group_name))
-            # self.container_land_tiles.add(BindTexture(source=tex_file_path, index=1, group=segment_group_name))
-            container_land_tile.add(Mesh(
-            # self.container_land_tiles.add(Mesh(
-                vertices=vert,
-                indices=[0, 1, 2, 1, 3, 2],
-                fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
-                mode='triangles',
-                group=segment_group_name,
-            ))
+        container_land_tile.add(BindTexture(source=tex_file_path, index=1, group=segment_group_name))
+        # self.container_land_tiles.add(BindTexture(source=tex_file_path, index=1, group=segment_group_name))
+        container_land_tile.add(Mesh(
+        # self.container_land_tiles.add(Mesh(
+            vertices=vert,
+            indices=[0, 1, 2, 1, 3, 2],
+            fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+            mode='triangles',
+            group=segment_group_name,
+        ))
         static_units_at_segment = []
-        if QUADRO_SEGMENTS:
-            plant_segments = [
-                (w_t*2, h_t*2),
-                (w_t*2, h_t*2+1),
-                (w_t*2+1, h_t*2),
-                (w_t*2+1, h_t*2+1),
-            ]
-        else:
-            plant_segments = [
-                (w_t, h_t),
-            ]
+        plant_segments = [(w_t, h_t), ]
         for wn, hn in plant_segments:
             building_list = self.land.buildings_map_data.get((wn, hn), [])
             for i in range(len(building_list)):
@@ -1337,11 +1162,29 @@ class Scene(object):
             area_w=area_w,
             area_h=area_h,
         )
-        if unit.animations_list:
-            unit.animation_playing = unit.animations_list[0]
+        # if unit.animations_list:
+        #     unit.animation_playing = unit.animations_list[0]
         if _Debug:
             print(f'  new animated unit {unit.name} from template {template} at {map_w},{map_h} shift:{shift_w},{shift_h} direction:{direction} coefs:{coefs}')
         return unit
+
+    def create_hero(self):
+        self.hero = hero.Hero(
+            scene=self,
+            model_name='unhuma',
+            skin=41,
+            hair=0,
+            wears=[
+              "hadagan brigand pants.thin",
+              "hadagan brigand boots.thin",
+              "hadagan brigand gloves.thin",
+              "hadagan brigand leggins.thick",
+              "hadagan brigand helm.thick",
+              "hadagan brigand plate.thick"
+            ],
+            weapon='cheat dagger.bronze',
+        )
+        self.hero.create_unit()
 
     def on_camera_rotate(self, camera_angle_y, camera_angle_z):
         return

@@ -17,9 +17,9 @@ from kivy.resources import resource_find
 from kivy.properties import ObjectProperty  # @UnresolvedImport
 from kivy.graphics.transformation import Matrix  # @UnresolvedImport
 from kivy.graphics.opengl import (
-    glGetError, glEnable, glDisable, GL_BLEND, GL_DEPTH_TEST,
-    glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,
-    glDepthFunc, GL_LEQUAL,
+    glGetError, glEnable, glDisable, GL_BLEND, GL_DEPTH_TEST,  # @UnresolvedImport
+    glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,  # @UnresolvedImport
+    glDepthFunc, GL_LEQUAL,  # @UnresolvedImport
 )
 from kivy.graphics.instructions import InstructionGroup  # @UnresolvedImport
 from kivy.graphics import (
@@ -59,7 +59,7 @@ class Renderer(Widget):
         self.camera_speed = 0.0
         self.camera_unit_lock = None
         self.camera_capital_lock = 0
-        self.camera_move_mode = 2
+        self.camera_move_mode = 1
         self.global_eye_x = 0
         self.global_eye_y = 0
         self.global_eye_z = 0
@@ -98,7 +98,7 @@ class Renderer(Widget):
         self.keyboard_handler.bind(on_key_down=self.on_keyboard_down)
         self.keyboard_handler.bind(on_key_up=self.on_keyboard_up)
         Clock.schedule_interval(self.on_update_glsl, 1 / 60)
-        Clock.schedule_interval(self.scene.on_update_animations, 1 / 15)
+        Clock.schedule_interval(self.scene.on_update_animations, 1 / 25)
         Clock.schedule_interval(self.scene.on_run_units, 1 / 60)
 
     def create_sky_background(self):
@@ -220,6 +220,9 @@ class Renderer(Widget):
     def on_keyboard_up(self, keyboard, keycode, *largs):
         self.camera_speed = 0.0
         self.camera_acceleration = 0.0
+        if keycode[1] in ['w', 's', ]:
+            if self.scene.hero:
+                self.scene.hero.move(forward=False, backward=False)
     
     def on_keyboard_down(self, keyboard, keycode, text, modifiers):
         if keycode[1] == 'escape':
@@ -559,21 +562,32 @@ class Renderer(Widget):
             else:
                 print(f'camera locked to capital {self.scene.land.capitals[self.camera_capital_lock]["n"]}')
         elif keycode[1] == 'e':
-            self.camera_move_mode = 3 - self.camera_move_mode
+            self.camera_move_mode += 1
+            if self.camera_move_mode > 3:
+                self.camera_move_mode = 1
         elif keycode[1] == 'a':
             if self.camera_move_mode == 1:
+                if self.scene.hero:
+                    self.scene.hero.turn(left=True)
+            elif self.camera_move_mode == 2:
                 self.scene.land_shift(0, const.LAND_MOVE_SPEED)
-            else:
+            elif self.camera_move_mode == 3:
                 self.scene.land_move(self.camera_angle_z + 90, const.LAND_MOVE_SPEED)
         elif keycode[1] == 'd':
             if self.camera_move_mode == 1:
+                if self.scene.hero:
+                    self.scene.hero.turn(right=True)
+            elif self.camera_move_mode == 2:
                 self.scene.land_shift(0, -const.LAND_MOVE_SPEED)
-            else:
+            elif self.camera_move_mode == 3:
                 self.scene.land_move(self.camera_angle_z - 90, const.LAND_MOVE_SPEED)
         elif keycode[1] == 's':
             if self.camera_move_mode == 1:
+                if self.scene.hero:
+                    self.scene.hero.move(backward=True)
+            elif self.camera_move_mode == 2:
                 self.scene.land_shift(-const.LAND_MOVE_SPEED, 0)
-            else:
+            elif self.camera_move_mode == 3:
                 self.camera_acceleration -= const.LAND_MOVE_SPEED / 20.0
                 self.camera_speed += self.camera_acceleration
                 if self.camera_speed < -const.LAND_MOVE_SPEED:
@@ -582,8 +596,11 @@ class Renderer(Widget):
                 self.camera_acceleration = 0.0
         elif keycode[1] == 'w':
             if self.camera_move_mode == 1:
+                if self.scene.hero:
+                    self.scene.hero.move(forward=True)
+            elif self.camera_move_mode == 2:
                 self.scene.land_shift(const.LAND_MOVE_SPEED, 0)
-            else:
+            elif self.camera_move_mode == 3:
                 self.camera_acceleration += const.LAND_MOVE_SPEED / 20.0
                 self.camera_speed += self.camera_acceleration
                 if self.camera_speed > const.LAND_MOVE_SPEED:

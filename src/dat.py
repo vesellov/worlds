@@ -394,7 +394,7 @@ class CatalogData(object):
     def load_materials(self, materials_file_name):
         self.materials = json.loads(open(materials_file_name, 'rt').read())
 
-    def build_template_data(self, model_name, skin=0, hair=0, wears=[], weapon=None, texture=None):
+    def build_template_data(self, model_name, skin=0, hair=None, wears=[], weapon=None, texture=None):
         animations = []
         textures = {}
         is_human = model_name in ['unhuma', 'unhufe']
@@ -492,7 +492,7 @@ class CatalogData(object):
                 if body_part not in parts:
                     parts.append(body_part)
         if is_human:
-            if not has_helm and hair >= 0:
+            if not has_helm and hair is not None and hair >= 0:
                 parts.append(f'hr.{hair:02}')
         weapon_type = None
         if weapon:
@@ -638,19 +638,26 @@ class CatalogData(object):
                     textures[f'rh3.club{weapon_id:02}'] = weapon_texture
                     textures[f'baseclub{weapon_id:02}'] = weapon_texture
         anim = self.animations[model_name]
+        action_types = {}
         for action in anim['actions']:
             action_name = action['action_name']
             weapons = action['weapons'].split(',')
-            if not weapons or weapons == ['all', ]:
+            if not action['weapons'] or weapons == ['all', ]:
                 animations.append(action_name)
             else:
                 if weapon_type and weapon_type in weapons:
                     animations.append(action_name)
+            action_type = action['action_type'].split(':')[0]
+            if action['animation_stage'] == 'cycle':
+                if action_type not in action_types:
+                    action_types[action_type] = []
+                action_types[action_type].append(action_name)
         return dict(
             model_name=model_name,
             parts=parts,
             textures=textures,
             animations=animations,
+            action_types=action_types,
         )
 
 

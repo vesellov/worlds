@@ -34,20 +34,40 @@ class Unit(object):
         self.animations_list = []
         self.animation_playing = None
         self.animation_frame = 0
+        self.action_types = {}
         self.direction = 0.0
         self.elevation_correction = None
         self.acceleration = 0.0
+        self.acceleration_up = 0.0
+        self.acceleration_down = 0.0
         self.speed = 0.0
         self.max_speed = 0.0
+        self.is_walking = False
+        self.is_running = False
+        self.is_attacking = False
+        self.is_dying = False
 
     def __repr__(self):
         return f'Unit[{self.name}/{self.w}:{self.h}/{round(self.shift_w,2)}:{round(self.shift_h,2)}/{self.area_w}:{self.area_h}]'
 
     def run(self, scene):
-        if self.speed > self.max_speed:
-            self.speed -= self.acceleration
+        self.acceleration += self.acceleration_up
+        self.speed += self.acceleration
+        if self.acceleration >= 0:
+            if self.speed > self.max_speed:
+                self.speed = self.max_speed
         else:
-            self.speed += self.acceleration
+            if self.speed < -self.max_speed:
+                self.speed = -self.max_speed
+        if self.speed > 0:
+            self.speed -= self.acceleration_down
+            if self.speed < 0:
+                self.speed = 0.0
+        elif self.speed < 0:
+            self.speed += self.acceleration_down
+            if self.speed > 0:
+                self.speed = 0.0
+        self.acceleration = 0.0
         # if self.speed > self.max_speed:
         #     self.speed = self.max_speed
         # self.direction += 1.0
@@ -105,6 +125,10 @@ class Unit(object):
         if not self.animations_list:
             return False
         ao = scene.animated_objects[self.object_name]
+        if self.is_walking:
+            self.animation_playing = self.action_types['walk'][1]
+        else:
+            self.animation_playing = self.action_types['idle'][0]
         animation = ao.animations[self.animation_playing]
         root_part_name = ao.parts[0]
         root_part_animation = animation.parts.get(root_part_name)
