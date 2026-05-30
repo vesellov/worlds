@@ -882,9 +882,20 @@ folder anymore".format(count))
                 models[model_name].insert(0, model_data_raw)
             continue
 
+    for model_name in models.keys():
+        if model_name in figures:
+            continue
+        fig_tree = lnk.read_info(os.path.join(args.dst_dir, 'Res', 'figures', model_name, model_name + ".lnk"))
+        figures[model_name] = fig_tree
+
+    figures_parts = {}
+    for model_name, fig_tree in figures.items():
+        figures_parts[model_name] = ':'.join(convert_model.flat_tree(fig_tree))
+
     import json
     open('figures_samples.json', 'wt').write(json.dumps(models, indent=2))
     open('figures.json', 'wt').write(json.dumps(figures, indent=2))
+    open('figures_parts.json', 'wt').write(json.dumps(figures_parts, indent=2))
     open('plants.json', 'wt').write(json.dumps(plants, indent=2))
     open('buildings.json', 'wt').write(json.dumps(buildings, indent=2))
 
@@ -914,10 +925,4 @@ if __name__ == "__main__":
         print_log = print
         update_progress = phldr
         args = parser.parse_args()
-        # if args.src_dir == 'build_figures':
-        #     models = json.loads(open('templates.json', 'rt').read())
-        #     figures = build_figures(models)
-        #     open('figures.json', 'wt').write(json.dumps(figures, indent=2))
-        # else:
-        if True:
-            unpack(args)
+        unpack(args)

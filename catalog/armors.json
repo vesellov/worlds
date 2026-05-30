@@ -1,0 +1,1148 @@
+{
+  "gipat low shirt": {
+    "type": "shirt",
+    "material_type": "leather",
+    "texture_type_1": 0,
+    "texture_type_2": 0
+  },
+  "gipat low pants": {
+    "type": "pants",
+    "material_type": "leather",
+    "texture_type_1": 0,
+    "texture_type_2": 0
+  },
+  "gipat low boots": {
+    "type": "boots",
+    "material_type": "leather",
+    "texture_type_1": 0,
+    "texture_type_2": 0
+  },
+  "gipat low gloves": {
+    "type": "gloves",
+    "material_type": "leather",
+    "texture_type_1": 0,
+    "texture_type_2": 0
+  },
+  "gipat low helm": {
+    "type": "helm",
+    "material_type": "leather",
+    "texture_type_1": 7,
+    "texture_type_2": 0
+  },
+  "gipat low plate": {
+    "type": "plate",
+    "material_type": "leather",
+    "texture_type_1": 7,
+    "texture_type_2": 0
+  },
+  "gipat low leggins": {
+    "type": "leggings",
+    "material_type": "leather",
+    "texture_type_1": 7,
+    "texture_type_2": 0
+  },
+  "gipat medium shirt": {
+    "type": "shirt",
+    "material_type": "leather",
+    "texture_type_1": 0,
+    "texture_type_2": 0
+  },
+  "gipat medium pants": {
+    "type": "pants",
+    "material_type": "leather",
+    "texture_type_1": 0,
+    "texture_type_2": 0
+  },
+  "gipat medium boots": {
+    "type": "boots",
+    "material_type": "leather",
+    "texture_type_1": 0,
+    "texture_type_2": 0
+  },
+  "gipat medium gloves": {
+    "type": "gloves",
+    "material_type": "leather",
+    "texture_type_1": 0,
+    "texture_type_2": 0
+  },
+  "gipat medium helm": {
+    "type": "helm",
+    "material_type": "leather",
+    "texture_type_1": 5,
+    "texture_type_2": 0
+  },
+  "gipat medium plate": {
+    "type": "plate",
+    "material_type": "leather",
+    "texture_type_1": 5,
+    "texture_type_2": 0
+  },
+  "gipat medium leggins": {
+    "type": "leggings",
+    "material_type": "leather",
+    "texture_type_1": 5,
+    "texture_type_2": 0
+  },
+  "gipat high shirt": {
+    "type": "shirt",
+    "material_type": "leather",
+    "texture_type_1": 1,
+    "texture_type_2": 0
+  },
+  "gipat high pants": {
+    "type": "pants",
+    "material_type": "leather",
+    "texture_type_1": 1,
+    "texture_type_2": 0
+  },
+  "gipat high boots": {
+    "type": "boots",
+    "material_type": "leather",
+    "texture_type_1": 1,
+    "texture_type_2": 0
+  },
+  "gipat high gloves": {
+    "type": "gloves",
+    "material_type": "leather",
+    "texture_type_1": 1,
+    "texture_type_2": 0
+  },
+  "gipat high helm": {
+    "type": "helm",
+    "material_type": "leather",
+    "texture_type_1": 6,
+    "texture_type_2": 0
+  },
+  "gipat high plate": {
+    "type": "plate",
+    "material_type": "leather",
+    "texture_type_1": 6,
+    "texture_type_2": 0
+  },
+  "gipat high leggins": {
+    "type": "leggings",
+    "material_type": "leather",
+    "texture_type_1": 6,
+    "texture_type_2": 0
+  },
+  "gipat highest shirt": {
+    "type": "shirt",
+    "material_type": "leather",
+    "texture_type_1": 2,
+    "texture_type_2": 0
+  },
+  "gipat highest pants": {
+    "type": "pants",
+    "material_type": "leather",
+    "texture_type_1": 2,
+    "texture_type_2": 0
+  },
+  "gipat highest boots": {
+    "type": "boots",
+    "material_type": "leather",
+    "texture_type_1": 2,
+    "texture_type_2": 0
+  },
+  "gipat highest gloves": {
+    "type": "gloves",
+    "material_type": "leather",
+    "texture_type_1": 2,
+    "texture_type_2": 0
+  },
+  "gipat highest helm": {
+    "type": "helm",
+    "material_type": "leather",
+    "texture_type_1": 12,
+    "texture_type_2": 0
+  },
+  "gipat highest plate": {
+    "type": "plate",
+    "material_type": "leather",
+    "texture_type_1": 12,
+    "texture_type_2": 0
+  },
+  "gipat highest leggins": {
+    "type": "leggings",
+    "material_type": "leather",
+    "texture_type_1": 12,
+    "texture_type_2": 0
+  },
+  "gipat brigand shirt": {
+    "type": "shirt",
+    "material_type": "fur",
+    "texture_type_1": 4,
+    "texture_type_2": 0
+  },
+  "gipat brigand pants": {
+    "type": "pants",
+    "material_type": "fur",
+    "texture_type_1": 4,
+    "texture_type_2": 0
+  },
+  "gipat brigand boots": {
+    "type": "boots",
+    "material_type": "fur",
+    "texture_type_1": 4,
+    "texture_type_2": 0
+  },
+  "gipat brigand gloves": {
+    "type": "gloves",
+    "material_type": "fur",
+    "texture_type_1": 4,
+    "texture_type_2": 0
+  },
+  "gipat brigand helm": {
+    "type": "helm",
+    "material_type": "fur",
+    "texture_type_1": 4,
+    "texture_type_2": 0
+  },
+  "gipat brigand plate": {
+    "type": "plate",
+    "material_type": "fur",
+    "texture_type_1": 4,
+    "texture_type_2": 0
+  },
+  "gipat brigand leggins": {
+    "type": "leggings",
+    "material_type": "fur",
+    "texture_type_1": 4,
+    "texture_type_2": 0
+  },
+  "gipat highest2 shirt": {
+    "type": "shirt",
+    "material_type": "hide",
+    "texture_type_1": 16,
+    "texture_type_2": 1
+  },
+  "gipat highest2 pants": {
+    "type": "pants",
+    "material_type": "hide",
+    "texture_type_1": 16,
+    "texture_type_2": 1
+  },
+  "gipat highest2 boots": {
+    "type": "boots",
+    "material_type": "hide",
+    "texture_type_1": 16,
+    "texture_type_2": 1
+  },
+  "gipat highest2 gloves": {
+    "type": "gloves",
+    "material_type": "hide",
+    "texture_type_1": 2,
+    "texture_type_2": 1
+  },
+  "gipat highest2 helm": {
+    "type": "helm",
+    "material_type": "hide",
+    "texture_type_1": 6,
+    "texture_type_2": 1
+  },
+  "gipat highest2 plate": {
+    "type": "plate",
+    "material_type": "hide",
+    "texture_type_1": 6,
+    "texture_type_2": 1
+  },
+  "gipat highest2 leggins": {
+    "type": "leggings",
+    "material_type": "hide",
+    "texture_type_1": 6,
+    "texture_type_2": 1
+  },
+  "kania low shirt": {
+    "type": "shirt",
+    "material_type": "cloth",
+    "texture_type_1": 10,
+    "texture_type_2": 0
+  },
+  "kania low pants": {
+    "type": "pants",
+    "material_type": "cloth",
+    "texture_type_1": 10,
+    "texture_type_2": 0
+  },
+  "kania low boots": {
+    "type": "boots",
+    "material_type": "cloth",
+    "texture_type_1": 10,
+    "texture_type_2": 0
+  },
+  "kania low gloves": {
+    "type": "gloves",
+    "material_type": "cloth",
+    "texture_type_1": 10,
+    "texture_type_2": 0
+  },
+  "kania low helm": {
+    "type": "helm",
+    "material_type": "leather",
+    "texture_type_1": 15,
+    "texture_type_2": 0
+  },
+  "kania low plate": {
+    "type": "plate",
+    "material_type": "leather",
+    "texture_type_1": 15,
+    "texture_type_2": 0
+  },
+  "kania low leggins": {
+    "type": "leggings",
+    "material_type": "leather",
+    "texture_type_1": 15,
+    "texture_type_2": 0
+  },
+  "kania medium shirt": {
+    "type": "shirt",
+    "material_type": "cloth",
+    "texture_type_1": 11,
+    "texture_type_2": 0
+  },
+  "kania medium pants": {
+    "type": "pants",
+    "material_type": "cloth",
+    "texture_type_1": 11,
+    "texture_type_2": 0
+  },
+  "kania medium boots": {
+    "type": "boots",
+    "material_type": "cloth",
+    "texture_type_1": 11,
+    "texture_type_2": 0
+  },
+  "kania medium gloves": {
+    "type": "gloves",
+    "material_type": "cloth",
+    "texture_type_1": 11,
+    "texture_type_2": 0
+  },
+  "kania medium helm": {
+    "type": "helm",
+    "material_type": "cloth",
+    "texture_type_1": 11,
+    "texture_type_2": 0
+  },
+  "kania medium plate": {
+    "type": "plate",
+    "material_type": "cloth",
+    "texture_type_1": 11,
+    "texture_type_2": 0
+  },
+  "kania medium leggins": {
+    "type": "leggings",
+    "material_type": "cloth",
+    "texture_type_1": 11,
+    "texture_type_2": 0
+  },
+  "kania brigand shirt": {
+    "type": "shirt",
+    "material_type": "leather",
+    "texture_type_1": 6,
+    "texture_type_2": 0
+  },
+  "kania brigand pants": {
+    "type": "pants",
+    "material_type": "leather",
+    "texture_type_1": 6,
+    "texture_type_2": 0
+  },
+  "kania brigand boots": {
+    "type": "boots",
+    "material_type": "leather",
+    "texture_type_1": 6,
+    "texture_type_2": 0
+  },
+  "kania brigand gloves": {
+    "type": "gloves",
+    "material_type": "leather",
+    "texture_type_1": 6,
+    "texture_type_2": 0
+  },
+  "kania brigand helm": {
+    "type": "helm",
+    "material_type": "leather",
+    "texture_type_1": 15,
+    "texture_type_2": 1
+  },
+  "kania brigand plate": {
+    "type": "plate",
+    "material_type": "leather",
+    "texture_type_1": 15,
+    "texture_type_2": 1
+  },
+  "kania brigand leggins": {
+    "type": "leggings",
+    "material_type": "leather",
+    "texture_type_1": 15,
+    "texture_type_2": 1
+  },
+  "kania high shirt": {
+    "type": "shirt",
+    "material_type": "hide",
+    "texture_type_1": 16,
+    "texture_type_2": 0
+  },
+  "kania high pants": {
+    "type": "pants",
+    "material_type": "hide",
+    "texture_type_1": 16,
+    "texture_type_2": 0
+  },
+  "kania high boots": {
+    "type": "boots",
+    "material_type": "hide",
+    "texture_type_1": 16,
+    "texture_type_2": 0
+  },
+  "kania high gloves": {
+    "type": "gloves",
+    "material_type": "hide",
+    "texture_type_1": 16,
+    "texture_type_2": 0
+  },
+  "kania high helm": {
+    "type": "helm",
+    "material_type": "metal",
+    "texture_type_1": 9,
+    "texture_type_2": 0
+  },
+  "kania high plate": {
+    "type": "plate",
+    "material_type": "metal",
+    "texture_type_1": 9,
+    "texture_type_2": 0
+  },
+  "kania high leggins": {
+    "type": "leggings",
+    "material_type": "metal",
+    "texture_type_1": 9,
+    "texture_type_2": 0
+  },
+  "kania high2 shirt": {
+    "type": "shirt",
+    "material_type": "metal",
+    "texture_type_1": 9,
+    "texture_type_2": 0
+  },
+  "kania high2 pants": {
+    "type": "pants",
+    "material_type": "metal",
+    "texture_type_1": 9,
+    "texture_type_2": 0
+  },
+  "kania high2 boots": {
+    "type": "boots",
+    "material_type": "metal",
+    "texture_type_1": 9,
+    "texture_type_2": 0
+  },
+  "kania high2 gloves": {
+    "type": "gloves",
+    "material_type": "metal",
+    "texture_type_1": 9,
+    "texture_type_2": 0
+  },
+  "kania high2 helm": {
+    "type": "helm",
+    "material_type": "metal",
+    "texture_type_1": 1,
+    "texture_type_2": 0
+  },
+  "kania high2 plate": {
+    "type": "plate",
+    "material_type": "metal",
+    "texture_type_1": 1,
+    "texture_type_2": 0
+  },
+  "kania high2 leggins": {
+    "type": "leggings",
+    "material_type": "metal",
+    "texture_type_1": 1,
+    "texture_type_2": 0
+  },
+  "kania highest shirt": {
+    "type": "shirt",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 0
+  },
+  "kania highest pants": {
+    "type": "pants",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 0
+  },
+  "kania highest boots": {
+    "type": "boots",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 0
+  },
+  "kania highest gloves": {
+    "type": "gloves",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 0
+  },
+  "kania highest helm": {
+    "type": "helm",
+    "material_type": "metal",
+    "texture_type_1": 3,
+    "texture_type_2": 0
+  },
+  "kania highest plate": {
+    "type": "plate",
+    "material_type": "metal",
+    "texture_type_1": 3,
+    "texture_type_2": 0
+  },
+  "kania highest leggins": {
+    "type": "leggings",
+    "material_type": "metal",
+    "texture_type_1": 3,
+    "texture_type_2": 0
+  },
+  "kania highest2 shirt": {
+    "type": "shirt",
+    "material_type": "metal",
+    "texture_type_1": 15,
+    "texture_type_2": 0
+  },
+  "kania highest2 pants": {
+    "type": "pants",
+    "material_type": "metal",
+    "texture_type_1": 15,
+    "texture_type_2": 0
+  },
+  "kania highest2 boots": {
+    "type": "boots",
+    "material_type": "metal",
+    "texture_type_1": 15,
+    "texture_type_2": 0
+  },
+  "kania highest2 gloves": {
+    "type": "gloves",
+    "material_type": "metal",
+    "texture_type_1": 9,
+    "texture_type_2": 0
+  },
+  "kania highest2 helm": {
+    "type": "helm",
+    "material_type": "metal",
+    "texture_type_1": 1,
+    "texture_type_2": 1
+  },
+  "kania highest2 plate": {
+    "type": "plate",
+    "material_type": "metal",
+    "texture_type_1": 1,
+    "texture_type_2": 1
+  },
+  "kania highest2 leggins": {
+    "type": "leggings",
+    "material_type": "metal",
+    "texture_type_1": 1,
+    "texture_type_2": 1
+  },
+  "hadagan low shirt": {
+    "type": "shirt",
+    "material_type": "cloth",
+    "texture_type_1": 12,
+    "texture_type_2": 0
+  },
+  "hadagan low pants": {
+    "type": "pants",
+    "material_type": "cloth",
+    "texture_type_1": 12,
+    "texture_type_2": 0
+  },
+  "hadagan low boots": {
+    "type": "boots",
+    "material_type": "cloth",
+    "texture_type_1": 12,
+    "texture_type_2": 0
+  },
+  "hadagan low gloves": {
+    "type": "gloves",
+    "material_type": "cloth",
+    "texture_type_1": 12,
+    "texture_type_2": 0
+  },
+  "hadagan low helm": {
+    "type": "helm",
+    "material_type": "leather",
+    "texture_type_1": 5,
+    "texture_type_2": 1
+  },
+  "hadagan low plate": {
+    "type": "plate",
+    "material_type": "leather",
+    "texture_type_1": 5,
+    "texture_type_2": 1
+  },
+  "hadagan low leggins": {
+    "type": "leggings",
+    "material_type": "leather",
+    "texture_type_1": 5,
+    "texture_type_2": 1
+  },
+  "hadagan medium shirt": {
+    "type": "shirt",
+    "material_type": "cloth",
+    "texture_type_1": 13,
+    "texture_type_2": 0
+  },
+  "hadagan medium pants": {
+    "type": "pants",
+    "material_type": "cloth",
+    "texture_type_1": 13,
+    "texture_type_2": 0
+  },
+  "hadagan medium boots": {
+    "type": "boots",
+    "material_type": "cloth",
+    "texture_type_1": 13,
+    "texture_type_2": 0
+  },
+  "hadagan medium gloves": {
+    "type": "gloves",
+    "material_type": "cloth",
+    "texture_type_1": 13,
+    "texture_type_2": 0
+  },
+  "hadagan medium helm": {
+    "type": "helm",
+    "material_type": "cloth",
+    "texture_type_1": 10,
+    "texture_type_2": 0
+  },
+  "hadagan medium plate": {
+    "type": "plate",
+    "material_type": "cloth",
+    "texture_type_1": 10,
+    "texture_type_2": 0
+  },
+  "hadagan medium leggins": {
+    "type": "leggings",
+    "material_type": "cloth",
+    "texture_type_1": 10,
+    "texture_type_2": 0
+  },
+  "hadagan medium2 shirt": {
+    "type": "shirt",
+    "material_type": "leather",
+    "texture_type_1": 1,
+    "texture_type_2": 0
+  },
+  "hadagan medium2 pants": {
+    "type": "pants",
+    "material_type": "leather",
+    "texture_type_1": 1,
+    "texture_type_2": 0
+  },
+  "hadagan medium2 boots": {
+    "type": "boots",
+    "material_type": "leather",
+    "texture_type_1": 1,
+    "texture_type_2": 0
+  },
+  "hadagan medium2 gloves": {
+    "type": "gloves",
+    "material_type": "leather",
+    "texture_type_1": 1,
+    "texture_type_2": 0
+  },
+  "hadagan medium2 helm": {
+    "type": "helm",
+    "material_type": "leather",
+    "texture_type_1": 6,
+    "texture_type_2": 0
+  },
+  "hadagan medium2 plate": {
+    "type": "plate",
+    "material_type": "leather",
+    "texture_type_1": 6,
+    "texture_type_2": 0
+  },
+  "hadagan medium2 leggins": {
+    "type": "leggings",
+    "material_type": "leather",
+    "texture_type_1": 6,
+    "texture_type_2": 0
+  },
+  "hadagan brigand shirt": {
+    "type": "shirt",
+    "material_type": "leather",
+    "texture_type_1": 7,
+    "texture_type_2": 0
+  },
+  "hadagan brigand pants": {
+    "type": "pants",
+    "material_type": "leather",
+    "texture_type_1": 7,
+    "texture_type_2": 0
+  },
+  "hadagan brigand boots": {
+    "type": "boots",
+    "material_type": "leather",
+    "texture_type_1": 7,
+    "texture_type_2": 0
+  },
+  "hadagan brigand gloves": {
+    "type": "gloves",
+    "material_type": "leather",
+    "texture_type_1": 7,
+    "texture_type_2": 0
+  },
+  "hadagan brigand helm": {
+    "type": "helm",
+    "material_type": "leather",
+    "texture_type_1": 6,
+    "texture_type_2": 2
+  },
+  "hadagan brigand plate": {
+    "type": "plate",
+    "material_type": "leather",
+    "texture_type_1": 6,
+    "texture_type_2": 2
+  },
+  "hadagan brigand leggins": {
+    "type": "leggings",
+    "material_type": "leather",
+    "texture_type_1": 6,
+    "texture_type_2": 2
+  },
+  "hadagan high shirt": {
+    "type": "shirt",
+    "material_type": "hide",
+    "texture_type_1": 17,
+    "texture_type_2": 0
+  },
+  "hadagan high pants": {
+    "type": "pants",
+    "material_type": "hide",
+    "texture_type_1": 17,
+    "texture_type_2": 0
+  },
+  "hadagan high boots": {
+    "type": "boots",
+    "material_type": "hide",
+    "texture_type_1": 17,
+    "texture_type_2": 0
+  },
+  "hadagan high gloves": {
+    "type": "gloves",
+    "material_type": "hide",
+    "texture_type_1": 17,
+    "texture_type_2": 0
+  },
+  "hadagan high1 shirt": {
+    "type": "shirt",
+    "material_type": "metal",
+    "texture_type_1": 9,
+    "texture_type_2": 0
+  },
+  "hadagan high1 pants": {
+    "type": "pants",
+    "material_type": "metal",
+    "texture_type_1": 14,
+    "texture_type_2": 0
+  },
+  "hadagan high1 boots": {
+    "type": "boots",
+    "material_type": "metal",
+    "texture_type_1": 14,
+    "texture_type_2": 0
+  },
+  "hadagan high1 gloves": {
+    "type": "gloves",
+    "material_type": "metal",
+    "texture_type_1": 14,
+    "texture_type_2": 0
+  },
+  "hadagan high helm": {
+    "type": "helm",
+    "material_type": "metal",
+    "texture_type_1": 14,
+    "texture_type_2": 0
+  },
+  "hadagan high plate": {
+    "type": "plate",
+    "material_type": "metal",
+    "texture_type_1": 14,
+    "texture_type_2": 0
+  },
+  "hadagan high leggins": {
+    "type": "leggings",
+    "material_type": "metal",
+    "texture_type_1": 14,
+    "texture_type_2": 0
+  },
+  "hadagan highest shirt": {
+    "type": "shirt",
+    "material_type": "metal",
+    "texture_type_1": 14,
+    "texture_type_2": 0
+  },
+  "hadagan highest pants": {
+    "type": "pants",
+    "material_type": "metal",
+    "texture_type_1": 15,
+    "texture_type_2": 0
+  },
+  "hadagan highest boots": {
+    "type": "boots",
+    "material_type": "metal",
+    "texture_type_1": 15,
+    "texture_type_2": 0
+  },
+  "hadagan highest gloves": {
+    "type": "gloves",
+    "material_type": "metal",
+    "texture_type_1": 15,
+    "texture_type_2": 0
+  },
+  "hadagan highest helm": {
+    "type": "helm",
+    "material_type": "metal",
+    "texture_type_1": 2,
+    "texture_type_2": 0
+  },
+  "hadagan highest plate": {
+    "type": "plate",
+    "material_type": "metal",
+    "texture_type_1": 2,
+    "texture_type_2": 0
+  },
+  "hadagan highest leggins": {
+    "type": "leggings",
+    "material_type": "metal",
+    "texture_type_1": 2,
+    "texture_type_2": 0
+  },
+  "hadagan high2 shirt": {
+    "type": "shirt",
+    "material_type": "metal",
+    "texture_type_1": 14,
+    "texture_type_2": 0
+  },
+  "hadagan high2 pants": {
+    "type": "pants",
+    "material_type": "metal",
+    "texture_type_1": 14,
+    "texture_type_2": 0
+  },
+  "hadagan high2 boots": {
+    "type": "boots",
+    "material_type": "metal",
+    "texture_type_1": 14,
+    "texture_type_2": 0
+  },
+  "hadagan high2 gloves": {
+    "type": "gloves",
+    "material_type": "metal",
+    "texture_type_1": 14,
+    "texture_type_2": 0
+  },
+  "hadagan high2 helm": {
+    "type": "helm",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 0
+  },
+  "hadagan high2 plate": {
+    "type": "plate",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 0
+  },
+  "hadagan high2 leggins": {
+    "type": "leggings",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 0
+  },
+  "hadagan highest2 shirt": {
+    "type": "shirt",
+    "material_type": "metal",
+    "texture_type_1": 15,
+    "texture_type_2": 0
+  },
+  "hadagan highest2 pants": {
+    "type": "pants",
+    "material_type": "metal",
+    "texture_type_1": 15,
+    "texture_type_2": 0
+  },
+  "hadagan highest2 boots": {
+    "type": "boots",
+    "material_type": "metal",
+    "texture_type_1": 15,
+    "texture_type_2": 0
+  },
+  "hadagan highest2 gloves": {
+    "type": "gloves",
+    "material_type": "metal",
+    "texture_type_1": 15,
+    "texture_type_2": 0
+  },
+  "hadagan highest2 helm": {
+    "type": "helm",
+    "material_type": "metal",
+    "texture_type_1": 2,
+    "texture_type_2": 1
+  },
+  "hadagan highest2 plate": {
+    "type": "plate",
+    "material_type": "metal",
+    "texture_type_1": 2,
+    "texture_type_2": 1
+  },
+  "hadagan highest2 leggins": {
+    "type": "leggings",
+    "material_type": "metal",
+    "texture_type_1": 2,
+    "texture_type_2": 1
+  },
+  "jun high shirt": {
+    "type": "shirt",
+    "material_type": "crystal",
+    "texture_type_1": 5,
+    "texture_type_2": 0
+  },
+  "jun high pants": {
+    "type": "pants",
+    "material_type": "crystal",
+    "texture_type_1": 5,
+    "texture_type_2": 0
+  },
+  "jun high boots": {
+    "type": "boots",
+    "material_type": "crystal",
+    "texture_type_1": 5,
+    "texture_type_2": 0
+  },
+  "jun high gloves": {
+    "type": "gloves",
+    "material_type": "crystal",
+    "texture_type_1": 5,
+    "texture_type_2": 0
+  },
+  "jun high helm": {
+    "type": "helm",
+    "material_type": "crystal",
+    "texture_type_1": 13,
+    "texture_type_2": 0
+  },
+  "jun high plate": {
+    "type": "plate",
+    "material_type": "crystal",
+    "texture_type_1": 13,
+    "texture_type_2": 0
+  },
+  "jun high leggins": {
+    "type": "leggings",
+    "material_type": "crystal",
+    "texture_type_1": 13,
+    "texture_type_2": 0
+  },
+  "kania special medium helm": {
+    "type": "helm",
+    "material_type": "cloth",
+    "texture_type_1": 11,
+    "texture_type_2": 1
+  },
+  "kania special medium plate": {
+    "type": "plate",
+    "material_type": "cloth",
+    "texture_type_1": 11,
+    "texture_type_2": 1
+  },
+  "kania special medium leggins": {
+    "type": "leggings",
+    "material_type": "cloth",
+    "texture_type_1": 11,
+    "texture_type_2": 1
+  },
+  "kania special highest plate": {
+    "type": "plate",
+    "material_type": "metal",
+    "texture_type_1": 3,
+    "texture_type_2": 1
+  },
+  "kania special highest leggins": {
+    "type": "leggings",
+    "material_type": "metal",
+    "texture_type_1": 3,
+    "texture_type_2": 1
+  },
+  "gipat special high plate": {
+    "type": "plate",
+    "material_type": "leather",
+    "texture_type_1": 6,
+    "texture_type_2": 3
+  },
+  "gipat special highest helm": {
+    "type": "helm",
+    "material_type": "leather",
+    "texture_type_1": 12,
+    "texture_type_2": 1
+  },
+  "gipat special highest plate": {
+    "type": "plate",
+    "material_type": "leather",
+    "texture_type_1": 12,
+    "texture_type_2": 1
+  },
+  "gipat special highest leggins": {
+    "type": "leggings",
+    "material_type": "leather",
+    "texture_type_1": 12,
+    "texture_type_2": 1
+  },
+  "hadagan special brigand shirt": {
+    "type": "shirt",
+    "material_type": "leather",
+    "texture_type_1": 7,
+    "texture_type_2": 1
+  },
+  "hadagan special brigand pants": {
+    "type": "pants",
+    "material_type": "leather",
+    "texture_type_1": 7,
+    "texture_type_2": 1
+  },
+  "hadagan special brigand leggins": {
+    "type": "leggings",
+    "material_type": "leather",
+    "texture_type_1": 6,
+    "texture_type_2": 3
+  },
+  "gipat special brigand shirt": {
+    "type": "shirt",
+    "material_type": "fur",
+    "texture_type_1": 4,
+    "texture_type_2": 1
+  },
+  "gipat special brigand pants": {
+    "type": "pants",
+    "material_type": "fur",
+    "texture_type_1": 4,
+    "texture_type_2": 1
+  },
+  "gipat special brigand helm": {
+    "type": "helm",
+    "material_type": "fur",
+    "texture_type_1": 4,
+    "texture_type_2": 1
+  },
+  "gipat special brigand plate": {
+    "type": "plate",
+    "material_type": "fur",
+    "texture_type_1": 4,
+    "texture_type_2": 1
+  },
+  "uniqueingos shirt": {
+    "type": "shirt",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 0
+  },
+  "uniqueingos pants": {
+    "type": "pants",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 0
+  },
+  "uniqueingos boots": {
+    "type": "boots",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 0
+  },
+  "uniqueingos gloves": {
+    "type": "gloves",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 0
+  },
+  "uniqueingos helm": {
+    "type": "helm",
+    "material_type": "metal",
+    "texture_type_1": 3,
+    "texture_type_2": 1
+  },
+  "uniqueingos plate": {
+    "type": "plate",
+    "material_type": "metal",
+    "texture_type_1": 1,
+    "texture_type_2": 2
+  },
+  "uniqueingos leggins": {
+    "type": "leggings",
+    "material_type": "metal",
+    "texture_type_1": 3,
+    "texture_type_2": 0
+  },
+  "uniquegipathadagan shirt": {
+    "type": "shirt",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 0
+  },
+  "uniquegipathadagan pants": {
+    "type": "pants",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 0
+  },
+  "uniquegipathadagan boots": {
+    "type": "boots",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 0
+  },
+  "uniquegipathadagan gloves": {
+    "type": "gloves",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 0
+  },
+  "uniquegipathadagan helm": {
+    "type": "helm",
+    "material_type": "metal",
+    "texture_type_1": 16,
+    "texture_type_2": 0
+  },
+  "uniquegipathadagan plate": {
+    "type": "plate",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 1
+  },
+  "uniquegipathadagan leggins": {
+    "type": "leggings",
+    "material_type": "metal",
+    "texture_type_1": 3,
+    "texture_type_2": 0
+  },
+  "uniquehadagan helm": {
+    "type": "helm",
+    "material_type": "fur",
+    "texture_type_1": 18,
+    "texture_type_2": 0
+  },
+  "uniquehadagan plate": {
+    "type": "plate",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 2
+  },
+  "uniquehadagan leggins": {
+    "type": "leggings",
+    "material_type": "metal",
+    "texture_type_1": 8,
+    "texture_type_2": 2
+  }
+}

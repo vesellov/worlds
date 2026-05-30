@@ -402,7 +402,7 @@ def main():
             buf = [""]
             scan_node(info, buf, map_name=map_name)
     open('figures_names.json', 'w').write(json.dumps(reg, indent=2))
-    open('textures_registry.json', 'w').write(json.dumps(model_texture, indent=2))
+    open('textures.json', 'w').write(json.dumps(model_texture, indent=2))
 
 if __name__ == '__main__':
     main()

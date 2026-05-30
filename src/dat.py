@@ -370,6 +370,290 @@ class ModelData(object):
                 print(f'for model {{{template}}} saved {lnk_count} links, {fig_count} figures, {bon_count} bones and {anm_count} animations to {dest_json_file_path}')
 
 
+class CatalogData(object):
+
+    def __init__(self):
+        self.figures = {}
+        self.animations = {}
+        self.armors = {}
+        self.weapons = {}
+        self.materials = {}
+
+    def load_figures(self, figures_file_name):
+        self.figures = json.loads(open(figures_file_name, 'rt').read())
+
+    def load_animations(self, animations_file_name):
+        self.animations = json.loads(open(animations_file_name, 'rt').read())
+
+    def load_armors(self, armors_file_name):
+        self.armors = json.loads(open(armors_file_name, 'rt').read())
+
+    def load_weapons(self, weapons_file_name):
+        self.weapons = json.loads(open(weapons_file_name, 'rt').read())
+
+    def load_materials(self, materials_file_name):
+        self.materials = json.loads(open(materials_file_name, 'rt').read())
+
+    def build_template_data(self, model_name, skin=0, hair=0, wears=[], weapon=None, texture=None):
+        animations = []
+        textures = {}
+        is_human = model_name in ['unhuma', 'unhufe']
+        is_orc = model_name in ['unorfe', 'unorma']
+        if is_human or is_orc:
+            textures['*'] = f'{model_name}skin_{skin:02}:0'
+        else:
+            textures['*'] = f'{texture or "default0"}:0'
+        if not isinstance(wears, list):
+            wears = [wears, ]
+        parts_ordered_tree = self.figures[model_name].copy()
+        parts_list_flat = res.flat_tree(parts_ordered_tree)
+        parts = []
+        for part_name in parts_list_flat:
+            if part_name.count('.') == 1:
+                continue
+            ignore_prefix_found = False
+            for ignore_prefix in ['r_shell', 'l_shell', 'bwpart', 'bwtetiva', 'baserh', 'basearrow', 'basepike', 'baseaxe',
+                                  'baseclub', 'crbow', 'basesword', 'basedagger', 'basesword', 'quiver', 'arrows']:
+                if part_name.startswith(ignore_prefix):
+                    ignore_prefix_found = True
+                    break
+            if ignore_prefix_found:
+                continue
+            if part_name not in parts:
+                parts.append(part_name)
+        if not parts:
+            parts = parts_list_flat.copy()
+        has_helm = False
+        # has_plate = False
+        # has_pants = False
+        # has_shirt = False
+        # has_boots = False
+        for wear in wears:
+            armor_name, material_name = wear.split('.')
+            material_name = material_name.strip()
+            armor = self.armors[armor_name]
+            armor_type = armor['type']
+            if armor_type == 'helm':
+                has_helm = True
+            # elif armor_type == 'plate':
+            #     has_plate = True
+            # elif armor_type == 'pants':
+            #     has_pants = True
+            # elif armor_type == 'shirt':
+            #     has_shirt = True
+            # elif armor_type == 'boots':
+            #     has_boots = True
+            armor_code = dict(
+                plate='pl', 
+                gloves='gl',
+                leggings='lg',
+                boots='bt',
+                shirt='sh',
+                helm='hl',
+                pants='pt',
+            ).get(armor_type)
+            texture_type_1 = armor['texture_type_1']
+            texture_type_2 = armor['texture_type_2']
+            armor_id = int(texture_type_1)
+            material = self.materials[material_name]
+            material_code = material['code']
+            body_parts = dict(
+                plate='bd.a,rh1.a,rh2.a,lh1.a,lh2.a',
+                gloves='lh3,rh3',
+                leggings='hp.a,rl1.a,rl2.a,rl3.a,ll1.a,ll2.a,ll3.a',
+                boots='ll3,rl3',
+                shirt='bd,rh1,rh2,rh3,lh1,lh2,lh3',
+                helm='hd.a',
+                pants='hp,rl1,rl2,ll1,ll2',
+            ).get(armor_type).split(',')
+            if armor_type == 'pants' and armor_id in [1, 2, 3, 6]:
+                body_parts.append('l_shell.a')
+                body_parts.append('r_shell.a')
+            for body_part in body_parts:
+                body_part = body_part.replace('.a', f'.armor{armor_id:02}' if armor_id else '')
+                body_part_texture = f"{model_name}{armor_code}_{texture_type_1:02}.{material_code}.{texture_type_2}"
+                if body_part.count('.armor'):
+                    if armor_type in ['helm', ]:
+                        body_part_texture = f'{body_part_texture}:1'
+                    elif armor_type in ['boots', 'gloves', ]:
+                        body_part_texture = f'{body_part_texture}:0'
+                    elif armor_type in ['plate', 'pants']:
+                        body_part_texture = f'{body_part_texture}:0'
+                    else:
+                        body_part_texture = f'{body_part_texture}:0'
+                elif body_part in parts:
+                    body_part_texture = f'{body_part_texture}:0'
+                else:
+                    body_part_texture = f'{body_part_texture}:0'
+                textures[body_part] = body_part_texture
+            for body_part in body_parts:
+                armor_id = texture_type_1
+                body_part = body_part.replace('.a', f'.armor{armor_id:02}' if armor_id else '')
+                if body_part not in parts:
+                    parts.append(body_part)
+        if is_human:
+            if not has_helm and hair >= 0:
+                parts.append(f'hr.{hair:02}')
+        weapon_type = None
+        if weapon:
+            weapon_name, material_name = weapon.split('.')
+            if material_name.count(' ['):
+                material_name = material_name.split(' ')[0].strip()
+            weapon_info = self.weapons[weapon_name]
+            weapon_type = weapon_info['type']
+            material = self.materials[material_name]
+            material_code = material['code']
+            texture_type_1 = weapon_info['texture_type_1']
+            texture_type_2 = weapon_info['texture_type_2']
+            weapon_id = int(texture_type_1)
+            weapon_code = dict(
+                hammer='hm',
+                dagger='dg',
+                spear='sp',
+                crossbow='cb',
+                sword='sw',
+                axe='ax',
+                bow='bw',
+            ).get(weapon_type)
+            body_parts = ''
+            weapon_texture = f"{model_name}{weapon_code}_{texture_type_1:02}.{material_code}.{texture_type_2}:1"
+            if weapon_type == 'bow':
+                if weapon_id == 0:
+                    parts.append('lh3.bwpartb00')
+                    parts.append('bwparta00')
+                    parts.append('bwtetivaa00')
+                    parts.append('bwtetivab00')
+                    textures['lh3.bwpartb00'] = weapon_texture
+                    textures['bwparta00'] = weapon_texture
+                    textures['bwtetivaa00'] = weapon_texture
+                    textures['bwtetivab00'] = weapon_texture
+                else:
+                    parts.append('lh3.bwpartb00.hidden')
+                    parts.append(f'lh3.bwpartb{weapon_id:02}')
+                    textures[f'lh3.bwpartb{weapon_id:02}'] = weapon_texture
+                    parts.append('bwparta00.hidden')
+                    parts.append(f'bwparta{weapon_id:02}')
+                    textures[f'bwparta{weapon_id:02}'] = weapon_texture
+                    parts.append('bwtetivaa00.hidden')
+                    parts.append(f'bwtetivaa{weapon_id:02}')
+                    textures[f'bwtetivaa{weapon_id:02}'] = weapon_texture
+                    parts.append('bwtetivab00.hidden')
+                    parts.append(f'bwtetivab{weapon_id:02}')
+                    textures[f'bwtetivab{weapon_id:02}'] = weapon_texture
+                parts.append('rh3.arrow00')
+                textures['rh3.arrow00'] = weapon_texture
+                # parts.append('basearrow00')
+                # textures['basearrow00'] = weapon_texture
+                parts.append('quiver')
+                textures['quiver'] = weapon_texture
+                parts.append('arrows')
+                textures['arrows'] = weapon_texture
+            elif weapon_type == 'crossbow':
+                if weapon_id == 1:
+                    parts.append('rh3.crbow01main')
+                    parts.append('crbow01part01')
+                    parts.append('crbow01tetiva01')
+                    parts.append('crbow01part02')
+                    parts.append('crbow01tetiva02')
+                    textures['rh3.crbow01main'] = weapon_texture
+                    textures['crbow01part01'] = weapon_texture
+                    textures['crbow01tetiva01'] = weapon_texture
+                    textures['crbow01part02'] = weapon_texture
+                    textures['crbow01tetiva02'] = weapon_texture
+                else:
+                    parts.append('rh3.crbow01main.hidden')
+                    parts.append(f'rh3.crbow{weapon_id:02}main')
+                    textures[f'rh3.crbow{weapon_id:02}main'] = weapon_texture
+                    parts.append('crbow01part01.hidden')
+                    parts.append(f'crbow{weapon_id:02}part01')
+                    textures[f'crbow{weapon_id:02}part01'] = weapon_texture
+                    parts.append('crbow01tetiva01.hidden')
+                    parts.append(f'crbow{weapon_id:02}tetiva01')
+                    textures[f'crbow{weapon_id:02}tetiva01'] = weapon_texture
+                    parts.append('crbow01part02.hidden')
+                    parts.append(f'crbow{weapon_id:02}part02')
+                    textures[f'crbow{weapon_id:02}part02'] = weapon_texture
+                    parts.append('crbow01tetiva02.hidden')
+                    parts.append(f'crbow{weapon_id:02}tetiva02')
+                    textures[f'crbow{weapon_id:02}tetiva02'] = weapon_texture
+            elif weapon_type == 'spear':
+                if weapon_id == 0:
+                    parts.append('rh3.pike00')
+                    parts.append('basepike00')
+                    textures['rh3.pike00'] = weapon_texture
+                    textures['basepike00'] = weapon_texture
+                else:
+                    parts.append('rh3.pike00.hidden')
+                    parts.append(f'rh3.pike{weapon_id:02}')
+                    parts.append(f'basepike{weapon_id:02}')
+                    textures[f'rh3.pike{weapon_id:02}'] = weapon_texture
+                    textures[f'basepike{weapon_id:02}'] = weapon_texture
+            elif weapon_type == 'sword':
+                if weapon_id == 0:
+                    parts.append('rh3.sword00')
+                    parts.append('basesword00')
+                    textures['rh3.sword00'] = weapon_texture
+                    textures['basesword00'] = weapon_texture
+                else:
+                    weapon_id = weapon_id % 5
+                    parts.append('rh3.sword00.hidden')
+                    parts.append(f'rh3.sword{weapon_id:02}')
+                    parts.append(f'basesword{weapon_id:02}')
+                    textures[f'rh3.sword{weapon_id:02}'] = weapon_texture
+                    textures[f'basesword{weapon_id:02}'] = weapon_texture
+            elif weapon_type == 'dagger':
+                if weapon_id == 0:
+                    parts.append('rh3.sword00')
+                    parts.append('basesword00')
+                    textures['rh3.sword00'] = weapon_texture
+                    textures['basesword00'] = weapon_texture
+                else:
+                    parts.append('rh3.sword00.hidden')
+                    parts.append(f'rh3.dagger{weapon_id:02}')
+                    parts.append(f'basedagger{weapon_id:02}')
+                    textures[f'rh3.dagger{weapon_id:02}'] = weapon_texture
+                    textures[f'basedagger{weapon_id:02}'] = weapon_texture
+            elif weapon_type == 'axe':
+                if weapon_id == 0:
+                    parts.append('rh3.axe00')
+                    parts.append('baseaxe00')
+                    textures['rh3.axe00'] = weapon_texture
+                    textures['baseaxe00'] = weapon_texture
+                else:
+                    parts.append('rh3.axe00.hidden')
+                    parts.append(f'rh3.axe{weapon_id:02}')
+                    parts.append(f'baseaxe{weapon_id:02}')
+                    textures[f'rh3.axe{weapon_id:02}'] = weapon_texture
+                    textures[f'baseaxe{weapon_id:02}'] = weapon_texture
+            elif weapon_type == 'hammer':
+                if weapon_id == 0:
+                    parts.append('rh3.axe00')
+                    parts.append('baseaxe00')
+                    textures['rh3.axe00'] = weapon_texture
+                    textures['baseaxe00'] = weapon_texture
+                else:
+                    parts.append('rh3.axe00.hidden')
+                    parts.append(f'rh3.club{weapon_id:02}')
+                    parts.append(f'baseclub{weapon_id:02}')
+                    textures[f'rh3.club{weapon_id:02}'] = weapon_texture
+                    textures[f'baseclub{weapon_id:02}'] = weapon_texture
+        anim = self.animations[model_name]
+        for action in anim['actions']:
+            action_name = action['action_name']
+            weapons = action['weapons'].split(',')
+            if not weapons or weapons == ['all', ]:
+                animations.append(action_name)
+            else:
+                if weapon_type and weapon_type in weapons:
+                    animations.append(action_name)
+        return dict(
+            model_name=model_name,
+            parts=parts,
+            textures=textures,
+            animations=animations,
+        )
+
+
 class LandData(object):
 
     def __init__(self):

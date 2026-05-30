@@ -383,6 +383,7 @@ class Renderer(Widget):
             template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
             self._show_unit(template_data)
         elif keycode[1] == 'y':
+            return True
             self.this_template_figure_index += 1
             if self.this_template_figure_index >= len(self.app_root.known_figures_parts):
                 self.this_template_figure_index = 0
@@ -419,6 +420,7 @@ class Renderer(Widget):
             #     self.this_template_variant_coefs_index = 0
             # self._show_unit(template_data)
         elif keycode[1] == 'h':
+            return True
             self.this_template_figure_index -= 1
             if self.this_template_figure_index < 0:
                 self.this_template_figure_index = len(self.app_root.known_figures_parts) - 1
@@ -453,6 +455,7 @@ class Renderer(Widget):
             # template_data = self.app_root.known_templates[self.this_template_name][self.this_template_variant_index]
             # self._show_unit(template_data)
         elif keycode[1] == 'u':
+            return True
             model_name, tex_name, parts_list = self.app_root.known_figures_parts[self.this_template_figure_index].split('#')
             parts_list = parts_list.split(':')
             self.this_template_figure_part_index += 1
@@ -475,6 +478,7 @@ class Renderer(Widget):
                 import traceback
                 traceback.print_exc()
         elif keycode[1] == 'j':
+            return True
             model_name, tex_name, parts_list = self.app_root.known_figures_parts[self.this_template_figure_index].split('#')
             parts_list = parts_list.split(':')
             self.this_template_figure_part_index -= 1

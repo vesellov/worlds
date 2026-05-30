@@ -1,0 +1,162 @@
+{
+  "thin": {
+    "code": "le",
+    "type": "leather"
+  },
+  "thick": {
+    "code": "lt",
+    "type": "leather"
+  },
+  "tanned thin": {
+    "code": "bl",
+    "type": "leather"
+  },
+  "troll green2": {
+    "code": "tg2",
+    "type": "hide"
+  },
+  "troll blue2": {
+    "code": "tb2",
+    "type": "hide"
+  },
+  "troll black": {
+    "code": "tk",
+    "type": "hide"
+  },
+  "dragon red": {
+    "code": "dr",
+    "type": "hide"
+  },
+  "dragon green": {
+    "code": "dg",
+    "type": "hide"
+  },
+  "dragon black": {
+    "code": "db",
+    "type": "hide"
+  },
+  "tiger hide2": {
+    "code": "uq2",
+    "type": "fur"
+  },
+  "decayed bones": {
+    "code": "bn",
+    "type": "bone"
+  },
+  "dry bones": {
+    "code": "bd",
+    "type": "bone"
+  },
+  "burned bones": {
+    "code": "bb",
+    "type": "bone"
+  },
+  "scrab bones": {
+    "code": "bs",
+    "type": "bone"
+  },
+  "dragon red bones": {
+    "code": "br",
+    "type": "bone"
+  },
+  "dragon green bones": {
+    "code": "bg",
+    "type": "bone"
+  },
+  "dragon black bones": {
+    "code": "bc",
+    "type": "bone"
+  },
+  "rock": {
+    "code": "rc",
+    "type": "stone"
+  },
+  "granite": {
+    "code": "gr",
+    "type": "stone"
+  },
+  "silicon": {
+    "code": "sl",
+    "type": "stone"
+  },
+  "malachite": {
+    "code": "ob",
+    "type": "stone"
+  },
+  "bronze": {
+    "code": "br",
+    "type": "metal"
+  },
+  "iron": {
+    "code": "ir",
+    "type": "metal"
+  },
+  "steel": {
+    "code": "st",
+    "type": "metal"
+  },
+  "mithrill": {
+    "code": "mt",
+    "type": "metal"
+  },
+  "adamantium": {
+    "code": "ad",
+    "type": "metal"
+  },
+  "meteoric": {
+    "code": "mr",
+    "type": "metal"
+  },
+  "diamond": {
+    "code": "cd",
+    "type": "crystal"
+  },
+  "wool": {
+    "code": "cw",
+    "type": "cloth"
+  },
+  "cotton": {
+    "code": "cc",
+    "type": "cloth"
+  },
+  "silk red": {
+    "code": "cr",
+    "type": "cloth"
+  },
+  "silk blue": {
+    "code": "cb",
+    "type": "cloth"
+  },
+  "tiger hide white": {
+    "code": "uw",
+    "type": "fur"
+  },
+  "tiger hide": {
+    "code": "uq",
+    "type": "fur"
+  },
+  "lizard green": {
+    "code": "lg",
+    "type": "hide"
+  },
+  "lizard blue": {
+    "code": "lb",
+    "type": "hide"
+  },
+  "ogre": {
+    "code": "ld",
+    "type": "hide"
+  },
+  "lizard black": {
+    "code": "pg",
+    "type": "hide"
+  },
+  "troll green": {
+    "code": "tg",
+    "type": "hide"
+  },
+  "troll blue": {
+    "code": "tb",
+    "type": "hide"
+  }
+}

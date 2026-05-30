@@ -319,7 +319,7 @@ def read_record(file, record):
                 if file.tell() < border:
                     buf[-1][-1] += " | "
         else:
-            print("Skip unknown specificator:", spec, "at", file.tell())
+            print("    skip unknown specificator:", spec, "at", file.tell())
             file.read(l_len)
     
     return buf
@@ -394,7 +394,7 @@ def split_data(data, suffix):
                         table.append(rec)
                     file_name = f'{suffix}_{this_table_name}'
                     open(f'{file_name}.json', 'wt').write(json.dumps(table, indent=2))
-                    print(f"Extracted {len(table)} records to {file_name}.json")
+                    print(f"    extracted {len(table)} records to {file_name}.json")
                     this_table_name = ''
                 this_table_name = line.strip('\n').split('\n')[0].lower().replace(" ", "_")
                 this_table_headers = line.strip('\n').split('\n')[1].split(',')
@@ -420,14 +420,147 @@ def split_data(data, suffix):
             table.append(rec)
         file_name = f'{suffix}_{this_table_name}'
         open(f'{file_name}.json', 'wt').write(json.dumps(table, indent=2))
-        print(f"Extracted {len(table)} records to {file_name}.json")
+        print(f"    extracted {len(table)} records to {file_name}.json")
     return buf
 
 
-def main():
-    data = read_data(sys.argv[1])
-    split_data(data, sys.argv[2])
+def read_adb_data(file_name):
+    weapons = ["SWORD", "AXE", "DAGGER", "SPEAR", "HAMMER", "BOW", "CROSSBOW"]
+    states = ["NEUTRAL", "REST", "ATTACK", "UNK3", "WARRY", "UNK5", "LIE", "ALL"]
+    forms = ["HIDES", "STEPS", "HIT", "SFXES", "LOWSHAPE", "HIGHSHAPE"]
+    types = ["UNK0", "SPECIAL", "ATTACK", "CAST", "RUN", "WALK", "IDLE", "DEATH",
+             "SUFFER", "CROSS", "UNK10", "UNK11", "UNK12", "UNK13", "UNK14", "ALL"]             
 
+    info = []
+    with open(file_name, "rb") as file:
+        if file.read(4) != b'\x41\x44\x42\x00':
+            print("Incorrect magic!")
+            return
+
+        info.append(read_uint(file))
+        info.append(read_str(file, 24))
+        info.extend(read_float(file, 3))
+
+        info.append([])
+        for i in range(info[0]):
+            info[-1].append([])
+            info[-1][i].append(read_str(file, 16))
+            info[-1][i].append(read_uint(file))
+
+            packed_data = read_uint64(file) # packed
+            
+            # weapons
+            info[-1][i].append([])
+            for j in range(7):
+                if packed_data & 1:
+                    info[-1][i][-1].append(weapons[j])
+                packed_data >>= 1
+            if len(info[-1][i][-1]) == 0:
+                info[-1][i][-1] = "NONE"
+            elif len(info[-1][i][-1]) == 7:
+                info[-1][i][-1] = "ALL"
+            packed_data >>= 8
+
+            # allowed states
+            info[-1][i].append(states[packed_data & 7])
+            packed_data >>= 3
+
+            # action type
+            action_type = packed_data & 15
+            packed_data >>= 4
+            action_modifier = packed_data & 255
+            packed_data >>= 8
+            info[-1][i].append([types[action_type], str(action_modifier)])
+
+            # animation stage
+            info[-1][i].append(["UNIQUE", "START", "CYCLE", "END"][packed_data & 3])
+            packed_data >>= 2
+
+            # action forms
+            info[-1][i].append([])
+            for j in range(6):
+                if packed_data & 1:
+                    info[-1][i][-1].append(forms[j])
+                packed_data >>= 1
+            if len(info[-1][i][-1]) == 0:
+                info[-1][i][-1] = "NONE"
+
+            info[-1][i].extend(read_uint(file, 2))
+            
+            info[-1][i].append(read_float(file))
+            try:
+                info[-1][i].extend(read_uint(file, 12))
+            except:
+                pass
+
+    return info
+
+
+def split_adb_data(info):
+    ret = {}
+    ret['name'] = info[1].lower()
+    ret['actions_count'] = info[0]
+    ret['minimal_height'] = info[2]
+    ret['average_height'] = info[3]
+    ret['maximal_height'] = info[4]
+    ret['actions'] = []
+    for element in info[5]:
+        action = {}
+        action['action_name'] = element[0]
+        action['action_number'] = element[1]
+        action['weapons'] = []
+        if type(element[2]) == str:
+            action['weapons'].append(element[2])
+        else:
+            action['weapons'].extend(element[2])
+        if action['weapons'] == ['NONE', ]:
+            action['weapons'] = ''
+        else:
+            action['weapons'] = (','.join(action['weapons'])).lower()
+        action['allowed_states'] = element[3].lower()
+        action['action_type'] = f'{element[4][0]}:{element[4][1]}'.lower()
+        action['animation_stage'] = element[5].lower()
+        action['action_forms'] = []
+        if type(element[6]) == str:
+            action['action_forms'].append(element[6])
+        else:
+            action['action_forms'].extend(element[6])
+        action['action_forms'] = (','.join(action['action_forms'])).lower()
+        action['action_probability'] = element[7]
+        action['animation_length'] = element[8]
+        action['movement_speed'] = element[9]
+        try:
+            action['show_hide_frame_1'] = element[10]
+            action['show_hide_frame_2'] = element[11]
+            action['hit_frame'] = element[16]
+        except:
+            pass
+        ret['actions'].append(action)
+    return ret
+
+
+def main():
+    for file_name in os.listdir(sys.argv[1]):
+        file_path = os.path.join(sys.argv[1], file_name)
+        if not os.path.isfile(file_path):
+            continue
+        file_base_name = file_name
+        if file_base_name.count('.'):
+            file_base_name = file_name.split('.')[0]
+        if file_base_name in ['acks', 'prints', 'inmm1']:
+            continue
+        ext = file_name.split('.')[-1]
+        if ext in ['idb', 'ldb', 'pdb', 'sdb', 'udb', 'qdb', 'db']:
+            print(f'reading {file_base_name}')
+            data = read_data(file_path)
+            print(f'extracting {file_base_name}')
+            split_data(data, file_base_name)
+        elif ext in ['adb', ]:
+            print(f'extracting {file_base_name}')
+            data = read_adb_data(file_path)
+            json_data = split_adb_data(data)
+            output_file_name = f'animations_{file_base_name}.json'
+            open(f'{output_file_name}', 'wt').write(json.dumps(json_data, indent=2))
 
 if __name__ == '__main__':
     main()

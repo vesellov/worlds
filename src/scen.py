@@ -43,8 +43,9 @@ _NextMeshID = 0
 
 class Scene(object):
 
-    def __init__(self, land):
+    def __init__(self, land, catalog):
         self.land = land
+        self.catalog = catalog
         self.renderer = None
         self.models = {}
         self.meshes = {}
@@ -491,9 +492,10 @@ class Scene(object):
                 if _Debug:
                     print(f'    loading template {template} from data/figures.res and unpacking into models/')
                 m.unpack_figure_data('data/figures.res', 'models', template=template)
-            for texture in textures.values():
+            for part_name in textures.keys():
+                texture = textures[part_name]
                 if texture.count(':') == 1:
-                    texture = texture[:-2]
+                    texture = texture.split(':')[0]
                 tex_file_path = 'textures/model/' + texture + '.png'
                 if not os.path.isfile(tex_file_path):
                     if _Debug:
@@ -501,6 +503,7 @@ class Scene(object):
                     if not m.unpack_texture('data/textures.res', 'textures/model', texture):
                         m.unpack_texture('data/redress.res', 'textures/model', texture)
                 if not single_texture:
+                    textures[part_name] = texture
                     tex_file_path_source = resource_find(tex_file_path)
                     if tex_file_path_source:
                         _tex = Cache.get('kv.texture', tex_file_path)
@@ -509,7 +512,7 @@ class Scene(object):
                             Cache.append('kv.texture', tex_file_path, _tex)
                             if _Debug:
                                 print(f'    cached texture {texture} at {tex_file_path} for model {template}')
-            if single_texture and len(textures) > 1:
+            if single_texture:
                 parts_tree_ordered = m.links[template]['ordered']
                 ordered_parts_list = res.flat_tree(parts_tree_ordered)
                 combined_texture_hash_bases = {}
@@ -517,8 +520,8 @@ class Scene(object):
                     texture = textures['*']
                     texture_layer = '0'
                     if texture.count(':') == 1:
-                        texture_layer = texture[-1]
-                        texture = texture[:-2]
+                        texture_layer = texture.split(':')[1]
+                        texture = texture.split(':')[0]
                     # print('texture layer',  '*', texture, texture_layer)
                     if texture_layer not in combined_texture_hash_bases:
                         combined_texture_hash_bases[texture_layer] = ''
@@ -528,8 +531,8 @@ class Scene(object):
                         texture = textures[part_name]
                         texture_layer = '0'
                         if texture.count(':') == 1:
-                            texture_layer = texture[-1]
-                            texture = texture[:-2]
+                            texture_layer = texture.split(':')[1]
+                            texture = texture.split(':')[0]
                             # print('texture layer', part_name, texture, texture_layer)
                         if texture_layer not in combined_texture_hash_bases:
                             combined_texture_hash_bases[texture_layer] = ''
@@ -546,7 +549,7 @@ class Scene(object):
                             print(f'    found existing combined texture {combined_tex_file_path}')
                     else:
                         sz = (256, 256)
-                        if texture_layer in ['2', '3']:
+                        if int(texture_layer) > 0:
                             sz = (128, 128)
                         image_combined = Image.new("RGBA", sz, (0, 0, 0, 0))
                         if '*' in textures:
@@ -634,7 +637,10 @@ class Scene(object):
             texture = o.textures[part_name] if part_name in o.textures else o.textures['*']
             material = materials[part_name] if part_name in materials else None
             if single_texture and not material:
-                material = {'map_Kd': 'textures/combined/' + o.textures['*'] + '.png'}
+                if os.path.isfile('textures/combined/' + o.textures['*'] + '.png'):
+                    material = {'map_Kd': 'textures/combined/' + o.textures['*'] + '.png'}
+                else:
+                    material = {'map_Kd': 'textures/models/' + o.textures['*'] + '.png'}
             if part_name not in hidden_parts:
                 mesh = None
                 if mesh_key in self.meshes_index:
@@ -746,6 +752,8 @@ class Scene(object):
             unit.container_unit.add(mesh_transform.part_translate)
             unit.container_unit.add(PushMatrix(group=unit.name))
             unit.container_unit.add(mesh_transform.part_rotate)
+            # if _Debug:
+            #     print(f'        adding mesh {mesh.name} of part {part_name} to unit {unit.name} with material {mesh.material}')
             unit.container_unit.add(BindTexture(source=mesh.material['map_Kd'], index=1, group=unit.name))
             unit.container_unit.add(Mesh(
                 vertices=mesh.vertices,
