@@ -1,0 +1,22 @@
+python3
+Kivy==2.3.0
+# kivymd==1.0.2
+sdl
+plyer
+pyjnius
+appdirs
+cffi
+six
+pycryptodome
+cryptography
+android
+androidstorage4kivy
+numpy
+# opencv
+# qrcode
+# pyzbar
+pillow
+libzbar
+platformdirs
+rsa==4.9
+pyasn1
