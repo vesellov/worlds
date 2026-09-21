@@ -43,10 +43,29 @@ class AppRoot(App):
         self.known_templates = json.loads(open('catalog/figures_samples.json', 'rt').read())
         # self.known_figures_parts = json.loads(open('assets/catalog_figures.json', 'rt').read())
         scene.renderer = renderer
-        scene.init_scene(140,244)
+        scene.init_scene(257, 340)
         # scene.init_scene()
         # self.create_human_hero(scene)
-        scene.create_hero()
+        scene.create_hero(
+            # model_name='unorma', weapon='stone battle axe.granite',
+            # model_name='unmogo', texture='goblin00',
+            # model_name='unmori', texture='rick',
+            # model_name='unmosu', texture='succubus02',
+            # model_name='unmotr', texture='troll02',
+            model_name='unhuma',
+            skin=41,
+            hair=0,
+            wears=[
+              "hadagan brigand pants.thin",
+              "hadagan brigand boots.thin",
+              "hadagan brigand gloves.thin",
+              "hadagan brigand leggins.thick",
+              "hadagan brigand helm.thick",
+              "hadagan brigand plate.thick"
+            ],
+            weapon='cheat dagger.bronze',
+            # elevation_correction=0.5,
+        )
         return renderer
 
 

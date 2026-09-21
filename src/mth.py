@@ -13,17 +13,17 @@ def vec3sum(v1, v2):
     return [v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]]
 
 
-def ei2xyz(x, y, z):
+def ei2xyz(x, y, z, c=1.0):
     global EI_SCALE_FACTOR
-    return -x * EI_SCALE_FACTOR, z * EI_SCALE_FACTOR, y * EI_SCALE_FACTOR    
+    return -x * EI_SCALE_FACTOR, z * EI_SCALE_FACTOR * c, y * EI_SCALE_FACTOR
 
 
 def ei2quad(w, x, y, z):
     return w, -x, z, y
     
     
-def ei2xyz_list(list3):
-    t = ei2xyz(list3[0], list3[1], list3[2])
+def ei2xyz_list(list3, c=1.0):
+    t = ei2xyz(list3[0], list3[1], list3[2], c=c)
     return [t[0], t[1], t[2]]
 
 

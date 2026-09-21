@@ -85,6 +85,7 @@ class Renderer(Widget):
         self.this_template_scale = [1.0, 1.0, 1.0]
         self.this_template_figure_index = 80
         self.this_template_figure_part_index = 0
+        self.this_animation_frame = None
         super(Renderer, self).__init__(**kwargs)
         with self.canvas:
             self.cb = Callback(self.on_setup_gl_context)
@@ -98,8 +99,8 @@ class Renderer(Widget):
         self.keyboard_handler.bind(on_key_down=self.on_keyboard_down)
         self.keyboard_handler.bind(on_key_up=self.on_keyboard_up)
         Clock.schedule_interval(self.on_update_glsl, 1 / 60)
-        Clock.schedule_interval(self.scene.on_update_animations, 1 / 25)
-        Clock.schedule_interval(self.scene.on_run_units, 1 / 60)
+        Clock.schedule_interval(self.on_update_animations, 0.055 )  # 1 / 24)
+        Clock.schedule_interval(self.on_run_units, 1 / 60)
 
     def create_sky_background(self):
         PushMatrix()
@@ -273,7 +274,8 @@ class Renderer(Widget):
         #     self.this_template_variant_coefs_index = 0
         #     self.this_template_scale[2] -= 0.1
         #     self._show_unit(template_data, scale=self.this_template_scale)
-        elif keycode[1] == 'z':
+        elif keycode[1] == 'x':
+            self.this_animation_frame = None
             for unit in self.scene.units.values():
                 if not unit.animations_list:
                     continue
@@ -283,9 +285,16 @@ class Renderer(Widget):
                     current_animation_ind = 0
                 unit.animation_playing = unit.animations_list[current_animation_ind]
                 unit.animation_frame = 0
+                unit.animation_next = None
+                ao = self.scene.animated_objects[unit.object_name]
+                animation = ao.animations[unit.animation_playing]
+                root_part_name = ao.parts[0]
+                root_part_animation = animation.parts.get(root_part_name)
+                unit.animation_length = root_part_animation.frames
                 if _Debug:
-                    print(f'playing next animation {unit.animation_playing} for unit {unit.name}')
-        elif keycode[1] == 'x':
+                    print(f'playing animation {unit.animation_playing} for unit {unit.name}')
+        elif keycode[1] == 'z':
+            self.this_animation_frame = None
             for unit in self.scene.units.values():
                 if not unit.animations_list:
                     continue
@@ -295,8 +304,34 @@ class Renderer(Widget):
                     current_animation_ind = len(unit.animations_list) - 1
                 unit.animation_playing = unit.animations_list[current_animation_ind]
                 unit.animation_frame = 0
+                unit.animation_next = None
+                ao = self.scene.animated_objects[unit.object_name]
+                animation = ao.animations[unit.animation_playing]
+                root_part_name = ao.parts[0]
+                root_part_animation = animation.parts.get(root_part_name)
+                unit.animation_length = root_part_animation.frames
                 if _Debug:
-                    print(f'playing previous animation {unit.animation_playing} for unit {unit.name}')
+                    print(f'playing animation {unit.animation_playing} for unit {unit.name}')
+        elif keycode[1] == 'p':
+            if self.this_animation_frame is None:
+                self.this_animation_frame = 0
+            else:
+                self.this_animation_frame += 1
+                if self.this_animation_frame >= 1000000:
+                    self.this_animation_frame = 0
+            for unit in self.scene.units.values():
+                if not unit.animations_list:
+                    continue
+                ao = self.scene.animated_objects[unit.object_name]
+                animation = ao.animations[unit.animation_playing]
+                root_part_name = ao.parts[0]
+                root_part_animation = animation.parts.get(root_part_name)
+                unit.animation_length = root_part_animation.frames
+                unit.animation_frame = self.this_animation_frame % unit.animation_length
+                if _Debug:
+                    print(f'playing animation {unit.animation_playing} for unit {unit.name} at frame {unit.animation_frame}')
+                if not unit.static and unit.onstage:
+                    unit.animate(self.scene, 0.1)
         elif keycode[1] == 'r':
             if self.this_template_name is None:
                 self.this_template_name = sorted(self.app_root.known_templates.keys())[0]
@@ -607,6 +642,24 @@ class Renderer(Widget):
                     self.camera_speed = const.LAND_MOVE_SPEED
                 self.scene.land_move(self.camera_angle_z, self.camera_speed)
                 self.camera_acceleration = 0.0
+        elif keycode[1] == 'o':
+            self.camera_unit_lock = None
+            u = self.scene.hero.get_unit()
+            coefs = u.coefs
+            coefs[2] += 0.1
+            self.scene.remove_unit_from_stage(container=self.scene.container_animated_objects, unit_name=u.name)
+            self.scene.meshes_index.clear()
+            self.scene.models.clear()
+            self.scene.hero.create_unit(u.w, u.h, coefs=coefs)
+        elif keycode[1] == 'i':
+            self.camera_unit_lock = None
+            u = self.scene.hero.get_unit()
+            coefs = u.coefs
+            coefs[2] -= 0.1
+            self.scene.remove_unit_from_stage(container=self.scene.container_animated_objects, unit_name=u.name)
+            self.scene.meshes_index.clear()
+            self.scene.models.clear()
+            self.scene.hero.create_unit(u.w, u.h, coefs=coefs)
         return True
 
     @ignore_undertouch
@@ -677,3 +730,26 @@ class Renderer(Widget):
 
     def on_update_glsl(self, delta):
         self.update_canvas()
+
+    def on_update_animations(self, delta):
+        if self.this_animation_frame is not None:
+            return
+        # TODO: maintain separate list of active animations for all units
+        # then it is not required to loop all units
+        for unit in self.scene.units.values():
+            if not unit.static and unit.onstage:
+                unit.animate(self.scene, delta)
+
+    def on_run_units(self, delta):
+        if self.camera_unit_lock:
+            u = self.scene.units.get(self.camera_unit_lock)
+            if u:
+                self.scene.update_land(new_position=(u.w, u.h, u.shift_w, u.shift_h))
+        elif self.camera_capital_lock > 0:
+            capital = self.scene.land.capitals.get(self.camera_capital_lock, None)
+            if capital:
+                if self.scene.area_center_w != capital['x'] or self.scene.area_center_h != capital['y']:
+                    self.scene.update_land(new_position=(capital['x'], capital['y'], 0, 0))
+        for unit in self.scene.units.values():
+            if not unit.static:
+                unit.run(self.scene)

@@ -139,6 +139,7 @@ class ObjectData(object):
     #     visitor_after(this_part_name, parent_part_name)
 
     def calculate_animations(self):
+        anim_part_y_shift = {}
 
         def _part_visitor(part_name, parent_part_name):
             bone_t = [0, 0, 0]
@@ -146,6 +147,8 @@ class ObjectData(object):
                 bone_t = self.bones[part_name]
             count = 0
             for anim_name in self.animations_loaded:
+                if anim_name not in anim_part_y_shift:
+                    anim_part_y_shift[anim_name] = 0
                 a = self.animations[anim_name]
                 if part_name not in a.parts:
                     a.parts[part_name] = a.parts[parent_part_name].duplicate()
@@ -180,6 +183,7 @@ class ObjectData(object):
                 part_a.rotation_frames_input = []
                 part_a.translation_frames_input = []
                 count += 1
+
             # if _Debug:
             #     print(f'    calculated {count} animations for [{part_name}]')
 
@@ -233,12 +237,15 @@ class ModelData(object):
             # 'tree': lnk_tree,
             # 'parents': lnk_parents,
         }
+        this_model_links = res.flat_tree(lnk_list)
         anm_count = 0
         for file_name in os.listdir(figure_dir_path):
             file_name = file_name.lower()
             sub_path = os.path.join(figure_dir_path, file_name)
             if os.path.isfile(sub_path):
                 if file_name.endswith('.fig'):
+                    if file_name[:-4] not in this_model_links:
+                        continue
                     fig_file_path = os.path.join(figure_dir_path, file_name)
                     # try:
                     fig_info = res.read_fig_info(fig_file_path)
@@ -247,8 +254,9 @@ class ModelData(object):
                     #         print(f'error reading figure file {fig_file_path}: {exc}')
                     #     continue
                     self.figures[file_name[:-4]] = fig_info
-                    continue
-                if file_name.endswith('.bon'):
+                elif file_name.endswith('.bon'):
+                    if file_name[:-4] not in this_model_links:
+                        continue
                     bon_file_path = os.path.join(figure_dir_path, file_name)
                     self.bones[file_name[:-4]] = res.read_bon_info(bon_file_path)
                     # if file_name[:-4] == 'rh3':
@@ -264,7 +272,7 @@ class ModelData(object):
                         self.animations[file_name][sub_file_name[:-4]] = res.read_anm_info(anm_file_path)
                         anm_count += 1
         if _Debug:
-            print(f'for model {{{template}}} loaded {len(self.links)} links, {len(self.figures)} figures, {len(self.bones)} bones and {anm_count} animations')
+            print(f'      for model {{{template}}} loaded {len(self.links)} links, {len(self.figures)} figures, {len(self.bones)} bones and {anm_count} animations')
 
     def unpack_figure_data(self, figures_res_file_path, destination_dir, template, selected_parts=[], selected_animations=[], save_json=False):
         destination_sub_dir = os.path.join(destination_dir, template)
@@ -276,44 +284,75 @@ class ModelData(object):
         anm_count = 0
         with open(figures_res_file_path, 'rb') as figures_file:
             res_filetree_dict = res.read_res_filetree(figures_file, return_dict=True)
-            res_mod_element = res_filetree_dict.get(template + '.mod')
-            # if template == 'unhufe':
-            #     pprint.pprint(res_filetree_dict)
+            lnk_file_name = template + '.lnk'
+            mod_file_name = template + '.mod'
+            anm_file_name = template + '.anm'
+            lnk_element = res_filetree_dict.get(lnk_file_name)
+            this_model_links = None
+            if lnk_element:
+                res.unpack_res_element(figures_file, lnk_element, dest_file_name=os.path.join(destination_sub_dir, lnk_file_name))
+                lnk_file_path = os.path.join(destination_sub_dir, lnk_file_name)
+                lnk_list, lnk_tree, lnk_parents, _ = res.read_lnk_info(lnk_file_path)
+                lnk_count += 1
+                self.links[lnk_file_name[:-4]] = {
+                    'ordered': lnk_list,
+                    # 'tree': lnk_tree,
+                    # 'parents': lnk_parents,
+                }
+                this_model_links = res.flat_tree(lnk_list)
+            res_mod_element = res_filetree_dict.get(mod_file_name)
             if res_mod_element:
-                mod_file_name = res.unpack_res_element(figures_file, res_mod_element, dest_file_name=os.path.join(destination_sub_dir, template + '.mod'))
+                mod_file_name = res.unpack_res_element(figures_file, res_mod_element, dest_file_name=os.path.join(destination_sub_dir, mod_file_name))
                 mod_filetree = res.unpack_mod_info(mod_file_name, destination_dir=destination_sub_dir)
-                # print('mod_filetree', mod_file_name, mod_filetree)
+                if this_model_links is None:
+                    for mod_element in sorted(mod_filetree):
+                        el = mod_element[0][:-4]
+                        if mod_element[0].lower().endswith('.lnk'):
+                            lnk_file_name = mod_element[0].lower()
+                            lnk_file_path = os.path.join(destination_sub_dir, lnk_file_name)
+                            lnk_list, lnk_tree, lnk_parents, _ = res.read_lnk_info(lnk_file_path)
+                            lnk_count += 1
+                            self.links[lnk_file_name[:-4]] = {
+                                'ordered': lnk_list,
+                                # 'tree': lnk_tree,
+                                # 'parents': lnk_parents,
+                            }
+                            if template == lnk_file_name[:-4]:
+                                this_model_links = res.flat_tree(lnk_list)
                 for mod_element in sorted(mod_filetree):
-                    el = mod_element[0][:-4]
                     if mod_element[0].lower().endswith('.fig'):
-                        if not selected_parts or el in selected_parts:
+                        fig_element = mod_element[0][:-4].lower()
+                        if fig_element not in this_model_links:
+                            continue
+                        if not selected_parts or fig_element in selected_parts:
                             fig_file_name = os.path.join(destination_sub_dir, mod_element[0])
-                            # try:
                             fig_info = res.read_fig_info(fig_file_name)
-                            # except Exception as exc:
-                            #     if _Debug:
-                            #         print(f'error reading figure file {fig_file_name}: {exc}')
-                            #     continue
-                            # print('fig_file_name', fig_file_name, mod_element[0][:-4])
                             self.figures[mod_element[0][:-4]] = fig_info
                             fig_count += 1
-                    elif mod_element[0].lower().endswith('.lnk'):
-                        lnk_file_name = os.path.join(destination_sub_dir, mod_element[0])
-                        lnk_list, lnk_tree, lnk_parents, _ = res.read_lnk_info(lnk_file_name)
-                        lnk_count += 1
-                        self.links[mod_element[0][:-4]] = {
-                            'ordered': lnk_list,
-                            'tree': lnk_tree,
-                            'parents': lnk_parents,
-                        }
-            res_anm_element = res_filetree_dict.get(template + '.anm')
+            else:
+                if this_model_links is not None:
+                    for part_name in this_model_links:
+                        part_name = part_name.lower()
+                        fig_element = part_name + '.fig'
+                        bon_element = part_name + '.bon'
+                        if not selected_parts or part_name in selected_parts:
+                            res_fig_element = res_filetree_dict.get(template + fig_element)
+                            if res_fig_element:
+                                fig_file_name = res.unpack_res_element(figures_file, res_fig_element, dest_file_name=os.path.join(destination_sub_dir, fig_element))
+                                fig_info = res.read_fig_info(fig_file_name)
+                                self.figures[part_name] = fig_info
+                                fig_count += 1
+                            res_bon_element = res_filetree_dict.get(template + bon_element)
+                            if res_bon_element:
+                                bon_file_name = res.unpack_res_element(figures_file, res_bon_element, dest_file_name=os.path.join(destination_sub_dir, bon_element))
+                                bon_info = res.read_bon_info(bon_file_name)
+                                self.bones[part_name] = bon_info
+                                bon_count += 1
+            res_anm_element = res_filetree_dict.get(anm_file_name)
             if res_anm_element:
-                anm_file_name = res.unpack_res_element(figures_file, res_anm_element, dest_file_name=os.path.join(destination_sub_dir, template + '.anm'))
+                anm_file_name = res.unpack_res_element(figures_file, res_anm_element, dest_file_name=os.path.join(destination_sub_dir, anm_file_name))
                 with open(anm_file_name, 'rb') as anm_file:
                     anm_filetree = res.read_res_filetree(anm_file)
-                    # if template == 'unhufe':
-                        # print('!!!!!!!!!!!!!', anm_file_name)
-                    #     pprint.pprint(anm_filetree)
                     for anm_element in anm_filetree:
                         if not os.path.isdir(os.path.join(destination_sub_dir, anm_element[0])):
                             os.makedirs(os.path.join(destination_sub_dir, anm_element[0]))
@@ -325,38 +364,32 @@ class ModelData(object):
                             one_anm_file_name = os.path.join(destination_sub_dir, anm_element[0])
                             with open(one_anm_file_name, 'rb') as one_anm_file:
                                 one_anm_filetree = res.read_res_filetree(one_anm_file)
-                                # print('one_anm_filetree', one_anm_file, one_anm_filetree)
                                 self.animations[anm_element[0][:-4]] = {}
                                 for one_anm_element in one_anm_filetree:
                                     el_part = one_anm_element[0]
+                                    if this_model_links and el_part not in this_model_links:
+                                        continue
                                     if not selected_parts or el_part in selected_parts:
                                         one_anm_dest_file_name = os.path.join(destination_sub_dir, anm_element[0][:-4], one_anm_element[0] + '.anm')
                                         res.unpack_res_element(one_anm_file, one_anm_element, dest_file_name=one_anm_dest_file_name)
                                         self.animations[anm_element[0][:-4]][one_anm_element[0]] = res.read_anm_info(one_anm_dest_file_name)
                                         anm_count += 1
             res_bon_element = res_filetree_dict.get(template + '.bon')
-            # if template == 'unhufe':
-            #     pprint.pprint(res_bon_element)
             if res_bon_element:
                 bon_file_name = res.unpack_res_element(figures_file, res_bon_element, dest_file_name=os.path.join(destination_sub_dir, template + '.bon'))
                 with open(bon_file_name, 'rb') as bon_file:
                     bon_filetree = res.read_res_filetree(bon_file)
-                    # if template == 'unhufe':
-                        # print('!!!!!!!!!!!!!', bon_file_name)
-                    #     pprint.pprint(bon_filetree)
                     for bon_element in bon_filetree:
                         bon_element[0] += '.bon'
                     res.unpack_res(bon_file, bon_filetree, destination_dir=destination_sub_dir)
                     for bon_element in bon_filetree:
+                        if this_model_links and bon_element[0][:-4] not in this_model_links:
+                            continue
                         one_bon_file_name = os.path.join(destination_sub_dir, bon_element[0])
                         self.bones[bon_element[0][:-4]] = res.read_bon_info(one_bon_file_name)
                         bon_count += 1
-                        # if bon_element[0][:-4] == 'rh3':
-                        #     print('bon_filetree', bon_element[0])
-                        #     self.bones['rh3.arrow00'] = self.bones['rh3'].copy()
-                        #     bon_count += 1
         if _Debug:
-            print(f'for model {{{template}}} unpacked {lnk_count} links, {fig_count} figures, {bon_count} bones and {anm_count} animations')
+            print(f'      for model {{{template}}} unpacked {lnk_count} links, {fig_count} figures, {bon_count} bones and {anm_count} animations')
         if save_json:
             dest_json_file_path = os.path.join(destination_dir, template + '.json')
             open(dest_json_file_path, 'wt').write(json.dumps({
@@ -367,7 +400,7 @@ class ModelData(object):
                 'bones': self.bones,
             }, indent=2))
             if _Debug:
-                print(f'for model {{{template}}} saved {lnk_count} links, {fig_count} figures, {bon_count} bones and {anm_count} animations to {dest_json_file_path}')
+                print(f'      for model {{{template}}} saved {lnk_count} links, {fig_count} figures, {bon_count} bones and {anm_count} animations to {dest_json_file_path}')
 
 
 class CatalogData(object):
@@ -641,6 +674,7 @@ class CatalogData(object):
         action_types = {}
         for action in anim['actions']:
             action_name = action['action_name']
+            animation_length = action['animation_length']
             weapons = action['weapons'].split(',')
             if not action['weapons'] or weapons == ['all', ]:
                 animations.append(action_name)
@@ -651,13 +685,19 @@ class CatalogData(object):
             if action['animation_stage'] == 'cycle':
                 if action_type not in action_types:
                     action_types[action_type] = []
-                action_types[action_type].append(action_name)
+                action_types[action_type].append({
+                    'name': action_name,
+                    'frames': animation_length,
+                })
         return dict(
             model_name=model_name,
             parts=parts,
             textures=textures,
-            animations=animations,
             action_types=action_types,
+            animations=animations,
+            min_height=anim['minimal_height'],
+            avg_height=anim['average_height'],
+            max_height=anim['maximal_height'],
         )
 
 

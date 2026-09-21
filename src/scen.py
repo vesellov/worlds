@@ -309,6 +309,20 @@ class Scene(object):
             18:"morph_components"
         """
         global _NextMeshID
+        # min_height=0.5070000290870667
+        # avg_height=1.0520000457763672
+        # max_height=1.0729999542236328
+        c = 1.0        
+        # if avg_height != 0:
+        #     c = (min_height + coefs[2] * (max_height - min_height)) / avg_height
+        # else:
+        #     c = 1.0
+        # с = if mid_height != 0.0 {
+        #     (min_height + height * (max_height - min_height)) / mid_height
+        # } else {
+        #     1.0
+        # }
+
         _NextMeshID += 1
         name = prefix + '_' + str(_NextMeshID)
         if material is None:
@@ -328,14 +342,14 @@ class Scene(object):
                     mth.trilinear([fig_data[13][i][0][k][j] for k in range(8)], coefs) * scale[0],
                     mth.trilinear([fig_data[13][i][1][k][j] for k in range(8)], coefs) * scale[1],
                     mth.trilinear([fig_data[13][i][2][k][j] for k in range(8)], coefs) * scale[2],
-                ]))
+                ], c=c))
         for i in range(fig_data[2]):
             for j in range(4):
                 norm_buf.append(mth.ei2xyz_list([
                     fig_data[14][i][0][j],
                     fig_data[14][i][1][j],
                     fig_data[14][i][2][j],
-                ]))
+                ], c=c))
         for i in range(fig_data[3]):
             tex_buf.append(fig_data[15][i])
         idx = 0
@@ -1168,45 +1182,17 @@ class Scene(object):
             print(f'  new animated unit {unit.name} from template {template} at {map_w},{map_h} shift:{shift_w},{shift_h} direction:{direction} coefs:{coefs}')
         return unit
 
-    def create_hero(self):
+    def create_hero(self, model_name, skin=0, hair=None, wears=[], weapon=None, texture=None, elevation_correction=None):
         self.hero = hero.Hero(
             scene=self,
-            model_name='unhuma',
-            skin=41,
-            hair=0,
-            wears=[
-              "hadagan brigand pants.thin",
-              "hadagan brigand boots.thin",
-              "hadagan brigand gloves.thin",
-              "hadagan brigand leggins.thick",
-              "hadagan brigand helm.thick",
-              "hadagan brigand plate.thick"
-            ],
-            weapon='cheat dagger.bronze',
+            model_name=model_name,
+            skin=skin,
+            hair=hair,
+            wears=wears,
+            weapon=weapon,
+            texture=texture,
         )
-        self.hero.create_unit()
+        self.hero.create_unit(252, 340, elevation_correction=elevation_correction)
 
     def on_camera_rotate(self, camera_angle_y, camera_angle_z):
         return
-
-    def on_run_units(self, delta):
-        if self.renderer.camera_unit_lock:
-            u = self.units.get(self.renderer.camera_unit_lock)
-            if u:
-                self.update_land(new_position=(u.w, u.h, u.shift_w, u.shift_h))
-        elif self.renderer.camera_capital_lock > 0:
-            capital = self.land.capitals.get(self.renderer.camera_capital_lock, None)
-            if capital:
-                if self.area_center_w != capital['x'] or self.area_center_h != capital['y']:
-                    self.update_land(new_position=(capital['x'], capital['y'], 0, 0))
-        for unit in self.units.values():
-            if not unit.static:
-                unit.run(self)
-
-    def on_update_animations(self, delta):
-        # TODO: maintain separate list of active animations for all units
-        # then it is not required to loop all units
-        for unit in self.units.values():
-            if not unit.static and unit.onstage:
-                unit.animate(self, delta)
-
