@@ -398,6 +398,8 @@ class Scene(object):
         if template == 'jbuho00':
             textures['towerbroken01'] = 'jigrantower00'
         materials = {}
+        if single_texture and not os.path.exists('textures/combined/'):
+            os.mkdir('textures/combined/')
         if template not in self.models:
             m = dat.ModelData()
             if os.path.isdir('models/' + template):

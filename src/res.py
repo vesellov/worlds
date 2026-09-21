@@ -529,7 +529,8 @@ def download_res_file(destination_dir, file_name, parts):
     chunk_size = 4096
     progress = 0
     downloaded = 0
-    url_prefix = 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/eng2001/res/'
+    # url_prefix = 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/eng2001/res/'
+    url_prefix = 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'
     for part in parts:
         document_url = url_prefix + part
         with requests.get(document_url, stream=True) as r:

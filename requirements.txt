@@ -2,6 +2,7 @@ Kivy
 numpy
 pillow
 PyYAML
+pygame-ce
 opencv-python
 imagehash
 scipy

@@ -12,8 +12,8 @@ import dat
 import scen
 
 Window.size = (1400, 700)
-Window.top = 100
-Window.left = 100
+# Window.top = 100
+# Window.left = 100
 
 _Debug = True
 
