@@ -1,12 +1,12 @@
 # This Makefile requires the following commands to be available:
 # * java
 # * virtualenv
-# * python3.10
+# * python3.14
 # * curl
 # * apksigner
 # * zipalign
 # * apktool
-# * Cython<3.0.0 (via pip install)
+# * Cython<3.0.0 (will be installed via pip)
 #
 # To install those tools you can use "system_dependencies" make target
 #
@@ -14,26 +14,34 @@
 # java -jar pepk.jar --keystore=~/keystores/app.keystore --alias=app --output=output.zip --encryptionkey=xxx --include-cert
 # create a file ".keystore_password" in the same folder and store the keystore password there
 
-# REQUIREMENTS_ANDROID:=$(shell python3 -c "import sys;l=open('src/requirements.txt').read().split('\n');l=[i.strip() for i in l if not i.strip().startswith('#')];sys.stdout.write(','.join(filter(None, l)));")
-REQUIREMENTS_ANDROID="python3,Kivy==2.3.0,sdl,plyer,pyjnius,appdirs,cffi,six,pycryptodome,cryptography,android,androidstorage4kivy,numpy,pillow,libzbar,platformdirs,rsa==4.9,pyasn1"
+ifeq ($(PYTHON),)
+	PYTHON=python3.14
+endif
 
+REQUIREMENTS_ANDROID="python3,Kivy==2.3.0,android,numpy,pillow"
+
+.DEFAULT_GOAL := build
+
+.PHONY: clean
+
+
+build: spec aab
 
 .cache:
 	@mkdir -p -v cache
 	@if [ ! -f "./cache/pepk.jar" ]; then curl https://www.gstatic.com/play-apps-publisher-rapid/signing-tool/prod/pepk-src.jar -o ./cache/pepk.jar; fi
-	@if [ ! -d "./cache/buildozer" ]; then git clone --depth=1 https://github.com/kivy/buildozer ./cache/buildozer; fi
-	@cd ./cache/buildozer && git fetch --all && git reset --hard origin/master
+	@if [ ! -d "./cache/python-for-android" ]; then git clone --depth=1 https://github.com/kivy/python-for-android.git ./cache/python-for-android; fi
 	@cd ./cache && git rev-list --count HEAD >revnum
 
 .workspace:
 	@rm -rf ./bin/* && rm -rf workspace && mkdir -p -v workspace
 	@cp -r ./src/* workspace/ && cp -v ./cache/pepk.jar ./workspace/
 
-.venv:
-	@cd ./workspace/ && rm -rf venv && python3.10 -m venv venv && ./venv/bin/pip install --upgrade pip >pip.log
-
-.install_buildozer:
-	@cd ./cache/buildozer/ && ../../workspace/venv/bin/python setup.py build && ../../workspace/venv/bin/pip install -e .
+venv:
+	@$(PYTHON) -m venv venv
+	@./venv/bin/pip install --upgrade pip setuptools
+	@./venv/bin/pip install git+https://github.com/kivy/buildozer
+	@./venv/bin/pip install legacy-cgi cython==0.29.34
 
 .prepare: .cache .workspace
 	@echo "current version is:" && cat ./workspace/version && echo ""
@@ -45,123 +53,89 @@ REQUIREMENTS_ANDROID="python3,Kivy==2.3.0,sdl,plyer,pyjnius,appdirs,cffi,six,pyc
 	@rm -rf ./workspace/app && mkdir -p -v ./workspace/app && cp -r ../../src/* ./workspace/app/
 	@python3 -c "v=open('./workspace/version').read().strip();open('./workspace/app/version.py','w').write('__version__ = \"%s\"' % v);"
 
-.spec: .prepare .venv .install_buildozer
-	@cd ./workspace/ && P_requirements="$(REQUIREMENTS_ANDROID)" ./venv/bin/python3 -c "tpl=open('buildozer.spec.template').read();import os,sys;sys.stdout.write(tpl.format(requirements=os.environ['P_requirements']));" > buildozer.spec
+spec: venv .prepare
+	@cd ./workspace/ && P_requirements="$(REQUIREMENTS_ANDROID)" $(PYTHON) -c "tpl=open('buildozer.spec.template').read();import os,sys;sys.stdout.write(tpl.format(requirements=os.environ['P_requirements']));" > buildozer.spec
 
-build: .spec apk aab
+apk: build_arm64_v8a build_x86_64
 
-apk: build_arm64_v8a
-
-# build_armeabi_v7a build_x86_64
-
-aab:
-	~/.gradle/wrapper/dists/gradle-8.0.2-all/14bt34ptcsg1ikmfn78tdh1keu/gradle-8.0.2/bin/gradle --stop || echo "gradle daemon was not stopped"
+aab: .gradle_stop
 	@rm -rfv ./workspace/bin/*.aab
-	@cd ./workspace/app/ && find . -type f -name "*.py" -exec sed -i -e 's/_Debug = True/_Debug = False/g' {} +
-	cd ./workspace/ && PYTHONIOENCODING=utf-8 VIRTUAL_ENV=1 ./venv/bin/buildozer -v android release 1>buildozer.log 2>buildozer.err
-	@cp -f -T -v ./workspace/bin/bitdust*arm64-v8a_armeabi-v7a_x86_64-release.aab ./workspace/bin/BitDustAndroid_unsigned.aab
-	@cd ./workspace/ && zipalign -v 4 ./bin/BitDustAndroid_unsigned.aab ./bin/BitDustAndroid.aab 1>zipalign.log 2>zipalign.err
-	@cd ./workspace/ && apksigner sign --ks ~/keystores/bitdust.keystore --ks-pass file:../.keystore_password --v1-signing-enabled true --v2-signing-enabled true --min-sdk-version 21 bin/BitDustAndroid.aab 1>apksigner.log 2>apksigner.err
-	@rm -rfv ./workspace/bin/BitDustAndroid_unsigned.aab
-	@rm -rfv ./workspace/bin/bitdust1-*-release.aab
-	@mv -v ./workspace/bin/*.aab ./bin/
+	@cd ./workspace/ && PYTHONIOENCODING=utf-8 VIRTUAL_ENV=1 ../venv/bin/buildozer -v android release 1>buildozer.log 2>&1
+	@cp -f -T -v ./workspace/bin/eiworlds*.aab ./workspace/bin/EIWorldsAndroid_unsigned.aab
+	@cd ./workspace/ && zipalign -v 4 ./bin/EIWorldsAndroid_unsigned.aab ./bin/EIWorldsAndroid.aab 1>zipalign.log 2>&1
+	@cd ./workspace/ && apksigner sign --ks ~/keystores/bitdust.keystore --ks-pass file:../.keystore_password --v1-signing-enabled true --v2-signing-enabled true --min-sdk-version 21 bin/EIWorldsAndroid.aab 1>apksigner.log 2>&1
+	@rm -rfv ./workspace/bin/EIWorldsAndroid_unsigned.aab
+	@rm -rfv ./workspace/bin/eiworlds-*-release.aab
+	@mkdir -p ./bin/ && mv -v ./workspace/bin/*.aab ./bin/
 	@cp -v ./workspace/version ./src/version && cat ./src/version && echo "" && echo "DONE"
 	@echo "Now go to Goggle Dev Console at https://play.google.com/apps/publish/"
 	@echo "Go to Releases -> Production page and click [Create new release] button"
-	@echo "Upload bin/BitDustAndroid.aab file and copy release notes from the previos releases, then click [send release for review] button"
-	@echo "Upload bin/*.apk files to the GitHub: https://github.com/bitdust-io/p2p-app/releases/tag/alpha"
+	@echo "Upload bin/EIWorldsAndroid.aab file and copy release notes from the previos releases, then click [send release for review] button"
 
-debug: .spec
-	~/.gradle/wrapper/dists/gradle-8.0.2-all/14bt34ptcsg1ikmfn78tdh1keu/gradle-8.0.2/bin/gradle --stop || echo "gradle daemon was not stopped"
-	rm -rfv ./workspace/bin/*.apk
-	@# cd ./workspace/app/ && find . -type f -name "bpmain.py" -exec sed -i -e 's/_Debug = False/_Debug = True/g' {} +
-	cd ./workspace/ && GRADLE_OPTS="-Xms1724m -Xmx5048m -Dorg.gradle.jvmargs='-Xms1724m -Xmx5048m'" PYTHONIOENCODING=utf-8 VIRTUAL_ENV=1 ./venv/bin/buildozer -v --profile arm64_v8a android debug 1>buildozer.log 2>buildozer.err
-	@cp -v -T -f ./workspace/bin/bitdust*.apk ./workspace/bin/BitDustAndroid_unsigned.apk
-	@cd ./workspace/ && zipalign -v 4 ./bin/BitDustAndroid_unsigned.apk  ./bin/BitDustAndroid.apk 1>zipalign.log 2>zipalign.err
-	@cd ./workspace/ && apksigner sign --ks ~/keystores/bitdust.keystore --ks-pass file:../.keystore_password --v1-signing-enabled true --v2-signing-enabled true ./bin/BitDustAndroid.apk 1>apksigner.log 2>apksigner.err
-	@mv -v ./workspace/bin/BitDustAndroid.apk ./workspace/bin/BitDustAndroid_arm64_v8a.apk
-	@cp -v ./workspace/bin/BitDustAndroid_arm64_v8a.apk ./bin/
-	@apktool d -o ./workspace/bin/apk/ -f ./workspace/bin/BitDustAndroid_arm64_v8a.apk 1>workspace/apktool.arm64_v8a.log 2>workspace/apktool.arm64_v8a.err
+.gradle_stop:
+	@(cd ~/.gradle/wrapper/dists/gradle-*-all/*/gradle-*/bin/ && ./gradle --stop) || echo "gradle daemon was not stopped"
+
+debug: .gradle_stop spec
+	@rm -rfv ./workspace/bin/*.apk
+	@cd ./workspace/ && GRADLE_OPTS="-Xms1724m -Xmx5048m -Dorg.gradle.jvmargs='-Xms1724m -Xmx5048m'" PYTHONIOENCODING=utf-8 VIRTUAL_ENV=1 ../venv/bin/buildozer -v --profile arm64_v8a android debug
+	@cp -v -T -f ./workspace/bin/eiworlds*.apk ./workspace/bin/EIWorldsAndroid_unsigned.apk
+	@cd ./workspace/ && zipalign -v 4 ./bin/EIWorldsAndroid_unsigned.apk ./bin/EIWorldsAndroid.apk 1>zipalign.log 2>&1
+	@cd ./workspace/ && apksigner sign --ks ~/keystores/bitdust.keystore --ks-pass file:../.keystore_password --v1-signing-enabled true --v2-signing-enabled true ./bin/EIWorldsAndroid.apk 1>apksigner.log 2>&1
+	@mv -v ./workspace/bin/EIWorldsAndroid.apk ./workspace/bin/EIWorldsAndroid_arm64_v8a.apk
+	@cp -v ./workspace/bin/EIWorldsAndroid_arm64_v8a.apk ./bin/
+	@apktool d -o ./workspace/bin/apk/ -f ./workspace/bin/EIWorldsAndroid_arm64_v8a.apk 1>workspace/apktool.arm64_v8a.log 2>&1
 	@mkdir -p -v ./workspace/bin/apk/private_mp3/
 	@cp -v ./workspace/bin/apk/assets/private.tar ./workspace/bin/apk/private_mp3/private_mp3.tar.gz
 	@cd ./workspace/bin/apk/private_mp3/ && tar -p -xf private_mp3.tar.gz && find . -type d -exec chmod +x {} \;
-	@rm -rfv ./workspace/bin/BitDustAndroid.apk
-	@rm -rfv ./workspace/bin/BitDustAndroid_unsigned.apk
-	@rm -rfv ./workspace/bin/bitdust1-*-release-unsigned.apk
+	@rm -rfv ./workspace/bin/EIWorldsAndroid.apk
+	@rm -rfv ./workspace/bin/EIWorldsAndroid_unsigned.apk
+	@rm -rfv ./workspace/bin/eiworlds-*-release-unsigned.apk
 
-build_arm64_v8a:
-	~/.gradle/wrapper/dists/gradle-8.0.2-all/14bt34ptcsg1ikmfn78tdh1keu/gradle-8.0.2/bin/gradle --stop || echo "gradle daemon was not stopped"
-	cd ./workspace/app/ && find . -type f -name "*.py" -exec sed -i -e 's/_Debug = True/_Debug = False/g' {} +
-	cd ./workspace/ && PYTHONIOENCODING=utf-8 VIRTUAL_ENV=1 ./venv/bin/buildozer -v --profile arm64_v8a android release 1>buildozer.arm64_v8a.log 2>buildozer.arm64_v8a.err
-	@cp -v -T -f ./workspace/bin/bitdust*.apk ./workspace/bin/BitDustAndroid_unsigned.apk
-	@cd ./workspace/ && zipalign -v 4 ./bin/BitDustAndroid_unsigned.apk  ./bin/BitDustAndroid.apk 1>zipalign.arm64_v8a.log 2>zipalign.arm64_v8a.err
-	@cd ./workspace/ && apksigner sign --ks ~/keystores/bitdust.keystore --ks-pass file:../.keystore_password --v1-signing-enabled true --v2-signing-enabled true ./bin/BitDustAndroid.apk 1>apksigner.arm64_v8a.log 2>apksigner.arm64_v8a.err
-	@mv -v ./workspace/bin/BitDustAndroid.apk ./workspace/bin/BitDustAndroid_arm64_v8a.apk
-	@cp -v ./workspace/bin/BitDustAndroid_arm64_v8a.apk ./bin/
-	@apktool d -o ./workspace/bin/apk/ -f ./workspace/bin/BitDustAndroid_arm64_v8a.apk 1>workspace/apktool.arm64_v8a.log 2>workspace/apktool.arm64_v8a.err
+build_arm64_v8a: .gradle_stop
+	@cd ./workspace/ && PYTHONIOENCODING=utf-8 VIRTUAL_ENV=1 ../venv/bin/buildozer -v --profile arm64_v8a android release 1>buildozer.arm64_v8a.log 2>&1
+	@cp -v -T -f ./workspace/bin/eiworlds*.apk ./workspace/bin/EIWorldsAndroid_unsigned.apk
+	@cd ./workspace/ && zipalign -v 4 ./bin/EIWorldsAndroid_unsigned.apk ./bin/EIWorldsAndroid.apk 1>zipalign.arm64_v8a.log 2>&1
+	@cd ./workspace/ && apksigner sign --ks ~/keystores/bitdust.keystore --ks-pass file:../.keystore_password --v1-signing-enabled true --v2-signing-enabled true ./bin/EIWorldsAndroid.apk 1>apksigner.arm64_v8a.log 2>&1
+	@mv -v ./workspace/bin/EIWorldsAndroid.apk ./workspace/bin/EIWorldsAndroid_arm64_v8a.apk
+	@apktool d -o ./workspace/bin/apk/ -f ./workspace/bin/EIWorldsAndroid_arm64_v8a.apk 1>workspace/apktool.arm64_v8a.log 2>&1
+	@mkdir -p ./bin/ && cp -v ./workspace/bin/EIWorldsAndroid_arm64_v8a.apk ./bin/
 	@cp -v ./workspace/version ./src/version && cat ./src/version && echo "" && echo "DONE"
 
-build_armeabi_v7a:
-	~/.gradle/wrapper/dists/gradle-8.0.2-all/14bt34ptcsg1ikmfn78tdh1keu/gradle-8.0.2/bin/gradle --stop || echo "gradle daemon was not stopped"
-	@cd ./workspace/app/ && find . -type f -name "*.py" -exec sed -i -e 's/_Debug = True/_Debug = False/g' {} +
-	cd ./workspace/ && PYTHONIOENCODING=utf-8 VIRTUAL_ENV=1 ./venv/bin/buildozer -v --profile armeabi_v7a android release 1>buildozer.armeabi_v7a.log 2>buildozer.armeabi_v7a.err
-	@cp -v -T -f ./workspace/bin/bitdust*.apk ./workspace/bin/BitDustAndroid_unsigned.apk
-	@cd ./workspace/ && zipalign -v 4 ./bin/BitDustAndroid_unsigned.apk  ./bin/BitDustAndroid.apk 1>zipalign.armeabi_v7a.log 2>zipalign.armeabi_v7a.err
-	@cd ./workspace/ && apksigner sign --ks ~/keystores/bitdust.keystore --ks-pass file:../.keystore_password --v1-signing-enabled true --v2-signing-enabled true ./bin/BitDustAndroid.apk 1>apksigner.armeabi_v7a.log 2>apksigner.armeabi_v7a.err
-	@mv -v ./workspace/bin/BitDustAndroid.apk ./workspace/bin/BitDustAndroid_armeabi_v7a.apk
-	@cp -v ./workspace/bin/BitDustAndroid_armeabi_v7a.apk ./bin/
-	@apktool d -o ./workspace/bin/apk/ -f ./workspace/bin/BitDustAndroid_armeabi_v7a.apk 1>workspace/apktool.armeabi_v7a.log 2>workspace/apktool.armeabi_v7a.err
-	@cp -v ./workspace/version ./src/version && cat ./src/version && echo "" && echo "DONE"
-
-build_x86_64:
-	~/.gradle/wrapper/dists/gradle-8.0.2-all/14bt34ptcsg1ikmfn78tdh1keu/gradle-8.0.2/bin/gradle --stop || echo "gradle daemon was not stopped"
-	@cd ./workspace/app/ && find . -type f -name "*.py" -exec sed -i -e 's/_Debug = True/_Debug = False/g' {} +
-	cd ./workspace/ && PYTHONIOENCODING=utf-8 VIRTUAL_ENV=1 ./venv/bin/buildozer -v --profile x86_64 android release 1>buildozer.x86_64.log 2>buildozer.x86_64.err
-	@cp -v -T -f ./workspace/bin/bitdust*.apk ./workspace/bin/BitDustAndroid_unsigned.apk
-	@cd ./workspace/ && zipalign -v 4 ./bin/BitDustAndroid_unsigned.apk  ./bin/BitDustAndroid.apk 1>zipalign.x86_64.log 2>zipalign.x86_64.err
-	@cd ./workspace/ && apksigner sign --ks ~/keystores/bitdust.keystore --ks-pass file:../.keystore_password --v1-signing-enabled true --v2-signing-enabled true ./bin/BitDustAndroid.apk 1>apksigner.x86_64.log 2>apksigner.x86_64.err
-	@mv -v ./workspace/bin/BitDustAndroid.apk ./workspace/bin/BitDustAndroid_x86_64.apk
-	@cp -v ./workspace/bin/BitDustAndroid_x86_64.apk ./bin/
-	@apktool d -o ./workspace/bin/apk/ -f ./workspace/bin/BitDustAndroid_x86_64.apk 1>workspace/apktool.x86_64.log 2>workspace/apktool.x86_64.err
+build_x86_64: .gradle_stop
+	@cd ./workspace/ && PYTHONIOENCODING=utf-8 VIRTUAL_ENV=1 ../venv/bin/buildozer -v --profile x86_64 android release 1>buildozer.x86_64.log 2>&1
+	@cp -v -T -f ./workspace/bin/eiworlds*.apk ./workspace/bin/EIWorldsAndroid_unsigned.apk
+	@cd ./workspace/ && zipalign -v 4 ./bin/EIWorldsAndroid_unsigned.apk  ./bin/EIWorldsAndroid.apk 1>zipalign.x86_64.log 2>&1
+	@cd ./workspace/ && apksigner sign --ks ~/keystores/bitdust.keystore --ks-pass file:../.keystore_password --v1-signing-enabled true --v2-signing-enabled true ./bin/EIWorldsAndroid.apk 1>apksigner.x86_64.log 2>&1
+	@mv -v ./workspace/bin/EIWorldsAndroid.apk ./workspace/bin/EIWorldsAndroid_x86_64.apk
+	@apktool d -o ./workspace/bin/apk/ -f ./workspace/bin/EIWorldsAndroid_x86_64.apk 1>workspace/apktool.x86_64.log 2>&1
+	@mkdir -p ./bin/ && cp -v ./workspace/bin/EIWorldsAndroid_x86_64.apk ./bin/
 	@cp -v ./workspace/version ./src/version && cat ./src/version && echo "" && echo "DONE"
 
 clean:
-	@(cd ./workspace/ && PYTHONIOENCODING=utf-8 VIRTUAL_ENV=1 ./venv/bin/buildozer -v android clean) || echo "done"
+	@(cd ./workspace/ && PYTHONIOENCODING=utf-8 VIRTUAL_ENV=1 ../venv/bin/buildozer -v android clean) || echo "done"
 
 full_clean:
+	@rm -rf ./venv
 	@rm -rf ./workspace
 	@rm -rf ./cache/.buildozer
 	@rm -rf ./cache/*
 	@rm -rf ./bin/*
 
-system_dependencies:
-	@sudo apt-get update; sudo apt-get install --yes --no-install-recommends openjdk-11-jdk cython3 autoconf automake libtool ccache lld zipalign apksigner
-	@python3 -m pip install --upgrade "Cython<3"
+install_system_packages:
+	@sudo apt update; sudo apt install --yes --no-install-recommends openjdk-17-jdk cython3 autoconf automake libtool ccache lld zipalign apksigner apktool adb
 
 test:
-	@adb install -r -d bin/BitDustAndroid_arm64_v8a.apk
+	@adb install -r -d bin/EIWorldsAndroid_arm64_v8a.apk
 
 shell:
-	@echo "run-as org.bitdust_io.bitdust1"
-	@adb shell "run-as org.bitdust_io.bitdust1; bash"
+	@echo "run-as org.eiworlds.eiworlds"
+	@adb shell "run-as org.eiworlds.eiworlds; bash"
 
 log:
-	@cd ./workspace/ && PYTHONIOENCODING=utf-8 VIRTUAL_ENV=1 ./venv/bin/buildozer -v android logcat
+	@cd ./workspace/ && PYTHONIOENCODING=utf-8 VIRTUAL_ENV=1 ../venv/bin/buildozer -v android logcat
 
 log_full:
 	@adb logcat *:V python:V
 
 log_quick:
-	@adb logcat | grep -E "python|Bitdustnode|PythonActivity|BitDust|SDL|PythonService|crush|bitdust|bitdust_io|Exception"
-
-log_main:
-	@adb exec-out run-as org.bitdust_io.bitdust1 tail -f /data/user/0/org.bitdust_io.bitdust1/files/.bitdust/logs/android.log
-
-log_states:
-	@adb exec-out run-as org.bitdust_io.bitdust1 tail -f /data/user/0/org.bitdust_io.bitdust1/files/.bitdust/logs/automats.log
-
-cat_log_main:
-	@adb exec-out run-as org.bitdust_io.bitdust1 cat /data/user/0/org.bitdust_io.bitdust1/files/.bitdust/logs/android.log
-
-cat_log_automat:
-	@adb exec-out run-as org.bitdust_io.bitdust1 cat /data/user/0/org.bitdust_io.bitdust1/files/.bitdust/logs/automats.log
+	@adb logcat | grep -E "python|PythonActivity|SDL|PythonService|crush|Exception"
