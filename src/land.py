@@ -11,6 +11,7 @@ import numpy as np
 
 import mth
 
+
 DEBUG = False
 
 GLOBAL_SCALE = 0.5

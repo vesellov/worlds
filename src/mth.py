@@ -46,7 +46,7 @@ def axisAngleToQuaternion(axis:np.ndarray, angle:float) -> np.ndarray:
         quaternion defining the orientation    
     """
     if isinstance(axis, list) and len(axis)==3:
-        axis = np.array(axis) 
+        axis = np.array(axis)
     elif isinstance(axis, np.ndarray) and axis.size==3:
         pass
     else:

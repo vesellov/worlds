@@ -11,13 +11,14 @@ from kivy.app import App
 from kivy.cache import Cache
 from kivy.clock import Clock
 from kivy.core.window import Window
+from kivy.uix.floatlayout import FloatLayout 
 from kivy.uix.widget import Widget
 from kivy.uix.image import Image
 from kivy.resources import resource_find
 from kivy.properties import ObjectProperty  # @UnresolvedImport
 from kivy.graphics.transformation import Matrix  # @UnresolvedImport
 from kivy.graphics.opengl import (
-    glGetError, glEnable, glDisable, GL_BLEND, GL_DEPTH_TEST,  # @UnresolvedImport
+    glViewport, glGetError, glEnable, glDisable, GL_BLEND, GL_DEPTH_TEST,  # @UnresolvedImport
     glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,  # @UnresolvedImport
     glDepthFunc, GL_LEQUAL,  # @UnresolvedImport
 )
@@ -43,12 +44,14 @@ def ignore_undertouch(func):
     return wrap
 
 
-class Renderer(Widget):
+class Renderer(FloatLayout):
 
     def __init__(self, app_root, scene, **kwargs):
+        # kwargs.setdefault('size_hint', (1.0, 1.0))
         EventLoop.ensure_window()  # Make sure OpenGL context exists
         self.app_root = app_root
         self.scene = scene
+        # kwargs.setdefault('size_hint', (1.0, 1.0))
         self.canvas = RenderContext(compute_normal_mat=True)
         self.canvas.shader.source = resource_find('assets/shader.glsl')
         self.camera_distance_scale_factor = const.SCALE_INITIAL
@@ -87,6 +90,9 @@ class Renderer(Widget):
         self.this_template_figure_part_index = 0
         self.this_animation_frame = None
         super(Renderer, self).__init__(**kwargs)
+        # self.size = Window.size
+        # self.bind(size=self.on_widget_resize)
+        # Window.bind(on_resize=self.on_window_resize)
         with self.canvas:
             self.cb = Callback(self.on_setup_gl_context)
             PushMatrix()
@@ -101,6 +107,9 @@ class Renderer(Widget):
         Clock.schedule_interval(self.on_update_glsl, 1 / 60)
         Clock.schedule_interval(self.on_update_animations, 0.055 )  # 1 / 24)
         Clock.schedule_interval(self.on_run_units, 1 / 60)
+        # self.size = Window.size
+        # self.bind(size=self.on_kivy_layout_resize)
+        Window.bind(on_resize=self.on_window_resize)
 
     def create_sky_background(self):
         PushMatrix()
@@ -131,6 +140,8 @@ class Renderer(Widget):
         PopMatrix()
 
     def update_sky_background(self):
+        if not self.sky_background_mesh:
+            return
         sz_w = const.CAMERA_VIEW_CLIP_FAR * 2.0
         sz_h = const.CAMERA_VIEW_CLIP_FAR * 1.0
         shift_down = const.CAMERA_VIEW_CLIP_FAR * 0.5
@@ -146,12 +157,28 @@ class Renderer(Widget):
         self.sky_background_rotate_y.angle = 180 + self.camera_angle_z
         self.sky_background_translate.z = const.CAMERA_VIEW_CLIP_FAR - 0.5 - self.camera_distance_scale_factor * self.camera_distance_to_center
 
+    def update_camera(self):
+        self.global_eye_x = float(self.camera_distance_scale_factor) * self.camera_distance_to_center * math.sin(math.radians(self.camera_angle_y)) * math.sin(math.radians(self.camera_angle_z))
+        self.global_eye_y = float(self.camera_distance_scale_factor) * self.camera_distance_to_center * math.cos(math.radians(self.camera_angle_y))
+        self.global_eye_z = float(self.camera_distance_scale_factor) * self.camera_distance_to_center * math.sin(math.radians(self.camera_angle_y)) * math.cos(math.radians(self.camera_angle_z))
+        self.update_sky_background()
+        self.canvas['modelview_mat'] = Matrix().look_at(
+            self.global_eye_x, self.global_eye_y, self.global_eye_z,
+            self.global_center_x, self.global_center_y, self.global_center_z,
+            0, 1, 0,  # up vector
+        )
+
     def update_canvas(self):
-        asp = self.width / float(self.height)
+        # asp = Window.width / float(Window.height)
+        w, h = Window.size
+        asp = w / float(h)
         if asp > 2.0:
             asp = 2.0
         if asp < 0.5:
             asp = 0.5
+        if _Debug:
+            print(f'update_canvas w={self.width} h={self.height} asp={asp}')
+        glViewport(0, 0, w, h)
         # self.on_gl_error('step 1')
         # self.canvas['texture_id'] = 1
         self.global_eye_x = float(self.camera_distance_scale_factor) * self.camera_distance_to_center * math.sin(math.radians(self.camera_angle_y)) * math.sin(math.radians(self.camera_angle_z))
@@ -728,7 +755,15 @@ class Renderer(Widget):
         if kill == True:
             sys.exit(0)
 
+    def on_window_resize(self, instance, width, height):
+        self.update_canvas()
+
     def on_update_glsl(self, delta):
+        self.update_canvas()
+        # self.update_camera()
+
+    def on_kivy_layout_resize(self, instance, value):
+        print('on_kivy_layout_resize', instance, value)
         self.update_canvas()
 
     def on_update_animations(self, delta):
