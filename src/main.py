@@ -25,9 +25,11 @@ if _Debug:
 
 
 from kivy.config import Config
-
-# Config.set('graphics', 'resizable', 'True')
-# Config.write()
+# Config.set('graphics', 'position', 'custom')
+Config.set('graphics', 'top', '100')
+Config.set('graphics', 'left', '100')
+Config.set('graphics', 'width', '1400')
+Config.set('graphics', 'height', '700')
 
 
 from kivy.core.window import Window
@@ -37,7 +39,6 @@ import res
 import rend
 import dat
 import scen
-
 
 # Window.size = (1400, 700)
 # Window.top = 100
@@ -50,8 +51,6 @@ class AppRoot(App):
     known_figures_parts = {}
 
     def build(self):
-        Window.minimum_width = 100
-        Window.minimum_height = 100
         catalog = dat.CatalogData()
         catalog.load_figures(figures_file_name='catalog/figures.json')
         catalog.load_animations(animations_file_name='catalog/animations.json')
@@ -67,8 +66,7 @@ class AppRoot(App):
         scene = scen.Scene(land=land, catalog=catalog)
         scene.calculate_land_vertices()
         scene.calculate_scaled_elevation_map()
-        renderer = rend.Renderer(app_root=self, scene=scene, size_hint=(1.0, 1.0))
-        renderer.size = Window.size
+        renderer = rend.Renderer(app_root=self, scene=scene)
         self.known_templates = json.loads(open('catalog/figures_samples.json', 'rt').read())
         # self.known_figures_parts = json.loads(open('assets/catalog_figures.json', 'rt').read())
         scene.renderer = renderer
