@@ -1,182 +1,86 @@
-import os
-import sys
-import json
-import random
+'''
+Plasma Shader
+=============
 
-_Debug = True
+This shader example have been taken from
+http://www.iquilezles.org/apps/shadertoy/ with some adaptation.
 
-import system
+This might become a Kivy widget when experimentation will be done.
+'''
 
-ROOT_PATH = ''
-if system.is_android():
-    ROOT_PATH = os.path.abspath(os.environ['ANDROID_ARGUMENT'])
-elif system.is_osx():
-    ROOT_PATH = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
-elif system.is_ios():
-    ROOT_PATH = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
-else:
-    ROOT_PATH = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
-
-from kivy.config import Config
-Config.set('graphics', 'top', '100')
-Config.set('graphics', 'left', '100')
-Config.set('graphics', 'width', '1400')
-Config.set('graphics', 'height', '700')
 
 from kivy.clock import Clock
 from kivy.app import App
+from kivy.uix.floatlayout import FloatLayout
 from kivy.core.window import Window
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.progressbar import ProgressBar
-from kivy.uix.popup import Popup
-from kivy.uix.label import Label
-
-import res
-import rend
-import dat
-import scen
+from kivy.graphics import RenderContext
+from kivy.properties import StringProperty
 
 
-class WorldsApp(App):
+# Plasma shader
+plasma_shader = '''
+$HEADER$
 
-    known_templates = {}
-    known_figures_parts = {}
+uniform vec2 resolution;
+uniform float time;
 
+void main(void)
+{
+   vec4 frag_coord = frag_modelview_mat * gl_FragCoord;
+   float x = frag_coord.x;
+   float y = frag_coord.y;
+   float mov0 = x+y+cos(sin(time)*2.)*100.+sin(x/100.)*1000.;
+   float mov1 = y / resolution.y / 0.2 + time;
+   float mov2 = x / resolution.x / 0.2;
+   float c1 = abs(sin(mov1+time)/2.+mov2/2.-mov1-mov2+time);
+   float c2 = abs(sin(c1+sin(mov0/1000.+time)
+              +sin(y/40.+time)+sin((x+y)/100.)*3.));
+   float c3 = abs(sin(c2+cos(mov1+mov2+c2)+cos(mov2)+sin(x/1000.)));
+   gl_FragColor = vec4( c1,c2,c3,1.0);
+}
+'''
+
+
+class ShaderWidget(FloatLayout):
+
+    # property to set the source code for fragment shader
+    fs = StringProperty(None)
+
+    def __init__(self, **kwargs):
+        # Instead of using Canvas, we will use a RenderContext,
+        # and change the default shader used.
+        self.canvas = RenderContext()
+
+        # call the constructor of parent
+        # if they are any graphics object, they will be added on our new canvas
+        super(ShaderWidget, self).__init__(**kwargs)
+
+        # We'll update our glsl variables in a clock
+        Clock.schedule_interval(self.update_glsl, 1 / 60.)
+
+    def on_fs(self, instance, value):
+        # set the fragment shader to our source code
+        shader = self.canvas.shader
+        old_value = shader.fs
+        shader.fs = value
+        if not shader.success:
+            shader.fs = old_value
+            raise Exception('failed')
+
+    def update_glsl(self, *largs):
+        self.canvas['time'] = Clock.get_boottime()
+        self.canvas['resolution'] = list(map(float, self.size))
+        # This is needed for the default vertex shader.
+        win_rc = Window.render_context
+        self.canvas['projection_mat'] = win_rc['projection_mat']
+        self.canvas['modelview_mat'] = win_rc['modelview_mat']
+        self.canvas['frag_modelview_mat'] = win_rc['frag_modelview_mat']
+
+
+class PlasmaApp(App):
     def build(self):
-        Window.bind(on_request_close=self.on_request_close)
-        # url_prefix = 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/eng2001/res/'
-        # url_prefix = 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'
-        self.inventory_list = [
-            ('data', 'figures.res', ['figures_res_0', 'figures_res_1', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'),
-            ('data', 'textures.res', ['textures_res_0', 'textures_res_1', 'textures_res_2', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'),
-            ('data', 'redress.res', ['redress_res_0', 'redress_res_1', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'),
-            ('data', 'textures2.res', ['textures_res_0', 'textures_res_1', 'textures_res_2', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/eng2001/res/'),
-            ('catalog', 'animations.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'armors.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'buildings.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'figures.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'figures_names.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'figures_parts.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'figures_samples.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'materials.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'plants.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'textures.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'weapons.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('assets', 'water1.png', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'sky1.png', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            # TODO: the following needs to move from "assets" to "map" sub dir
-            ('assets', 'tiles.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'catalog.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'map.png', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'heightmap.png', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'encoded.png', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'plants.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'buildings.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-        ]
-        for i in range(0, 29):
-            self.inventory_list.append(('assets/land', f'{i}.png', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/land/'))
-        self.downloading_list = []
-        for folder, file_name, file_parts, url_prefix in self.inventory_list:
-            dest_file_path = os.path.join(res.data_path(folder), file_name)
-            if os.path.isfile(dest_file_path):
-                if _Debug:
-                    print(f'{dest_file_path}')
-                continue
-            self.downloading_list.append((folder, file_name, file_parts, url_prefix))
-        self.root = BoxLayout()
-        self.downloading_popup = None
-        if not self.downloading_list:
-            Clock.schedule_once(self.do_start)
-            return self.root
-        self.downloading_list = self.inventory_list
-        self.progress_bar = ProgressBar(value=0, max=len(self.downloading_list), height=32, size_hint=(1, None))
-        self.downloading_popup = Popup(title='Downloading', separator_height=0, content=self.progress_bar, size_hint=(0.8, 0.2), auto_dismiss=False)
-        self.downloading_popup.open()
-        self.task = Clock.schedule_once(self.do_download_next_file)
-        return self.root
-
-    def on_request_close(self, *args):
-        if self.task:
-            self.task.cancel()
-            self.task = None
-        return True
-
-    def do_download_next_file(self, dt):
-        folder, file_name, file_parts, url_prefix = self.downloading_list.pop(0)
-        if _Debug:
-            print(f'downloading {folder}/{file_name} from {url_prefix}')
-        self.task = Clock.schedule_once(lambda _: res.download_file(folder, file_name, file_parts, url_prefix, callback=self.on_file_downloaded))
-
-    def on_file_downloaded(self, file_path):
-        self.progress_bar.value += 1
-        if self.downloading_list:
-            delay = 0
-            if file_path:
-                delay = random.randint(1, 3)
-            self.task = Clock.schedule_once(self.do_download_next_file, delay)
-        else:
-            self.task = None
-            if self.downloading_popup:
-                self.downloading_popup.dismiss()
-            Clock.schedule_once(self.do_start)
-
-    def do_start(self, dt):
-        if _Debug:
-            print('starting the app')
-        self.root.clear_widgets()
-        catalog = dat.CatalogData()
-        catalog.load_figures(figures_file_name=res.data_path('catalog/figures.json'))
-        catalog.load_animations(animations_file_name=res.data_path('catalog/animations.json'))
-        catalog.load_armors(armors_file_name=res.data_path('catalog/armors.json'))
-        catalog.load_weapons(weapons_file_name=res.data_path('catalog/weapons.json'))
-        catalog.load_materials(materials_file_name=res.data_path('catalog/materials.json'))
-        land = dat.LandData()
-        land.load_heightmap_file(heightmap_file_name=res.data_path('assets/heightmap.png'))
-        land.load_tilemap_file(tilemap_file_name=res.data_path('assets/encoded.png'))
-        land.load_cache_tiles_textures(textures_dir_path=res.data_path('assets/land'))
-        land.load_plants_data(plants_data_file_name=res.data_path('assets/plants.json'))
-        land.load_buildings_data(buildings_data_file_name=res.data_path('assets/buildings.json'))
-        scene = scen.Scene(land=land, catalog=catalog)
-        scene.calculate_land_vertices()
-        scene.calculate_scaled_elevation_map()
-        renderer = rend.Renderer(app_root=self, scene=scene)
-        self.known_templates = json.loads(open(res.data_path('catalog/figures_samples.json'), 'rt').read())
-        scene.renderer = renderer
-        scene.init_scene(257, 340)
-        # scene.init_scene()
-        # self.create_human_hero(scene)
-        scene.create_hero(
-            # model_name='unorma', weapon='stone battle axe.granite',
-            # model_name='unmogo', texture='goblin00',
-            # model_name='unmori', texture='rick',
-            # model_name='unmosu', texture='succubus02',
-            # model_name='unmotr', texture='troll02',
-            model_name='unhuma',
-            skin=41,
-            hair=0,
-            wears=[
-              "hadagan brigand pants.thin",
-              "hadagan brigand boots.thin",
-              "hadagan brigand gloves.thin",
-              "hadagan brigand leggins.thick",
-              "hadagan brigand helm.thick",
-              "hadagan brigand plate.thick"
-            ],
-            weapon='cheat dagger.bronze',
-            # elevation_correction=0.5,
-        )
-        self.root.add_widget(renderer)
-
-
-def main():
-    res.DATA_PATH = system.get_app_data_path()
-    if _Debug:
-        print(f'data path: {res.DATA_PATH}')
-        print(f'root path: {ROOT_PATH}')
-    if not os.path.exists(res.DATA_PATH):
-        os.makedirs(res.DATA_PATH)
-    WorldsApp().run()
+        return ShaderWidget(fs=plasma_shader)
 
 
 if __name__ == '__main__':
-    main()
+    PlasmaApp().run()

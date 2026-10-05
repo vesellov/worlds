@@ -1,12 +1,12 @@
 # This Makefile requires the following commands to be available:
 # * java
 # * virtualenv
-# * python3.14
+# * python3
 # * curl
 # * apksigner
 # * zipalign
 # * apktool
-# * Cython<3.0.0 (will be installed via pip)
+# * Cython (will be installed via pip)
 #
 # To install those tools you can use "system_dependencies" make target
 #
@@ -15,10 +15,10 @@
 # create a file ".keystore_password" in the same folder and store the keystore password there
 
 ifeq ($(PYTHON),)
-	PYTHON=python3.14
+	PYTHON=python3
 endif
 
-REQUIREMENTS_ANDROID="python3,Kivy==2.3.0,android,numpy,pillow"
+REQUIREMENTS_ANDROID="python3,kivy,android,numpy,pillow"
 
 .DEFAULT_GOAL := build
 
@@ -30,7 +30,9 @@ build: spec aab
 .cache:
 	@mkdir -p -v cache
 	@if [ ! -f "./cache/pepk.jar" ]; then curl https://www.gstatic.com/play-apps-publisher-rapid/signing-tool/prod/pepk-src.jar -o ./cache/pepk.jar; fi
-	@if [ ! -d "./cache/python-for-android" ]; then git clone --depth=1 https://github.com/kivy/python-for-android.git ./cache/python-for-android; fi
+	@# if [ ! -d "./cache/python-for-android" ]; then git clone https://github.com/kivy/python-for-android.git cache/python-for-android; git -C cache/python-for-android checkout 3762c88c56e3443efb8eba2a02a2604b680240fd; fi
+	@# if [ ! -d "./cache/python-for-android" ]; then git clone --depth=1 https://github.com/kivy/python-for-android.git ./cache/python-for-android; fi
+	@bash src/install_p4a.sh
 	@cd ./cache && git rev-list --count HEAD >revnum
 
 .workspace:
@@ -40,8 +42,7 @@ build: spec aab
 venv:
 	@$(PYTHON) -m venv venv
 	@./venv/bin/pip install --upgrade pip setuptools
-	@./venv/bin/pip install git+https://github.com/kivy/buildozer
-	@./venv/bin/pip install legacy-cgi cython==0.29.34
+	@./venv/bin/pip install git+https://github.com/kivy/buildozer legacy-cgi "cython<3"
 
 .prepare: .cache .workspace
 	@echo "current version is:" && cat ./workspace/version && echo ""
@@ -54,9 +55,9 @@ venv:
 	@python3 -c "v=open('./workspace/version').read().strip();open('./workspace/app/version.py','w').write('__version__ = \"%s\"' % v);"
 
 spec: venv .prepare
-	@cd ./workspace/ && P_requirements="$(REQUIREMENTS_ANDROID)" $(PYTHON) -c "tpl=open('buildozer.spec.template').read();import os,sys;sys.stdout.write(tpl.format(requirements=os.environ['P_requirements']));" > buildozer.spec
+	@cd ./workspace/ && P_requirements="$(REQUIREMENTS_ANDROID)" $(PYTHON) -c "tpl=open('buildozer.spec.template').read();import os,sys;sys.stdout.write(tpl.format(requirements=os.environ['P_requirements']));" > buildozer.spec && rm buildozer.spec.template
 
-apk: build_arm64_v8a build_x86_64
+apk: build_arm64_v8a
 
 aab: .gradle_stop
 	@rm -rfv ./workspace/bin/*.aab
@@ -77,7 +78,7 @@ aab: .gradle_stop
 
 debug: .gradle_stop spec
 	@rm -rfv ./workspace/bin/*.apk
-	@cd ./workspace/ && GRADLE_OPTS="-Xms1724m -Xmx5048m -Dorg.gradle.jvmargs='-Xms1724m -Xmx5048m'" PYTHONIOENCODING=utf-8 VIRTUAL_ENV=1 ../venv/bin/buildozer -v --profile arm64_v8a android debug
+	@. venv/bin/activate && cd ./workspace/ && (GRADLE_OPTS="-Xms1724m -Xmx5048m -Dorg.gradle.jvmargs='-Xms1724m -Xmx5048m'" PYTHONIOENCODING=utf-8 buildozer -v android debug || echo "build failed") && deactivate
 	@cp -v -T -f ./workspace/bin/eiworlds*.apk ./workspace/bin/EIWorldsAndroid_unsigned.apk
 	@cd ./workspace/ && zipalign -v 4 ./bin/EIWorldsAndroid_unsigned.apk ./bin/EIWorldsAndroid.apk 1>zipalign.log 2>&1
 	@cd ./workspace/ && apksigner sign --ks ~/keystores/bitdust.keystore --ks-pass file:../.keystore_password --v1-signing-enabled true --v2-signing-enabled true ./bin/EIWorldsAndroid.apk 1>apksigner.log 2>&1
@@ -138,4 +139,4 @@ log_full:
 	@adb logcat *:V python:V
 
 log_quick:
-	@adb logcat | grep -E "python|PythonActivity|SDL|PythonService|crush|Exception"
+	@adb logcat | grep -E "python|eiworlds|PythonActivity|SDL|PythonService|crush|Exception"

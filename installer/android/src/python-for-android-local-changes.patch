@@ -1,0 +1,30 @@
+diff --git a/pythonforandroid/build.py b/pythonforandroid/build.py
+index d88fdb1f..67963442 100644
+--- a/pythonforandroid/build.py
++++ b/pythonforandroid/build.py
+@@ -874,9 +874,9 @@ def run_pymodules_install(ctx, arch, modules, project_dir=None,
+         base_env = dict(copy.copy(os.environ))
+         base_env["PYTHONPATH"] = ctx.get_site_packages_dir(arch)
+         info('Upgrade pip to latest version')
+-        shprint(sh.bash, '-c', (
+-            "source venv/bin/activate && pip install -U pip"
+-        ), _env=copy.copy(base_env))
++        # shprint(sh.bash, '-c', (
++        #     "source venv/bin/activate && pip install -U pip"
++        # ), _env=copy.copy(base_env))
+ 
+         # Install Cython in case modules need it to build:
+         info('Install Cython in case one of the modules needs it to build')
+diff --git a/pythonforandroid/recipes/kivy/__init__.py b/pythonforandroid/recipes/kivy/__init__.py
+index 2446c210..d8fde259 100644
+--- a/pythonforandroid/recipes/kivy/__init__.py
++++ b/pythonforandroid/recipes/kivy/__init__.py
+@@ -34,7 +34,7 @@ class KivyRecipe(PyProjectRecipe):
+     name = 'kivy'
+ 
+     depends = [('sdl2', 'sdl3'), 'pyjnius', 'setuptools', 'android']
+-    python_depends = ['certifi', 'chardet', 'idna', 'requests', 'urllib3', 'filetype']
++    python_depends = ['certifi', 'chardet', 'idna', 'requests', 'urllib3', 'filetype', 'charset-normalizer==3.4.3']
+     hostpython_prerequisites = ["cython>=0.29.1,<=3.0.12"]
+ 
+     # sdl-gl-swapwindow-nogil.patch is needed to avoid a deadlock.
