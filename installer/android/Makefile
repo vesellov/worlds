@@ -115,6 +115,9 @@ full_clean:
 	@rm -rf ./bin/*
 	@# rm -rf "$HOME/.buildozer/android/platform/android-ndk-*"
 
+fix_system_packages:
+	@sudo apt remove libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
+
 install_system_packages:
 	@sudo apt update; sudo apt install --yes --no-install-recommends openjdk-17-jdk cython3 autoconf automake libtool ccache lld zipalign apksigner apktool adb
 

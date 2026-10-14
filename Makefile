@@ -3,7 +3,7 @@
 # * virtualenv
 
 ifeq ($(PYTHON_VERSION),)
-	PYTHON_VERSION=python3
+	PYTHON_VERSION=python3.12
 endif
 
 REQUIREMENTS_TXT:=requirements.txt
@@ -33,7 +33,7 @@ venv:
 	@$(PYTHON_VERSION) -m venv venv
 	@$(PIP) install --upgrade pip setuptools wheel cython
 	@$(PIP) install kivy[base]==2.3.1 --no-cache-dir
-	@$(PIP) install -r $(REQUIREMENTS_TXT)
+	@$(PIP) install -r $(REQUIREMENTS_TXT) --no-cache-dir
 	@# PIP_NO_BINARY=kivy $(PIP) install -r $(REQUIREMENTS_TXT)
 
 venv_tools:
