@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import random
+import math
 
 _Debug = True
 
@@ -39,11 +40,99 @@ from kivy.uix.progressbar import ProgressBar
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
 from kivy.uix.button import Button
+from kivy.graphics import Color, Ellipse
+from kivy.metrics import dp, sp
 
 import res
 import rend
 import dat
 import scen
+
+
+
+class JoystickRoundButton(Button):
+
+    def __init__(self, **kwargs):
+        super(JoystickRoundButton, self).__init__(**kwargs)
+        self.background_normal = ''
+        self.background_color = (0, 0, 0, 0)
+        self.btn_color = (0.2, 0.6, 1, 0.2) 
+        self.label_w = Label(text="W", font_size=sp(12), bold=True)
+        self.label_a = Label(text="A", font_size=sp(12), bold=True)
+        self.label_s = Label(text="S", font_size=sp(12), bold=True)
+        self.label_d = Label(text="D", font_size=sp(12), bold=True)
+        self.add_widget(self.label_w)
+        self.add_widget(self.label_a)
+        self.add_widget(self.label_s)
+        self.add_widget(self.label_d)
+        self.bind(pos=self.update_layout, size=self.update_layout)
+        # self.state = 'down'
+
+    def update_layout(self, *args):
+        self.canvas.before.clear()
+        with self.canvas.before:
+            if self.state == 'normal':
+                Color(*self.btn_color)
+            else:
+                Color(self.btn_color[0]*0.7, self.btn_color[1]*0.7, self.btn_color[2]*0.7, self.btn_color[3])
+            diameter = min(self.width, self.height)
+            x = self.x + (self.width - diameter) / 2
+            y = self.y + (self.height - diameter) / 2
+            Ellipse(pos=(x, y), size=(diameter, diameter))
+        center_x = self.x + self.width / 2
+        center_y = self.y + self.height / 2
+        radius = diameter / 2.0
+        offset = radius * 0.8
+        self.label_w.center = (center_x, center_y + offset)
+        self.label_s.center = (center_x, center_y - offset)
+        self.label_a.center = (center_x - offset, center_y)
+        self.label_d.center = (center_x + offset, center_y)
+
+    def on_state(self, instance, value):
+        self.update_layout()
+
+    def collide_point(self, x, y):
+        if _Debug:
+            print(f'    joystick.collide_point {x}, {y}')
+        center_x = self.x + self.width / 2
+        center_y = self.y + self.height / 2
+        radius = min(self.width, self.height) / 2
+        distance = math.sqrt((x - center_x) ** 2 + (y - center_y) ** 2)
+        return distance <= radius
+
+    def on_touch_down(self, touch):
+        if _Debug:
+            print(f'            joystick.on_touch_down {touch} is_touch={touch.is_touch} type_id={touch.type_id} profile={touch.profile} button={touch.button} shape={touch.shape} is_double_tap={touch.is_double_tap} is_triple_tap={touch.is_triple_tap}')
+        return super(JoystickRoundButton, self).on_touch_down(touch)
+
+    def on_touch_move(self, touch):
+        if _Debug:
+            print(f'            joystick.on_touch_move {touch} is_touch={touch.is_touch} type_id={touch.type_id} profile={touch.profile} button={touch.button} shape={touch.shape} is_double_tap={touch.is_double_tap} is_triple_tap={touch.is_triple_tap}')
+        return super(JoystickRoundButton, self).on_touch_move(touch)
+
+    def on_touch_up(self, touch):
+        if _Debug:
+            print(f'            joystick.on_touch_up {touch} is_touch={touch.is_touch} type_id={touch.type_id} profile={touch.profile} button={touch.button} shape={touch.shape} is_double_tap={touch.is_double_tap} is_triple_tap={touch.is_triple_tap}')
+        return super(JoystickRoundButton, self).on_touch_up(touch)
+
+
+class RootContainer(FloatLayout):
+
+    round_button = None
+
+    # def on_size(self, *args):
+    #     print(f'RootContainer.on_size {args}')
+        # if self.round_button:
+        #     fixed_offset = dp(100)
+        #     w, h = args[1]
+        #     self.round_button.x = self.round_button.width + fixed_offset
+        #     self.round_button.y = self.round_button.height + fixed_offset
+
+    # def on_update_round_button_position(self, instance, size):
+    #     fixed_offset = dp(500)
+    #     self.round_button.x = self.width - self.round_button.width - fixed_offset
+    #     self.round_button.y = self.height - self.round_button.height - fixed_offset
+    #     print(f'on_update_round_button_position {instance} {size} {self.round_button.x} {self.round_button.y}')
 
 
 class WorldsApp(App):
@@ -93,10 +182,10 @@ class WorldsApp(App):
             dest_file_path = os.path.join(res.data_path(folder), file_name)
             if os.path.isfile(dest_file_path):
                 if _Debug:
-                    print(f'{dest_file_path}')
+                    print(f'        file already exists: {dest_file_path}')
                 continue
             self.downloading_list.append((folder, file_name, file_parts, url_prefix))
-        self.root = FloatLayout()
+        self.root = RootContainer()
         self.downloading_popup = None
         if not self.downloading_list:
             Clock.schedule_once(self.do_start)
@@ -180,12 +269,21 @@ class WorldsApp(App):
         )
         scene.renderer.camera_unit_lock = scene.hero.unit_name
         self.root.add_widget(renderer)
-        overlay_button = Button(
-            text="OK",
-            size_hint=(0.1, 0.1),
-            pos_hint={'center_x': 0.05, 'center_y': 0.05}
+        self.root.round_button = JoystickRoundButton(
+            text="", 
+            # font_size=sp(16),
+            size_hint=(None, None),
+            size=(dp(100), dp(100)),
         )
-        self.root.add_widget(overlay_button)
+        fixed_offset = dp(5)
+        self.root.round_button.x = fixed_offset
+        self.root.round_button.y = fixed_offset
+        self.root.add_widget(self.root.round_button)
+        # self.root.round_button.bind(on_press=self.on_round_button_click)
+
+    # def on_round_button_click(self, instance):
+    #     if _Debug:
+    #         print(f"Round button clicked: {instance}")
 
 
 def main():
