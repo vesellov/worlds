@@ -178,11 +178,12 @@ class WorldsApp(App):
             weapon='cheat dagger.bronze',
             # elevation_correction=0.5,
         )
+        scene.renderer.camera_unit_lock = scene.hero.unit_name
         self.root.add_widget(renderer)
         overlay_button = Button(
             text="OK",
             size_hint=(0.1, 0.1),
-            pos_hint={'center_x': 0.5, 'center_y': 0.5}
+            pos_hint={'center_x': 0.05, 'center_y': 0.05}
         )
         self.root.add_widget(overlay_button)
 
