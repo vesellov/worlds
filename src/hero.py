@@ -94,8 +94,11 @@ class Hero(object):
                 u.animation_playing = u.action_types['idle'][0]['name']
                 u.animation_frame = 0
 
-    def turn(self, left=False, right=False):
+    def turn(self, left=False, right=False, turn_max=None):
         u = self.get_unit()
         if not u:
             return
-        u.direction += u.turn_speed if left else -u.turn_speed if right else 0.0
+        turn = u.turn_speed
+        if turn_max is not None:
+            turn = min(turn, turn_max)
+        u.direction += turn if left else -turn if right else 0.0

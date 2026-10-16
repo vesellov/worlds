@@ -7,10 +7,6 @@ from queue import Queue
 
 #------------------------------------------------------------------------------
 
-from kivy.utils import platform  # @UnresolvedImport
-
-#------------------------------------------------------------------------------
-
 _Debug = False
 
 #------------------------------------------------------------------------------
@@ -31,10 +27,14 @@ _LatestAndroidKeyboardHeightSnapshot = 0
 
 #------------------------------------------------------------------------------
 
-def current_platform():
+def current_platform(known_platform=None):
     global _LatestState
     if _LatestState:
         return _LatestState
+    if known_platform:
+        _LatestState = known_platform
+        return _LatestState
+    from kivy.utils import platform  # @UnresolvedImport
     _LatestState = str('' + platform)
     if _Debug:
         print('system.current_platform', _LatestState)

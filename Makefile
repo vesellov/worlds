@@ -19,9 +19,9 @@ PYTHON_TOOLS="venv_tools/bin/python3"
 .PHONY: clean pyclean
 
 pyclean:
-	@find . -name '*.pyc' -exec rm -f {} +
-	@find . -name '*.pyo' -exec rm -f {} +
-	@find . -name __pycache__ -delete
+	@find src -name '*.pyc' -exec rm -f {} +
+	@find src -name '*.pyo' -exec rm -f {} +
+	@find src -name __pycache__ -delete
 	@find . -name .DS_Store -delete
 	@rm -rf *.egg-info build
 	@rm -rf coverage.xml .coverage
@@ -32,7 +32,7 @@ clean: pyclean
 venv:
 	@$(PYTHON_VERSION) -m venv venv
 	@$(PIP) install --upgrade pip setuptools wheel cython
-	@$(PIP) install kivy[base]==2.3.1 --no-cache-dir
+	@$(PIP) install kivy[base]==2.3.1 --no-cache-dir --no-binary kivy
 	@$(PIP) install -r $(REQUIREMENTS_TXT) --no-cache-dir
 	@# PIP_NO_BINARY=kivy $(PIP) install -r $(REQUIREMENTS_TXT)
 

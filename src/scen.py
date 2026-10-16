@@ -1192,7 +1192,7 @@ class Scene(object):
             print(f'  new animated unit {unit.name} from template {template} at {map_w},{map_h} shift:{shift_w},{shift_h} direction:{direction} coefs:{coefs}')
         return unit
 
-    def create_hero(self, model_name, skin=0, hair=None, wears=[], weapon=None, texture=None, elevation_correction=None):
+    def create_hero(self, model_name, map_w, map_h, skin=0, hair=None, wears=[], weapon=None, texture=None, elevation_correction=None):
         self.hero = hero.Hero(
             scene=self,
             model_name=model_name,
@@ -1202,7 +1202,7 @@ class Scene(object):
             weapon=weapon,
             texture=texture,
         )
-        self.hero.create_unit(252, 340, elevation_correction=elevation_correction)
+        self.hero.create_unit(map_w, map_h, elevation_correction=elevation_correction)
 
     def on_camera_rotate(self, camera_angle_y, camera_angle_z):
         return

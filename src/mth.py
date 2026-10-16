@@ -345,7 +345,7 @@ def latlon2xyz_tor(longitude_radians, latitude_radians, radius=1.0, torus_radius
 
 
 def wh2xyz_scipy(w, h, width, height, radius=1.0):
-    from scipy.spatial.transform import Rotation
+    from scipy.spatial.transform import Rotation  # @UnresolvedImport
     # vector, angle1_degrees, angle2_degrees, axes='xz'
     x_angle_radians = 2.0 * math.pi * w / width
     z_angle_radians = 2.0 * math.pi * h / height

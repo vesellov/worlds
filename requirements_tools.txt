@@ -1,4 +1,4 @@
-Kivy
+kivy==2.3.1
 numpy
 pillow
 platformdirs

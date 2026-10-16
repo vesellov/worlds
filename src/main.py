@@ -2,7 +2,6 @@ import os
 import sys
 import json
 import random
-import math
 
 _Debug = True
 
@@ -10,7 +9,30 @@ os.environ['KIVY_WINDOW'] = 'sdl2'
 os.environ['KIVY_TEXT'] = 'sdl2'
 os.environ['KIVY_IMAGE'] = 'sdl2'
 
+
+PLATFORM = None
+
+kivy_build = os.environ.get('KIVY_BUILD', '')
+if kivy_build in {'android', 'ios'}:
+    PLATFORM = kivy_build
+elif 'P4A_BOOTSTRAP' in os.environ:
+    PLATFORM = 'android'
+elif 'ANDROID_ARGUMENT' in os.environ:
+    PLATFORM = 'android'
+elif sys.platform in ('win32', 'cygwin'):
+    PLATFORM = 'win'
+elif sys.platform == 'darwin':
+    PLATFORM = 'macosx'
+elif sys.platform.startswith('linux'):
+    PLATFORM = 'linux'
+elif sys.platform.startswith('freebsd'):
+    PLATFORM = 'linux'
+else:
+    raise Exception(f'Unsupported platform: {sys.platform}')
+
+
 import system
+system.current_platform(known_platform=PLATFORM)
 
 ROOT_PATH = ''
 if system.is_android():
@@ -22,118 +44,61 @@ elif system.is_ios():
 else:
     ROOT_PATH = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
 
+if not system.is_android():
+    from screeninfo import get_monitors
+    this_monitor = None
+    for m in get_monitors():
+        print(f'display monitor: {m.name} {m.width}x{m.height} primary={m.is_primary}')
+        if m.is_primary:
+            this_monitor = m
+    if this_monitor:
+        display_width, display_height = this_monitor.width, this_monitor.height
+        if display_width >= 3200:
+            target_dpi = 192
+            target_density = 2.0
+            target_fontscale = 1.25
+        elif display_width <= 1280:
+            target_dpi = 72
+            target_density = 0.75
+            target_fontscale = 0.9
+        else:
+            target_dpi = 96
+            target_density = 1.0
+            target_fontscale = 1.0
+        os.environ['KIVY_DPI'] = f'{target_dpi}'
+        os.environ['KIVY_METRICS_DENSITY'] = f'{target_density}'
+        os.environ['KIVY_METRICS_FONTSCALE'] = f'{target_fontscale}'
+        # Metrics.set_dpi(target_dpi)
+        # Metrics.set_density(target_density)
+        # Metrics.set_fontscale(target_fontscale)
+        # Metrics.reset_metrics()
+
 from kivy.config import Config
-Config.set('graphics', 'top', '100')
-Config.set('graphics', 'left', '100')
-Config.set('graphics', 'width', '1400')
-Config.set('graphics', 'height', '700')
+# if not system.is_android():
+#     Config.set('graphics', 'top', '100')
+#     Config.set('graphics', 'left', '100')
+#     Config.set('graphics', 'width', '1400')
+#     Config.set('graphics', 'height', '700')
+
+from kivy.core.window import Window
+from kivy.metrics import dp, sp, cm, Metrics
+
+if system.is_android():
+    display_width, display_height = Window.system_size
 
 if system.is_android():
     Config.set('kivy', 'keyboard_mode', 'managed')
 
 from kivy.clock import Clock
 from kivy.app import App
-from kivy.core.window import Window
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.progressbar import ProgressBar
 from kivy.uix.popup import Popup
-from kivy.uix.label import Label
-from kivy.uix.button import Button
-from kivy.graphics import Color, Ellipse
-from kivy.metrics import dp, sp
 
 import res
 import rend
 import dat
 import scen
-
-
-
-class JoystickRoundButton(Button):
-
-    def __init__(self, **kwargs):
-        super(JoystickRoundButton, self).__init__(**kwargs)
-        self.background_normal = ''
-        self.background_color = (0, 0, 0, 0)
-        self.btn_color = (0.2, 0.6, 1, 0.2) 
-        self.label_w = Label(text="W", font_size=sp(12), bold=True)
-        self.label_a = Label(text="A", font_size=sp(12), bold=True)
-        self.label_s = Label(text="S", font_size=sp(12), bold=True)
-        self.label_d = Label(text="D", font_size=sp(12), bold=True)
-        self.add_widget(self.label_w)
-        self.add_widget(self.label_a)
-        self.add_widget(self.label_s)
-        self.add_widget(self.label_d)
-        self.bind(pos=self.update_layout, size=self.update_layout)
-        # self.state = 'down'
-
-    def update_layout(self, *args):
-        self.canvas.before.clear()
-        with self.canvas.before:
-            if self.state == 'normal':
-                Color(*self.btn_color)
-            else:
-                Color(self.btn_color[0]*0.7, self.btn_color[1]*0.7, self.btn_color[2]*0.7, self.btn_color[3])
-            diameter = min(self.width, self.height)
-            x = self.x + (self.width - diameter) / 2
-            y = self.y + (self.height - diameter) / 2
-            Ellipse(pos=(x, y), size=(diameter, diameter))
-        center_x = self.x + self.width / 2
-        center_y = self.y + self.height / 2
-        radius = diameter / 2.0
-        offset = radius * 0.8
-        self.label_w.center = (center_x, center_y + offset)
-        self.label_s.center = (center_x, center_y - offset)
-        self.label_a.center = (center_x - offset, center_y)
-        self.label_d.center = (center_x + offset, center_y)
-
-    def on_state(self, instance, value):
-        self.update_layout()
-
-    def collide_point(self, x, y):
-        if _Debug:
-            print(f'    joystick.collide_point {x}, {y}')
-        center_x = self.x + self.width / 2
-        center_y = self.y + self.height / 2
-        radius = min(self.width, self.height) / 2
-        distance = math.sqrt((x - center_x) ** 2 + (y - center_y) ** 2)
-        return distance <= radius
-
-    def on_touch_down(self, touch):
-        if _Debug:
-            print(f'            joystick.on_touch_down {touch} is_touch={touch.is_touch} type_id={touch.type_id} profile={touch.profile} button={touch.button} shape={touch.shape} is_double_tap={touch.is_double_tap} is_triple_tap={touch.is_triple_tap}')
-        return super(JoystickRoundButton, self).on_touch_down(touch)
-
-    def on_touch_move(self, touch):
-        if _Debug:
-            print(f'            joystick.on_touch_move {touch} is_touch={touch.is_touch} type_id={touch.type_id} profile={touch.profile} button={touch.button} shape={touch.shape} is_double_tap={touch.is_double_tap} is_triple_tap={touch.is_triple_tap}')
-        return super(JoystickRoundButton, self).on_touch_move(touch)
-
-    def on_touch_up(self, touch):
-        if _Debug:
-            print(f'            joystick.on_touch_up {touch} is_touch={touch.is_touch} type_id={touch.type_id} profile={touch.profile} button={touch.button} shape={touch.shape} is_double_tap={touch.is_double_tap} is_triple_tap={touch.is_triple_tap}')
-        return super(JoystickRoundButton, self).on_touch_up(touch)
-
-
-class RootContainer(FloatLayout):
-
-    round_button = None
-
-    # def on_size(self, *args):
-    #     print(f'RootContainer.on_size {args}')
-        # if self.round_button:
-        #     fixed_offset = dp(100)
-        #     w, h = args[1]
-        #     self.round_button.x = self.round_button.width + fixed_offset
-        #     self.round_button.y = self.round_button.height + fixed_offset
-
-    # def on_update_round_button_position(self, instance, size):
-    #     fixed_offset = dp(500)
-    #     self.round_button.x = self.width - self.round_button.width - fixed_offset
-    #     self.round_button.y = self.height - self.round_button.height - fixed_offset
-    #     print(f'on_update_round_button_position {instance} {size} {self.round_button.x} {self.round_button.y}')
-
+import scr
 
 class WorldsApp(App):
 
@@ -141,11 +106,11 @@ class WorldsApp(App):
     known_figures_parts = {}
 
     def build(self):
+        if _Debug:
+            print(f'building app screen dpi={Metrics.dpi} density={Metrics.density} fontscale={Metrics.fontscale} display={display_width}x{display_height}')
         if system.is_android():
             Window.keyboard_mode = 'managed'
         # Window.bind(on_request_close=self.on_request_close)
-        # url_prefix = 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/eng2001/res/'
-        # url_prefix = 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'
         self.inventory_list = [
             ('data', 'figures.res', ['figures_res_0', 'figures_res_1', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'),
             ('data', 'textures.res', ['textures_res_0', 'textures_res_1', 'textures_res_2', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'),
@@ -181,18 +146,18 @@ class WorldsApp(App):
         for folder, file_name, file_parts, url_prefix in self.inventory_list:
             dest_file_path = os.path.join(res.data_path(folder), file_name)
             if os.path.isfile(dest_file_path):
-                if _Debug:
-                    print(f'        file already exists: {dest_file_path}')
+                # if _Debug:
+                #     print(f'        file already exists: {dest_file_path}')
                 continue
             self.downloading_list.append((folder, file_name, file_parts, url_prefix))
-        self.root = RootContainer()
+        self.root = scr.RootContainer()
         self.downloading_popup = None
         if not self.downloading_list:
             Clock.schedule_once(self.do_start)
             return self.root
         self.downloading_list = self.inventory_list
         self.progress_bar = ProgressBar(value=0, max=len(self.downloading_list), height=32, size_hint=(1, None))
-        self.downloading_popup = Popup(title='Downloading', separator_height=0, content=self.progress_bar, size_hint=(0.8, 0.2), auto_dismiss=False)
+        self.downloading_popup = Popup(title='downloading...', separator_height=0, content=self.progress_bar, size_hint=(0.8, 0.2), auto_dismiss=False)
         self.downloading_popup.open()
         self.task = Clock.schedule_once(self.do_download_next_file)
         return self.root
@@ -224,7 +189,7 @@ class WorldsApp(App):
 
     def do_start(self, dt):
         if _Debug:
-            print('starting the app')
+            print(f'starting the app')
         self.root.clear_widgets()
         catalog = dat.CatalogData()
         catalog.load_figures(figures_file_name=res.data_path('catalog/figures.json'))
@@ -241,10 +206,10 @@ class WorldsApp(App):
         scene = scen.Scene(land=land, catalog=catalog)
         scene.calculate_land_vertices()
         scene.calculate_scaled_elevation_map()
-        renderer = rend.Renderer(app_root=self, scene=scene)
+        self.renderer = rend.Renderer(app_root=self, scene=scene)
         self.known_templates = json.loads(open(res.data_path('catalog/figures_samples.json'), 'rt').read())
-        scene.renderer = renderer
-        scene.init_scene(257, 340)
+        scene.renderer = self.renderer
+        scene.init_scene(250, 350)
         # scene.init_scene()
         # self.create_human_hero(scene)
         scene.create_hero(
@@ -254,6 +219,8 @@ class WorldsApp(App):
             # model_name='unmosu', texture='succubus02',
             # model_name='unmotr', texture='troll02',
             model_name='unhuma',
+            map_w=261,
+            map_h=337,
             skin=41,
             hair=0,
             wears=[
@@ -268,22 +235,19 @@ class WorldsApp(App):
             # elevation_correction=0.5,
         )
         scene.renderer.camera_unit_lock = scene.hero.unit_name
-        self.root.add_widget(renderer)
-        self.root.round_button = JoystickRoundButton(
+        # must add renderer the first to properly propagate touch events and draw widgets on top of it
+        self.root.add_widget(self.renderer)
+        self.renderer.joystick_button = scr.JoystickRoundButton(
+            move_callback=self.renderer.on_joystick_move,
             text="", 
             # font_size=sp(16),
             size_hint=(None, None),
-            size=(dp(100), dp(100)),
+            size=(cm(3), cm(3)),
         )
         fixed_offset = dp(5)
-        self.root.round_button.x = fixed_offset
-        self.root.round_button.y = fixed_offset
-        self.root.add_widget(self.root.round_button)
-        # self.root.round_button.bind(on_press=self.on_round_button_click)
-
-    # def on_round_button_click(self, instance):
-    #     if _Debug:
-    #         print(f"Round button clicked: {instance}")
+        self.renderer.joystick_button.x = fixed_offset
+        self.renderer.joystick_button.y = fixed_offset
+        self.root.add_widget(self.renderer.joystick_button)
 
 
 def main():

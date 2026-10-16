@@ -121,21 +121,21 @@ fix_system_packages:
 install_system_packages:
 	@sudo apt update; sudo apt install --yes --no-install-recommends openjdk-17-jdk cython3 autoconf automake libtool ccache lld zipalign apksigner apktool adb
 
+deploy:
+	@cd ./workspace/ && . ./venv/bin/activate && buildozer android debug deploy
+
+log:
+	@cd ./workspace/ && . ./venv/bin/activate && buildozer -v android logcat
+
 adb_install:
 	@adb install -r -d bin/EIWorldsAndroid.apk
 
-deploy_run:
-	@cd ./workspace/ && . ./venv/bin/activate && buildozer android debug deploy run
-
-shell:
-	@echo "run-as org.eiworlds.eiworlds"
-	@adb shell -t "run-as org.eiworlds.eiworlds; bash -i"
-
-log_buildozer:
-	@cd ./workspace/ && . ./venv/bin/activate && buildozer -v android logcat
-
-log_full:
+adb_log_full:
 	@adb logcat *:V python:V
 
-log_quick:
+adb_log_quick:
 	@adb logcat | grep -E "python|eiworlds|PythonActivity|SDL|PythonService|crush"
+
+adb_shell:
+	@echo "run-as org.eiworlds.eiworlds"
+	@adb shell -t "run-as org.eiworlds.eiworlds; bash -i"

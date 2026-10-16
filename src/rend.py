@@ -3,7 +3,7 @@ import sys
 import math
 import random
 
-_Debug = False
+_Debug = True
 
 
 from kivy.base import EventLoop
@@ -16,6 +16,7 @@ from kivy.uix.image import Image
 from kivy.resources import resource_find
 from kivy.properties import ObjectProperty  # @UnresolvedImport
 from kivy.graphics.transformation import Matrix  # @UnresolvedImport
+from kivy.vector import Vector
 from kivy.graphics.opengl import (
     glGetError, glEnable, glDisable, GL_BLEND, GL_DEPTH_TEST,  # @UnresolvedImport
     glBlendFunc, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,  # @UnresolvedImport
@@ -174,6 +175,8 @@ class Renderer(Widget):
         self.sky_background_translate = None
         self.sky_background_mesh = None
         self.touches = []
+        self.active_touches = {}
+        self.initial_double_touch_dist = 0.0
         self.brightness = 0.0
         self.contrast = 1.0
         self.this_template_name = None
@@ -185,6 +188,7 @@ class Renderer(Widget):
         self.this_template_figure_index = 80
         self.this_template_figure_part_index = 0
         self.this_animation_frame = None
+        self.joystick_button = None
         super(Renderer, self).__init__(**kwargs)
         with self.canvas:
             self.cb = Callback(self.on_setup_gl_context)
@@ -319,6 +323,29 @@ class Renderer(Widget):
         if _Debug:
             d = template_data.copy()
             print(f'    showing template {template_data["m"]} with {len(unit.parts)} parts coefs={coefs} scale={scale}:\n    {d}')
+
+    def on_joystick_move(self, rel_x, rel_y):
+        if not rel_x and not rel_y:
+            self.camera_speed = 0.0
+            self.camera_acceleration = 0.0
+            if self.scene.hero:
+                self.scene.hero.move(forward=False, backward=False)
+        else:
+            joystick_direction = math.degrees(math.atan2(rel_y, rel_x)) - 180.0
+            hero_direction = self.scene.hero.get_unit().direction
+            if _Debug:
+                print(f'            on_joystick_move {rel_x} {rel_y} {joystick_direction} {hero_direction}')
+            # joystick_distance = math.sqrt(rel_x * rel_x + rel_y * rel_y)
+            direction_diff = joystick_direction - hero_direction
+            if direction_diff > 180.0:
+                direction_diff -= 360.0
+            if direction_diff < -180.0:
+                direction_diff += 360.0
+            if direction_diff > 0.0:
+                self.scene.hero.turn(right=True, turn_max=abs(direction_diff))
+            else:
+                self.scene.hero.turn(left=True, turn_max=abs(direction_diff))
+            self.scene.hero.move(forward=True)
 
     def on_keyboard_up(self, keyboard, keycode, *largs):
         self.camera_speed = 0.0
@@ -766,8 +793,14 @@ class Renderer(Widget):
 
     @ignore_undertouch
     def on_touch_down(self, touch):
+        # if _Debug:
+        #     print(f'        renderer.on_touch_down {touch} is_touch={touch.is_touch} type_id={touch.type_id} profile={touch.profile} button={touch.button} shape={touch.shape} is_double_tap={touch.is_double_tap} is_triple_tap={touch.is_triple_tap}')
+        # this is rendering context and there is nothing expected to be behind it - no need to check for collide_point
         touch.grab(self)
         self.touches.append(touch)
+        self.active_touches[touch.id] = touch.pos
+        if len(self.active_touches) == 2:
+            self.initial_double_touch_dist = self.get_active_touch_distance()
         if 'button' in touch.profile and touch.button in ('scrollup', 'scrolldown'):
             factor = self.camera_distance_scale_factor
             if touch.button == "scrolldown":
@@ -782,17 +815,41 @@ class Renderer(Widget):
                 self.camera_distance_scale_factor = factor
                 # if _Debug:
                 #     print(f'new scale factor is {self.camera_distance_scale_factor}, camera distance to center is {float(self.camera_distance_scale_factor) * self.camera_distance_to_center}')
+        return True
 
     @ignore_undertouch
     def on_touch_up(self, touch):
-        touch.ungrab(self)
-        if touch in self.touches:
-            self.touches.remove(touch)
+        if touch.grab_current is self:
+            touch.ungrab(self)
+            if touch.id in self.active_touches:
+                del self.active_touches[touch.id]
+            if touch in self.touches:
+                self.touches.remove(touch)
+            return True
+        return super(Renderer, self).on_touch_up(touch)
 
     @ignore_undertouch
     def on_touch_move(self, touch):
         if touch in self.touches and touch.grab_current == self:
-            if len(self.touches) == 1:
+            self.active_touches[touch.id] = touch.pos
+            if len(self.active_touches) == 2:
+                current_dist = self.get_active_touch_distance()
+                if self.initial_double_touch_dist > 0:
+                    scale_factor = current_dist / self.initial_double_touch_dist
+                    factor = self.camera_distance_scale_factor
+                    if scale_factor > 1.0:
+                        factor = factor * (1.0 - const.SCALE_SPEED_FACTOR)
+                    else:
+                        factor = factor * (1.0 + const.SCALE_SPEED_FACTOR)
+                    if factor < const.SCALE_MIN:
+                        factor = const.SCALE_MIN
+                    if factor > const.SCALE_MAX:
+                        factor = const.SCALE_MAX
+                    if factor != self.camera_distance_scale_factor:
+                        self.camera_distance_scale_factor = factor
+                        # if _Debug:
+                        #     print(f'new scale factor is {self.camera_distance_scale_factor}, camera distance to center is {float(self.camera_distance_scale_factor) * self.camera_distance_to_center}')
+            elif len(self.touches) == 1:
                 ax, ay = self.define_rotate_angle(touch)
                 new_global_rotate_angle = self.camera_angle_y - ay
                 if new_global_rotate_angle < const.ROTATE_VERTICAL_MIN:
@@ -808,6 +865,8 @@ class Renderer(Widget):
                 self.scene.on_camera_rotate(self.camera_angle_y, self.camera_angle_z)
                 # if _Debug:
                 #     print(f'new camera angle y:{self.camera_angle_y} z:{self.camera_angle_z}')
+            return True
+        return super(Renderer, self).on_touch_move(touch)
 
     def on_setup_gl_context(self, *args):
         glEnable(GL_DEPTH_TEST)
@@ -855,3 +914,9 @@ class Renderer(Widget):
         for unit in self.scene.units.values():
             if not unit.static:
                 unit.run(self.scene)
+
+    def get_active_touch_distance(self):
+        positions = list(self.active_touches.values())
+        p1 = Vector(positions[0])
+        p2 = Vector(positions[1])
+        return p1.distance(p2)
