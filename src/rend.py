@@ -33,6 +33,7 @@ from kivy.graphics import (
 )
 
 import const
+import system
 import mth
 import res
 
@@ -189,6 +190,7 @@ class Renderer(Widget):
         self.this_template_figure_part_index = 0
         self.this_animation_frame = None
         self.joystick_button = None
+        self.joystick_latest_state = None
         super(Renderer, self).__init__(**kwargs)
         with self.canvas:
             self.cb = Callback(self.on_setup_gl_context)
@@ -198,12 +200,14 @@ class Renderer(Widget):
             PopMatrix()
             self.cb = Callback(self.on_reset_gl_context)
         self.canvas['texture_id'] = 1
-        self.keyboard_handler = Window.request_keyboard(self.on_keyboard_closed, self)
-        self.keyboard_handler.bind(on_key_down=self.on_keyboard_down)
-        self.keyboard_handler.bind(on_key_up=self.on_keyboard_up)
+        self.keyboard_handler = None
+        if not system.is_android():
+            self.keyboard_handler = Window.request_keyboard(self.on_keyboard_closed, self)
+            self.keyboard_handler.bind(on_key_down=self.on_keyboard_down)
+            self.keyboard_handler.bind(on_key_up=self.on_keyboard_up)
         Clock.schedule_interval(self.on_update_glsl, 1 / 60)
-        Clock.schedule_interval(self.on_update_animations, 0.055 )  # 1 / 24)
-        Clock.schedule_interval(self.on_run_units, 1 / 60)
+        Clock.schedule_interval(self.on_update_animations, 1 / 20 )  # 1 / 24)
+        Clock.schedule_interval(self.on_run_units, 1 / 20)
 
     def create_sky_background(self):
         PushMatrix()
@@ -325,27 +329,31 @@ class Renderer(Widget):
             print(f'    showing template {template_data["m"]} with {len(unit.parts)} parts coefs={coefs} scale={scale}:\n    {d}')
 
     def on_joystick_move(self, rel_x, rel_y):
-        if not rel_x and not rel_y:
-            self.camera_speed = 0.0
-            self.camera_acceleration = 0.0
-            if self.scene.hero:
-                self.scene.hero.move(forward=False, backward=False)
-        else:
-            joystick_direction = math.degrees(math.atan2(rel_y, rel_x)) - 180.0
-            hero_direction = self.scene.hero.get_unit().direction
-            if _Debug:
-                print(f'            on_joystick_move {rel_x} {rel_y} {joystick_direction} {hero_direction}')
-            # joystick_distance = math.sqrt(rel_x * rel_x + rel_y * rel_y)
-            direction_diff = joystick_direction - hero_direction
-            if direction_diff > 180.0:
-                direction_diff -= 360.0
-            if direction_diff < -180.0:
-                direction_diff += 360.0
-            if direction_diff > 0.0:
-                self.scene.hero.turn(right=True, turn_max=abs(direction_diff))
-            else:
-                self.scene.hero.turn(left=True, turn_max=abs(direction_diff))
-            self.scene.hero.move(forward=True)
+        self.joystick_latest_state = (rel_x, rel_y)
+        # if not rel_x and not rel_y:
+        #     self.camera_speed = 0.0
+        #     self.camera_acceleration = 0.0
+        #     if self.scene.hero:
+        #         self.scene.hero.move(forward=False, backward=False)
+        # else:
+        #     joystick_direction = math.degrees(math.atan2(rel_y, rel_x)) + self.camera_angle_z
+        #     if joystick_direction > 180.0:
+        #         joystick_direction -= 360.0
+        #     if joystick_direction < -180.0:
+        #         joystick_direction += 360.0
+        #     hero_direction = self.scene.hero.get_unit().direction
+        #     if _Debug:
+        #         print(f'            on_joystick_move joystick={joystick_direction} camera={self.camera_angle_z} hero={hero_direction}')
+        #     direction_diff = joystick_direction - hero_direction
+        #     if direction_diff > 180.0:
+        #         direction_diff -= 360.0
+        #     if direction_diff < -180.0:
+        #         direction_diff += 360.0
+        #     if direction_diff > 0.0:
+        #         self.scene.hero.turn(right=True, turn_max=abs(direction_diff))
+        #     else:
+        #         self.scene.hero.turn(left=True, turn_max=abs(direction_diff))
+        #     self.scene.hero.move(forward=True)
 
     def on_keyboard_up(self, keyboard, keycode, *largs):
         self.camera_speed = 0.0
@@ -747,6 +755,7 @@ class Renderer(Widget):
                 self.scene.land_move(self.camera_angle_z - 90, const.LAND_MOVE_SPEED)
         elif keycode[1] == 's':
             if self.camera_move_mode == 1:
+                return True
                 if self.scene.hero:
                     self.scene.hero.move(backward=True)
             elif self.camera_move_mode == 2:
@@ -800,7 +809,10 @@ class Renderer(Widget):
         self.touches.append(touch)
         self.active_touches[touch.id] = touch.pos
         if len(self.active_touches) == 2:
-            self.initial_double_touch_dist = self.get_active_touch_distance()
+            positions = list(self.active_touches.values())
+            p1 = Vector(positions[0])
+            p2 = Vector(positions[1])
+            self.initial_double_touch_dist = p1.distance(p2)
         if 'button' in touch.profile and touch.button in ('scrollup', 'scrolldown'):
             factor = self.camera_distance_scale_factor
             if touch.button == "scrolldown":
@@ -833,14 +845,17 @@ class Renderer(Widget):
         if touch in self.touches and touch.grab_current == self:
             self.active_touches[touch.id] = touch.pos
             if len(self.active_touches) == 2:
-                current_dist = self.get_active_touch_distance()
+                positions = list(self.active_touches.values())
+                p1 = Vector(positions[0])
+                p2 = Vector(positions[1])
+                current_dist = p1.distance(p2)
                 if self.initial_double_touch_dist > 0:
                     scale_factor = current_dist / self.initial_double_touch_dist
                     factor = self.camera_distance_scale_factor
                     if scale_factor > 1.0:
-                        factor = factor * (1.0 - const.SCALE_SPEED_FACTOR)
+                        factor = factor * (1.0 - const.SCALE_SPEED_FACTOR / 2.0)
                     else:
-                        factor = factor * (1.0 + const.SCALE_SPEED_FACTOR)
+                        factor = factor * (1.0 + const.SCALE_SPEED_FACTOR / 2.0)
                     if factor < const.SCALE_MIN:
                         factor = const.SCALE_MIN
                     if factor > const.SCALE_MAX:
@@ -905,6 +920,32 @@ class Renderer(Widget):
         if self.camera_unit_lock:
             u = self.scene.units.get(self.camera_unit_lock)
             if u:
+                if self.joystick_latest_state and self.scene.hero.unit_name == u.name:
+                    rel_x, rel_y = self.joystick_latest_state
+                    if not rel_x and not rel_y:
+                        self.camera_speed = 0.0
+                        self.camera_acceleration = 0.0
+                        if self.scene.hero:
+                            self.scene.hero.move(forward=False, backward=False)
+                    else:
+                        joystick_direction = math.degrees(math.atan2(rel_y, rel_x)) + self.camera_angle_z
+                        if joystick_direction > 180.0:
+                            joystick_direction -= 360.0
+                        if joystick_direction < -180.0:
+                            joystick_direction += 360.0
+                        hero_direction = self.scene.hero.get_unit().direction
+                        # if _Debug:
+                        #     print(f'            on_run_units hero joystick={joystick_direction} camera={self.camera_angle_z} hero={hero_direction}')
+                        direction_diff = joystick_direction - hero_direction
+                        if direction_diff > 180.0:
+                            direction_diff -= 360.0
+                        if direction_diff < -180.0:
+                            direction_diff += 360.0
+                        if direction_diff > 0.0:
+                            self.scene.hero.turn(right=True, turn_max=abs(direction_diff))
+                        else:
+                            self.scene.hero.turn(left=True, turn_max=abs(direction_diff))
+                        self.scene.hero.move(forward=True)
                 self.scene.update_land(new_position=(u.w, u.h, u.shift_w, u.shift_h))
         elif self.camera_capital_lock > 0:
             capital = self.scene.land.capitals.get(self.camera_capital_lock, None)
@@ -914,9 +955,3 @@ class Renderer(Widget):
         for unit in self.scene.units.values():
             if not unit.static:
                 unit.run(self.scene)
-
-    def get_active_touch_distance(self):
-        positions = list(self.active_touches.values())
-        p1 = Vector(positions[0])
-        p2 = Vector(positions[1])
-        return p1.distance(p2)

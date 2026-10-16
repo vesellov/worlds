@@ -48,8 +48,8 @@ class Hero(object):
         )
         unit.animations_list = template['animations']
         unit.action_types = template['action_types']
-        unit.max_speed = 0.04
-        unit.acceleration_value = 0.002
+        unit.max_speed = 0.06
+        unit.acceleration_value = 0.004
         unit.turn_speed = 5.0
         unit.animation_playing = unit.action_types['idle'][0]['name']
         unit.animation_next = None
@@ -102,3 +102,7 @@ class Hero(object):
         if turn_max is not None:
             turn = min(turn, turn_max)
         u.direction += turn if left else -turn if right else 0.0
+        if u.direction > 360.0:
+            u.direction -= 360.0
+        elif u.direction < 0.0:
+            u.direction += 360.0

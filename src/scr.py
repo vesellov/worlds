@@ -22,10 +22,10 @@ class JoystickRoundButton(Button):
         self.btn_color = (0.5, 0.5, 0.5, 0.3)
         self.letter_color = (1, 1, 1, 0.7)
         self.arrow_color = (0.6, 0.6, 0.6, 0.5)
-        self.label_w = Label(text="" if system.is_android() else "W", color=self.letter_color, font_size=sp(12), bold=True)
-        self.label_a = Label(text="" if system.is_android() else "A", color=self.letter_color, font_size=sp(12), bold=True)
-        self.label_s = Label(text="" if system.is_android() else "S", color=self.letter_color, font_size=sp(12), bold=True)
-        self.label_d = Label(text="" if system.is_android() else "D", color=self.letter_color, font_size=sp(12), bold=True)
+        self.label_w = Label(text="" if system.is_android() else "", color=self.letter_color, font_size=sp(11), bold=True)
+        self.label_a = Label(text="" if system.is_android() else "", color=self.letter_color, font_size=sp(11), bold=True)
+        self.label_s = Label(text="" if system.is_android() else "", color=self.letter_color, font_size=sp(11), bold=True)
+        self.label_d = Label(text="" if system.is_android() else "", color=self.letter_color, font_size=sp(11), bold=True)
         self.add_widget(self.label_w)
         self.add_widget(self.label_a)
         self.add_widget(self.label_s)
@@ -89,17 +89,24 @@ class JoystickRoundButton(Button):
     def on_touch_down(self, touch):
         if self.collide_point(*touch.pos):
             touch.grab(self)
+            if self.move_callback:
+                local_x, local_y = self.to_local(*touch.pos)
+                local_center_x = self.width / 2
+                local_center_y = self.height / 2
+                rel_x = local_x - local_center_x
+                rel_y = local_y - local_center_y
+                self.move_callback(rel_x, rel_y)
             return True
         return super().on_touch_down(touch)
 
     def on_touch_move(self, touch):
         if touch.grab_current is self and self.collide_point(*touch.pos):
-            local_x, local_y = self.to_local(*touch.pos)
-            local_center_x = self.width / 2
-            local_center_y = self.height / 2
-            rel_x = local_x - local_center_x
-            rel_y = local_y - local_center_y
             if self.move_callback:
+                local_x, local_y = self.to_local(*touch.pos)
+                local_center_x = self.width / 2
+                local_center_y = self.height / 2
+                rel_x = local_x - local_center_x
+                rel_y = local_y - local_center_y
                 self.move_callback(rel_x, rel_y)
             return True
         return super().on_touch_move(touch)

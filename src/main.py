@@ -56,7 +56,7 @@ if not system.is_android():
         if display_width >= 3200:
             target_dpi = 192
             target_density = 2.0
-            target_fontscale = 1.25
+            target_fontscale = 1.2
         elif display_width <= 1280:
             target_dpi = 72
             target_density = 0.75
@@ -68,17 +68,15 @@ if not system.is_android():
         os.environ['KIVY_DPI'] = f'{target_dpi}'
         os.environ['KIVY_METRICS_DENSITY'] = f'{target_density}'
         os.environ['KIVY_METRICS_FONTSCALE'] = f'{target_fontscale}'
-        # Metrics.set_dpi(target_dpi)
-        # Metrics.set_density(target_density)
-        # Metrics.set_fontscale(target_fontscale)
-        # Metrics.reset_metrics()
+    else:
+        display_width, display_height = 800, 600
 
 from kivy.config import Config
-# if not system.is_android():
-#     Config.set('graphics', 'top', '100')
-#     Config.set('graphics', 'left', '100')
-#     Config.set('graphics', 'width', '1400')
-#     Config.set('graphics', 'height', '700')
+if not system.is_android():
+    Config.set('graphics', 'top', f'{int(display_width/4)}')
+    Config.set('graphics', 'left', f'{int(display_height/4)}')
+    Config.set('graphics', 'width', f'{int(display_width/2)}')
+    Config.set('graphics', 'height', f'{int(display_width/4)}')
 
 from kivy.core.window import Window
 from kivy.metrics import dp, sp, cm, Metrics
@@ -86,8 +84,8 @@ from kivy.metrics import dp, sp, cm, Metrics
 if system.is_android():
     display_width, display_height = Window.system_size
 
-if system.is_android():
-    Config.set('kivy', 'keyboard_mode', 'managed')
+# if system.is_android():
+#     Config.set('kivy', 'keyboard_mode', 'managed')
 
 from kivy.clock import Clock
 from kivy.app import App
@@ -108,8 +106,8 @@ class WorldsApp(App):
     def build(self):
         if _Debug:
             print(f'building app screen dpi={Metrics.dpi} density={Metrics.density} fontscale={Metrics.fontscale} display={display_width}x{display_height}')
-        if system.is_android():
-            Window.keyboard_mode = 'managed'
+        # if system.is_android():
+        #     Window.keyboard_mode = 'managed'
         # Window.bind(on_request_close=self.on_request_close)
         self.inventory_list = [
             ('data', 'figures.res', ['figures_res_0', 'figures_res_1', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'),
