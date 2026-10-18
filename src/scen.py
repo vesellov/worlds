@@ -39,6 +39,38 @@ _NextUnitID = 0
 _NextObjectID = 0
 _NextMeshID = 0
 
+_SegmentQuadIndices = np.array([0, 1, 2, 1, 3, 2], dtype=np.int64)
+
+
+def build_segments_batch(positions, tex_coords, angles_x, angles_z):
+    """
+    Bakes many segment quads into one vertex buffer, so they are drawn in a single draw call.
+    positions: (N, 4, 3) segment-local vertices, tex_coords: (N, 4, 2), angles in degrees: (N, ).
+    Produces the same result as the GPU did with Rotate(angle_x, 1, 0, 0) followed by Rotate(angle_z, 0, 0, 1).
+    Returns (N, 4, 8) array of interleaved v_pos, v_normal, v_tex_coord values.
+    """
+    ax = np.radians(angles_x)[:, None]
+    az = np.radians(angles_z)[:, None]
+    cos_x, sin_x = np.cos(ax), np.sin(ax)
+    cos_z, sin_z = np.cos(az), np.sin(az)
+    x, y, z = positions[:, :, 0], positions[:, :, 1], positions[:, :, 2]
+    x1 = cos_z * x - sin_z * y
+    y1 = sin_z * x + cos_z * y
+    n = positions.shape[0]
+    out = np.empty((n, 4, 8), dtype=np.float64)
+    out[:, :, 0] = x1
+    out[:, :, 1] = cos_x * y1 - sin_x * z
+    out[:, :, 2] = sin_x * y1 + cos_x * z
+    out[:, :, 3] = 1.0
+    out[:, :, 4] = 0.0
+    out[:, :, 5] = 0.0
+    out[:, :, 6:8] = tex_coords
+    return out
+
+
+def segments_batch_indices(n):
+    return (np.arange(n, dtype=np.int64)[:, None] * 4 + _SegmentQuadIndices[None, :]).ravel().tolist()
+
 
 class Scene(object):
 
@@ -60,7 +92,18 @@ class Scene(object):
         self.container_static_objects = None
         self.container_animated_objects = None
         self.container_water_tiles = None
-        self.containers_land_tiles = {}
+        # visible land segments are batched into one mesh per land texture, see rebuild_land_meshes()
+        # data of every segment is kept in numpy arrays, one "slot" per segment, to rebuild the meshes quickly
+        self.land_slots = {}
+        self.land_slots_free = []
+        self.land_slots_positions = np.zeros((0, 4, 3), dtype=np.float64)
+        self.land_slots_tex_coords = np.zeros((0, 4, 2), dtype=np.float64)
+        self.land_slots_map_coords = np.zeros((0, 2), dtype=np.float64)
+        self.land_slots_texture_ids = np.zeros((0, ), dtype=np.int64)
+        self.land_textures = []
+        self.land_textures_ids = {}
+        self.land_meshes = {}
+        self.land_meshes_trigger = Clock.create_trigger(self.rebuild_land_meshes)
         self.global_translate_before = None
         self.global_translate_after = None
         self.global_rotate_x = None
@@ -159,13 +202,16 @@ class Scene(object):
         self.container.add(self.global_water_rotate_x)
         self.container.add(self.global_water_rotate_z)
         self.container.add(self.container_water_tiles)
+        # all water segments are static relative to the visible area center, so they are baked into one mesh
+        water_positions = []
+        water_angles_x = []
+        water_angles_z = []
         for k, dist_to_center in self.visible_area_mask.items():
             _w, _h = k
             w_t = w + _w
             h_t = h + _h
             if (w_t, h_t) not in self.water_tiles_visible:
                 segment_angle_x, segment_angle_z = self.coords_area2angles(_w, _h)
-                water_segment_group_name = f'w_{w_t}_{h_t}'
                 ew = const.WATER_LEVEL_ELEVATION #  + (8.0 / 255.0 ) * self.ELEVATION_FACTOR
                 y00 = ew * const.SEGMENT_COS
                 y01 = ew * const.SEGMENT_COS
@@ -179,29 +225,28 @@ class Scene(object):
                 v01 = (c01 * const.PI_4_COS, y01, c01 * const.PI_4_SIN)
                 v10 = (-c10 * const.PI_4_COS, y10, -c10 * const.PI_4_SIN)
                 v11 = (-c11 * const.PI_4_SIN, y11, c11 * const.PI_4_COS)
-                water_vertices = [
-                    v00[0], v00[1], v00[2], 1, 0, 0, 0.0, 0.0,
-                    v01[0], v01[1], v01[2], 1, 0, 0, 0.0, 1.0,
-                    v10[0], v10[1], v10[2], 1, 0, 0, 1.0, 0.0,
-                    v11[0], v11[1], v11[2], 1, 0, 0, 1.0, 1.0,
-                ]
-                water_segment_rotate_x = Rotate(segment_angle_x, 1, 0, 0, group=water_segment_group_name)
-                water_segment_rotate_z = Rotate(segment_angle_z, 0, 0, 1, group=water_segment_group_name)
-                self.container_water_tiles.add(PushMatrix(group=water_segment_group_name))
-                self.container_water_tiles.add(water_segment_rotate_x)
-                self.container_water_tiles.add(water_segment_rotate_z)
-                self.container_water_tiles.add(ChangeState(material_density=0.0, water_transparency=(128.0 / 255.0), group=water_segment_group_name))
-                self.container_water_tiles.add(BindTexture(source=res.data_path('assets/water1.png'), index=1, group=water_segment_group_name))
-                self.container_water_tiles.add(Mesh(
-                    vertices=water_vertices,
-                    indices=[0, 1, 2, 1, 3, 2],
-                    fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
-                    mode='triangles',
-                    group=water_segment_group_name,
-                ))
-                self.container_water_tiles.add(ChangeState(material_density=0.0, water_transparency=(10.0 / 255.0), group=water_segment_group_name))
-                self.container_water_tiles.add(PopMatrix(group=water_segment_group_name))
-                self.water_tiles_visible[(w_t, h_t)] = [_w, _h, water_segment_rotate_x, water_segment_rotate_z]
+                water_positions.append((v00, v01, v10, v11))
+                water_angles_x.append(segment_angle_x)
+                water_angles_z.append(segment_angle_z)
+                self.water_tiles_visible[(w_t, h_t)] = [_w, _h]
+        if water_positions:
+            water_vertices = build_segments_batch(
+                positions=np.array(water_positions, dtype=np.float64),
+                tex_coords=np.tile(np.array([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]]), (len(water_positions), 1, 1)),
+                angles_x=np.array(water_angles_x, dtype=np.float64),
+                angles_z=np.array(water_angles_z, dtype=np.float64),
+            ).ravel().tolist()
+            water_indices = segments_batch_indices(len(water_positions))
+            self.container_water_tiles.add(ChangeState(material_density=0.0, water_transparency=(128.0 / 255.0), group='water'))
+            self.container_water_tiles.add(BindTexture(source=res.data_path('assets/water1.png'), index=1, group='water'))
+            self.container_water_tiles.add(Mesh(
+                vertices=water_vertices,
+                indices=water_indices,
+                fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+                mode='triangles',
+                group='water',
+            ))
+            self.container_water_tiles.add(ChangeState(material_density=0.0, water_transparency=(10.0 / 255.0), group='water'))
         self.container.add(self.global_water_translate_after)
         self.container.add(PopMatrix(group='water'))
         if _Debug:
@@ -821,7 +866,9 @@ class Scene(object):
             # if _Debug:
             #     print(f'  big shift for land update at {w_i} {h_i} with shift {self.segment_shift_w} {self.segment_shift_h} and delta {wd} {hd}')
             self.segments_cleanup_queue.clear()
-        if new_position or wd != 0 or hd != 0:
+        # positions of the segments and units relative to the visible area center only change when the center moves
+        # to another segment, the smooth movement inside of the segment is handled by the global transforms above
+        if wd != 0 or hd != 0:
             for unit_name in self.units.keys():
                 unit = self.units[unit_name]
                 unit.area_w = unit.w - w_i
@@ -832,12 +879,9 @@ class Scene(object):
             for w_t, h_t in self.land_tiles_visible.keys():
                 _w = w_t - w_i
                 _h = h_t - h_i
-                area_w, area_h, segment_rotate_x, segment_rotate_z, static_units_at_segment, _ = self.land_tiles_visible[(w_t, h_t)]
+                area_w, area_h, static_units_at_segment = self.land_tiles_visible[(w_t, h_t)]
                 area_w -= wd
                 area_h -= hd
-                segment_angle_x, segment_angle_z = self.coords_area2angles(area_w, area_h)
-                segment_rotate_x.angle = segment_angle_x
-                segment_rotate_z.angle = segment_angle_z
                 self.land_tiles_visible[(w_t, h_t)][0] = area_w
                 self.land_tiles_visible[(w_t, h_t)][1] = area_h
                 # for unit_name in static_units_at_segment:
@@ -852,17 +896,11 @@ class Scene(object):
                     if (w_t, h_t) not in self.segments_cleanup_queue:
                         self.segments_cleanup_queue.append((w_t, h_t))
                         removed += 1
-            for w_t, h_t in self.water_tiles_visible.keys():
-                _w = w_t - w_i
-                _h = h_t - h_i
-                water_area_w, water_area_h, water_segment_rotate_x, water_segment_rotate_z = self.water_tiles_visible[(w_t, h_t)]
-                water_area_w -= wd
-                water_area_h -= hd
-                segment_angle_x, segment_angle_z = self.coords_area2angles(water_area_w, water_area_h)
-                # water_segment_rotate_x.angle = segment_angle_x
-                # water_segment_rotate_z.angle = segment_angle_z
-                # self.water_tiles_visible[(w_t, h_t)][0] = water_area_w
-                # self.water_tiles_visible[(w_t, h_t)][1] = water_area_h
+            # the global transforms above already moved to the new center and units were updated right away,
+            # land must be rebuilt now as well: if it is drawn with the old vertices for even one frame
+            # all of the land jumps by a whole segment and the screen blinks
+            self.land_meshes_trigger.cancel()
+            self.rebuild_land_meshes()
             for unit_name in self.animating_units:
                 unit = self.units[unit_name]
                 if not unit.onstage:
@@ -940,41 +978,16 @@ class Scene(object):
         h = float(area_h)
         v00, v01, v10, v11, e_min, e_max = self.land_vertices[(w_t, h_t)]
         tex_file_path, tex_coord00, tex_coord01, tex_coord10, tex_coord11 = _get_texture(w_t, h_t)
-        vert = [
-            v00[0], v00[1], v00[2], 1, 0, 0, tex_coord00[0], tex_coord00[1],
-            v01[0], v01[1], v01[2], 1, 0, 0, tex_coord01[0], tex_coord01[1],
-            v10[0], v10[1], v10[2], 1, 0, 0, tex_coord10[0], tex_coord10[1],
-            v11[0], v11[1], v11[2], 1, 0, 0, tex_coord11[0], tex_coord11[1],
-        ]
+        # the segment mesh itself is drawn as part of the batched land meshes, see rebuild_land_meshes()
+        self.add_land_slot(
+            key=(w_t, h_t),
+            tex_file_path=tex_file_path,
+            positions=(v00, v01, v10, v11),
+            tex_coords=(tex_coord00, tex_coord01, tex_coord10, tex_coord11),
+        )
         e_correction = 0
         # e_correction = (e_max - e_min) * 0.05
-        segment_group_name = f'l_{map_w}_{map_h}'
         segment_angle_x, segment_angle_z = self.coords_area2angles(w, h)
-        container_land_tile = InstructionGroup(group=segment_group_name)
-        segment_rotate_x = Rotate(segment_angle_x, 1, 0, 0, group=segment_group_name)
-        segment_rotate_z = Rotate(segment_angle_z, 0, 0, 1, group=segment_group_name)
-        container_land_tile.add(PushMatrix(group=segment_group_name))
-        container_land_tile.add(segment_rotate_x)
-        container_land_tile.add(segment_rotate_z)
-        # self.container_land_tiles.add(PushMatrix(group=segment_group_name))
-        # self.container_land_tiles.add(segment_rotate_x)
-        # self.container_land_tiles.add(segment_rotate_z)
-        # if _Debug:
-        #     if map_w == self.area_center_w and map_h == self.area_center_h:
-        #         tex_source = None
-        segment_state = ChangeState(material_density=0.0, group=segment_group_name)
-        # self.container_land_tiles.add(segment_state)
-        container_land_tile.add(segment_state)
-        container_land_tile.add(BindTexture(source=tex_file_path, index=1, group=segment_group_name))
-        # self.container_land_tiles.add(BindTexture(source=tex_file_path, index=1, group=segment_group_name))
-        container_land_tile.add(Mesh(
-        # self.container_land_tiles.add(Mesh(
-            vertices=vert,
-            indices=[0, 1, 2, 1, 3, 2],
-            fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
-            mode='triangles',
-            group=segment_group_name,
-        ))
         static_units_at_segment = []
         plant_segments = [(w_t, h_t), ]
         for wn, hn in plant_segments:
@@ -1069,13 +1082,7 @@ class Scene(object):
                     area_h=area_h,
                 )
                 static_units_at_segment.append(unit.name)
-        container_land_tile.add(ChangeState(material_density=0.0, group=segment_group_name))
-        container_land_tile.add(PopMatrix(group=segment_group_name))
-        self.containers_land_tiles[(w_t, h_t)] = container_land_tile
-        self.container_land_tiles.add(self.containers_land_tiles[(w_t, h_t)])
-        # self.container_land_tiles.add(ChangeState(material_density=0.0, group=segment_group_name))
-        # self.container_land_tiles.add(PopMatrix(group=segment_group_name))
-        self.land_tiles_visible[(w_t, h_t)] = [area_w, area_h, segment_rotate_x, segment_rotate_z, static_units_at_segment, segment_state]
+        self.land_tiles_visible[(w_t, h_t)] = [area_w, area_h, static_units_at_segment]
         for unit in self.units.values():
             if unit.static:
                 continue
@@ -1088,17 +1095,95 @@ class Scene(object):
 
     def remove_land_segment(self, w_t, h_t):
         # segment_group_name = f'l_{w_t}_{h_t}'
-        _, _, _, _, static_units_at_segment, _ = self.land_tiles_visible[(w_t, h_t)]
+        _, _, static_units_at_segment = self.land_tiles_visible[(w_t, h_t)]
         for static_unit_name in static_units_at_segment:
             self.remove_unit_from_stage(container=self.container_static_objects, unit_name=static_unit_name)
-        container_land_tile = self.containers_land_tiles.get((w_t, h_t))
-        if container_land_tile:
-            self.container_land_tiles.remove(container_land_tile)
-            self.containers_land_tiles.pop((w_t, h_t))
-        # self.container_land_tiles.remove_group(segment_group_name)
+        self.remove_land_slot(key=(w_t, h_t))
         # water_segment_group_name = f'w_{w_t}_{h_t}'
         # self.container_water_tiles.remove_group(water_segment_group_name)
         self.land_tiles_visible.pop((w_t, h_t))
+
+    def add_land_slot(self, key, tex_file_path, positions, tex_coords):
+        if key in self.land_slots:
+            self.remove_land_slot(key)
+        if not self.land_slots_free:
+            # grow all arrays twice, new slots are marked free with texture id -1
+            size = len(self.land_slots_texture_ids)
+            new_size = max(256, size * 2)
+            self.land_slots_positions = np.concatenate([self.land_slots_positions, np.zeros((new_size - size, 4, 3))])
+            self.land_slots_tex_coords = np.concatenate([self.land_slots_tex_coords, np.zeros((new_size - size, 4, 2))])
+            self.land_slots_map_coords = np.concatenate([self.land_slots_map_coords, np.zeros((new_size - size, 2))])
+            self.land_slots_texture_ids = np.concatenate([self.land_slots_texture_ids, np.full((new_size - size, ), -1, dtype=np.int64)])
+            self.land_slots_free = list(range(new_size - 1, size - 1, -1))
+        texture_id = self.land_textures_ids.get(tex_file_path)
+        if texture_id is None:
+            texture_id = len(self.land_textures)
+            self.land_textures.append(tex_file_path)
+            self.land_textures_ids[tex_file_path] = texture_id
+        slot = self.land_slots_free.pop()
+        self.land_slots[key] = slot
+        self.land_slots_positions[slot] = positions
+        self.land_slots_tex_coords[slot] = tex_coords
+        self.land_slots_map_coords[slot] = key
+        self.land_slots_texture_ids[slot] = texture_id
+        self.land_meshes_trigger()
+
+    def remove_land_slot(self, key):
+        slot = self.land_slots.pop(key, None)
+        if slot is None:
+            return
+        self.land_slots_texture_ids[slot] = -1
+        self.land_slots_free.append(slot)
+        self.land_meshes_trigger()
+
+    def rebuild_land_meshes(self, dt=None):
+        """
+        Draws all visible land segments with one mesh per land texture instead of one mesh per segment.
+        Each segment used to be a separate draw call with its own matrix, state and texture changes.
+        That was the most expensive part of every frame on mobile GPU drivers.
+        Segment vertices are rotated on CPU here, which only happens when segments are added/removed
+        or when the visible area center moves to another segment.
+        """
+        used = np.flatnonzero(self.land_slots_texture_ids >= 0)
+        texture_ids = self.land_slots_texture_ids[used]
+        # same as coords_area2angles(), but for all segments at once
+        areas = self.land_slots_map_coords[used] - np.array([self.area_center_w, self.area_center_h], dtype=np.float64)
+        vertices = build_segments_batch(
+            positions=self.land_slots_positions[used],
+            tex_coords=self.land_slots_tex_coords[used],
+            angles_x=mth.h2lon_degrees(areas[:, 1], const.PLANET_EQUATOR_SEGMENTS),
+            angles_z=mth.w2lat_degrees(areas[:, 0], const.PLANET_EQUATOR_SEGMENTS),
+        )
+        order = np.argsort(texture_ids, kind='stable')
+        sorted_texture_ids = texture_ids[order]
+        present_texture_ids, starts, counts = np.unique(sorted_texture_ids, return_index=True, return_counts=True)
+        present_textures = set()
+        for texture_id, start, count in zip(present_texture_ids.tolist(), starts.tolist(), counts.tolist()):
+            tex_file_path = self.land_textures[texture_id]
+            present_textures.add(tex_file_path)
+            texture_vertices = vertices[order[start:start + count]].ravel().tolist()
+            texture_indices = segments_batch_indices(count)
+            if tex_file_path not in self.land_meshes:
+                group = InstructionGroup()
+                group.add(ChangeState(material_density=0.0))
+                group.add(BindTexture(source=tex_file_path, index=1))
+                self.container_land_tiles.add(group)
+                self.land_meshes[tex_file_path] = (group, None)
+            group, old_mesh = self.land_meshes[tex_file_path]
+            # a new mesh gets a new GPU buffer, updating the buffer which is still in use by the GPU makes the driver wait
+            mesh = Mesh(
+                vertices=texture_vertices,
+                indices=texture_indices,
+                fmt=[(b'v_pos', 3, 'float'), (b'v_normal', 3, 'float'), (b'v_tex_coord', 2, 'float')],
+                mode='triangles',
+            )
+            if old_mesh is not None:
+                group.remove(old_mesh)
+            group.add(mesh)
+            self.land_meshes[tex_file_path] = (group, mesh)
+        for tex_file_path in list(self.land_meshes.keys()):
+            if tex_file_path not in present_textures:
+                self.container_land_tiles.remove(self.land_meshes.pop(tex_file_path)[0])
 
     def land_shift(self, shift_w, shift_h):
         require_update = False

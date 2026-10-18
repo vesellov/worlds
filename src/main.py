@@ -1,5 +1,6 @@
 import os
 import sys
+import gc
 import json
 import random
 
@@ -246,6 +247,11 @@ class WorldsApp(App):
         self.renderer.joystick_button.x = fixed_offset
         self.renderer.joystick_button.y = fixed_offset
         self.root.add_widget(self.renderer.joystick_button)
+        # the loaded catalog, map and models are millions of long-living Python objects, a full garbage
+        # collection has to walk all of them and it freezes the app for hundreds of milliseconds on a phone,
+        # move them out of the garbage collector reach so periodic collections only check new objects
+        gc.collect()
+        gc.freeze()
 
 
 def main():

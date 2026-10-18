@@ -1,0 +1,11 @@
+--- a/kivy/core/window/_window_sdl2.pyx	2026-10-16 21:35:37.528110920 +0200
++++ b/kivy/core/window/_window_sdl2.pyx	2026-10-16 21:35:37.529811184 +0200
+@@ -139,7 +139,7 @@
+         SDL_SetHint(SDL_HINT_ORIENTATIONS, <bytes>(orientations.encode('utf-8')))
+ 
+         SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1)
+-        SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16)
++        SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24)
+         SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8)
+         SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8)
+         SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8)
