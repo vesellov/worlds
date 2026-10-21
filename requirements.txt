@@ -3,11 +3,4 @@ numpy
 pillow
 platformdirs
 screeninfo
-
-# PyYAML
-# pygame-ce
-# opencv-python
-# imagehash
-# scipy
-# scikit-image
-# shapely
+six

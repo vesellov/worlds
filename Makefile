@@ -8,11 +8,14 @@ endif
 
 REQUIREMENTS_TXT:=requirements.txt
 REQUIREMENTS_TOOLS_TXT:=requirements_tools.txt
+REQUIREMENTS_SERVER_TXT:=requirements_server.txt
 OS=$(shell lsb_release -si 2>/dev/null || uname)
 PIP:="venv/bin/pip3"
 PYTHON="venv/bin/python3"
 PIP_TOOLS:="venv_tools/bin/pip3"
 PYTHON_TOOLS="venv_tools/bin/python3"
+PIP_SERVER:="venv_server/bin/pip3"
+PYTHON_SERVER="venv_server/bin/python3"
 
 .DEFAULT_GOAL := venv
 
@@ -36,10 +39,15 @@ venv:
 	@$(PIP) install -r $(REQUIREMENTS_TXT) --no-cache-dir
 	@# PIP_NO_BINARY=kivy $(PIP) install -r $(REQUIREMENTS_TXT)
 
+venv_server:
+	@$(PYTHON_VERSION) -m venv venv_server
+	@$(PIP_SERVER) install --upgrade pip
+	@$(PIP_SERVER) install -r $(REQUIREMENTS_SERVER_TXT)
+
 venv_tools:
 	@$(PYTHON_VERSION) -m venv venv_tools
-	@$(PIP) install --upgrade pip
-	@$(PIP) install -r $(REQUIREMENTS_TOOLS_TXT)
+	@$(PIP_TOOLS) install --upgrade pip
+	@$(PIP_TOOLS) install -r $(REQUIREMENTS_TOOLS_TXT)
 
 run: venv
 	@$(PYTHON) src/main.py
