@@ -98,11 +98,13 @@ import rend
 import dat
 import scen
 import scr
+import game_client
 
 class WorldsApp(App):
 
     known_templates = {}
     known_figures_parts = {}
+    game_client = None
 
     def build(self):
         if _Debug:
@@ -209,31 +211,9 @@ class WorldsApp(App):
         self.known_templates = json.loads(open(res.data_path('catalog/figures_samples.json'), 'rt').read())
         scene.renderer = self.renderer
         scene.init_scene(250, 350)
-        # scene.init_scene()
-        # self.create_human_hero(scene)
-        scene.create_hero(
-            # model_name='unorma', weapon='stone battle axe.granite',
-            # model_name='unmogo', texture='goblin00',
-            # model_name='unmori', texture='rick',
-            # model_name='unmosu', texture='succubus02',
-            # model_name='unmotr', texture='troll02',
-            model_name='unhuma',
-            map_w=261,
-            map_h=337,
-            skin=41,
-            hair=0,
-            wears=[
-              "hadagan brigand pants.thin",
-              "hadagan brigand boots.thin",
-              "hadagan brigand gloves.thin",
-              "hadagan brigand leggins.thick",
-              "hadagan brigand helm.thick",
-              "hadagan brigand plate.thick"
-            ],
-            weapon='cheat dagger.bronze',
-            # elevation_correction=0.5,
-        )
-        scene.renderer.camera_unit_lock = scene.hero.unit_name
+        # all units are created by the game server, client only renders them, see game_client.GameClient
+        self.game_client = game_client.GameClient(scene=scene, renderer=self.renderer, url=os.environ.get('WORLDS_SERVER_URL'))
+        self.renderer.game_client = self.game_client
         # must add renderer the first to properly propagate touch events and draw widgets on top of it
         self.root.add_widget(self.renderer)
         self.renderer.joystick_button = scr.JoystickRoundButton(
@@ -252,6 +232,11 @@ class WorldsApp(App):
         # move them out of the garbage collector reach so periodic collections only check new objects
         gc.collect()
         gc.freeze()
+        self.game_client.start()
+
+    def on_stop(self):
+        if self.game_client:
+            self.game_client.stop()
 
 
 def main():

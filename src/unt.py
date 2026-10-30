@@ -39,77 +39,27 @@ class Unit(object):
         self.action_types = {}
         self.direction = 0.0
         self.elevation_correction = None
-        self.acceleration = 0.0
-        self.acceleration_up = 0.0
-        self.acceleration_down = 0.0
-        self.acceleration_value = 0.0
-        self.speed = 0.0
-        self.max_speed = 0.0
-        self.is_walking = False
-        self.is_running = False
-        self.is_attacking = False
-        self.is_dying = False
 
     def __repr__(self):
         return f'Unit[{self.name}/{self.w}:{self.h}/{round(self.shift_w,2)}:{round(self.shift_h,2)}/{self.area_w}:{self.area_h}]'
 
-    def run(self, scene):
-        self.acceleration += self.acceleration_up
-        self.speed += self.acceleration
-        if self.acceleration >= 0:
-            if self.speed > self.max_speed:
-                self.speed = self.max_speed
-        else:
-            if self.speed < -self.max_speed:
-                self.speed = -self.max_speed
-        if self.speed > 0:
-            self.speed -= self.acceleration_down
-            if self.speed < 0:
-                self.speed = 0.0
-        elif self.speed < 0:
-            self.speed += self.acceleration_down
-            if self.speed > 0:
-                self.speed = 0.0
-        self.acceleration = 0.0
-        # if self.speed > self.max_speed:
-        #     self.speed = self.max_speed
-        # self.direction += 1.0
-        if self.direction > 360.0:
-            # self.direction = random.randint(0, 360)
-            # self.max_speed = float(random.randint(1, 50)) / 1000.0
-            # self.acceleration = float(random.randint(1, 5)) / 1000.0
-            self.direction -= 360.0
+    def set_position(self, scene, w, h, shift_w, shift_h, direction):
+        """
+        Places unit on the scene where the server says it is, the movement itself is calculated on the server.
+        """
+        self.direction = direction
         self.rotate_vertical.angle = self.direction + 90
-        self.shift_w += self.speed * math.cos(math.radians(self.direction))
-        self.shift_h += self.speed * math.sin(math.radians(self.direction))
-        w_new = self.w
-        h_new = self.h
-        if self.shift_w > 1.0:
-            w_new += int(self.shift_w)
-            self.shift_w = float(self.shift_w) - float(int(self.shift_w))
-        elif self.shift_w < 0.0:
-            w_new += int(self.shift_w) - 1
-            self.shift_w = float(self.shift_w) - float(int(self.shift_w)) + 1.0
-        if self.shift_h > 1.0:
-            h_new += int(self.shift_h)
-            self.shift_h = float(self.shift_h) - float(int(self.shift_h))
-        elif self.shift_h < 0.0:
-            h_new += int(self.shift_h) - 1
-            self.shift_h = float(self.shift_h) - float(int(self.shift_h)) + 1.0
-        w_diff = w_new - self.w
-        h_diff = h_new - self.h
-        self.w = w_new
-        self.h = h_new
-        # e_correction = 0
-        # if self.root_mesh_center:
-        #     e_correction = self.root_mesh_center[0][2]
-        shift_vector = scene.coords_map2xyz(self.w, self.h, self.shift_w, self.shift_h, elevation_correction=self.elevation_correction) # , elevation_correction=e_correction)
+        w_diff = w - self.w
+        h_diff = h - self.h
+        self.w = w
+        self.h = h
+        self.shift_w = shift_w
+        self.shift_h = shift_h
+        shift_vector = scene.coords_map2xyz(self.w, self.h, self.shift_w, self.shift_h, elevation_correction=self.elevation_correction)
         self.translate_shift.xyz = shift_vector
         if w_diff != 0 or h_diff != 0:
-            # if _Debug:
-            #     print(f'  unit {self.name} at map {self.w},{self.h} shift:{self.shift_w},{self.shift_h} shift_vector:{shift_vector} direction:{self.direction} speed:{self.speed}')
-            self.area_w += w_diff
-            self.area_h += h_diff
+            self.area_w = self.w - int(scene.area_center_w)
+            self.area_h = self.h - int(scene.area_center_h)
             segment_angle_x, segment_angle_z = scene.coords_area2angles(self.area_w, self.area_h)
             self.rotate_axis_x.angle = segment_angle_x
             self.rotate_axis_z.angle = segment_angle_z

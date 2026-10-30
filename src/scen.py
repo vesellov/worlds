@@ -30,7 +30,6 @@ import res
 import mth
 import dat
 import unt
-import hero
 
 
 _Debug = True
@@ -778,7 +777,8 @@ class Scene(object):
         if unit_name not in self.units:
             raise Exception(f'Unit {unit_name} is not on the stage at the moment')
         unit = self.units[unit_name]
-        container.remove(unit.container_unit)
+        if unit.onstage:
+            container.remove(unit.container_unit)
         unit.container_unit.clear()
         # container.remove_group(unit.name)
         for part_name in unit.meshes_transforms.keys():
@@ -1276,18 +1276,6 @@ class Scene(object):
         if _Debug:
             print(f'  new animated unit {unit.name} from template {template} at {map_w},{map_h} shift:{shift_w},{shift_h} direction:{direction} coefs:{coefs}')
         return unit
-
-    def create_hero(self, model_name, map_w, map_h, skin=0, hair=None, wears=[], weapon=None, texture=None, elevation_correction=None):
-        self.hero = hero.Hero(
-            scene=self,
-            model_name=model_name,
-            skin=skin,
-            hair=hair,
-            wears=wears,
-            weapon=weapon,
-            texture=texture,
-        )
-        self.hero.create_unit(map_w, map_h, elevation_correction=elevation_correction)
 
     def on_camera_rotate(self, camera_angle_y, camera_angle_z):
         return

@@ -19,7 +19,7 @@ PYTHON_SERVER="venv_server/bin/python3"
 
 .DEFAULT_GOAL := venv
 
-.PHONY: clean pyclean
+.PHONY: clean pyclean run server
 
 pyclean:
 	@find src -name '*.pyc' -exec rm -f {} +
@@ -51,6 +51,9 @@ venv_tools:
 
 run: venv
 	@$(PYTHON) src/main.py
+
+server: venv_server
+	@$(PYTHON_SERVER) src/server/main.py
 
 ei_models_scan:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi

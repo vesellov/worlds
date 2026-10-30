@@ -15,17 +15,19 @@ from kivy.clock import mainthread
 
 #------------------------------------------------------------------------------
 
-import web_socket
+import web_socket_client as web_socket
 import system
 
 #------------------------------------------------------------------------------
 
 _Debug = True
 _DebugAPIResponses = _Debug
+_DebugMessages = False
 
 #------------------------------------------------------------------------------
 
 _APISecretFilePath = None
+_WebSocketURL = 'ws://127.0.0.1:8280/'
 _WebSocketApp = None
 _WebSocketQueue = None
 _WebSocketReady = False
@@ -40,8 +42,9 @@ _ModelUpdateCallbacks = {}
 
 #------------------------------------------------------------------------------
 
-def start(callbacks={}, api_secret_filepath=None):
+def start(callbacks={}, api_secret_filepath=None, url=None):
     global _APISecretFilePath
+    global _WebSocketURL
     global _WebSocketStarted
     global _WebSocketConnecting
     global _WebSocketQueue
@@ -51,6 +54,8 @@ def start(callbacks={}, api_secret_filepath=None):
     if _Debug:
         print('web_sock.start() api_secret_filepath=%r' % api_secret_filepath)
     _APISecretFilePath = api_secret_filepath
+    if url:
+        _WebSocketURL = url
     _RegisteredCallbacks = callbacks or {}
     _WebSocketConnecting = True
     _WebSocketStarted = True
@@ -177,11 +182,15 @@ def on_close(ws_inst):
 def on_message(ws_inst, message):
     global _CallbacksQueue
     json_data = json.loads(message)
+    cb = registered_callbacks().get('on_message')
+    if cb:
+        # game server messages are handled by the registered callback directly
+        return cb(json_data)
     if 'payload' not in json_data:
         if _Debug:
             print('web_sock.on_message no payload found in the response')
         return False
-    if _Debug:
+    if _DebugMessages:
         print('web_sock.on_message %d bytes' % len(message))
     payload_type = json_data.get('type')
     if payload_type == 'event':
@@ -278,23 +287,28 @@ def requests_thread(active_queue):
             if _Debug:
                 print('going to stop requests thread')
             break
-        if 'call_id' not in json_data:
-            _LastCallID += 1
-            json_data['call_id'] = _LastCallID
-        else:
-            _LastCallID = json_data['call_id']
-        call_id = json_data['call_id']
-        if call_id in _CallbacksQueue:
-            on_fail(Exception('call_id was not unique'), result_callback)
-            continue
         if not ws():
             on_fail(Exception('websocket is closed'), result_callback)
             continue
-        _CallbacksQueue[call_id] = result_callback
+        if result_callback is not None:
+            # only calls which are waiting for a response are identified with call_id
+            if 'call_id' not in json_data:
+                _LastCallID += 1
+                json_data['call_id'] = _LastCallID
+            else:
+                _LastCallID = json_data['call_id']
+            call_id = json_data['call_id']
+            if call_id in _CallbacksQueue:
+                on_fail(Exception('call_id was not unique'), result_callback)
+                continue
+            _CallbacksQueue[call_id] = result_callback
         data = json.dumps(json_data)
-        if _Debug:
+        if _DebugMessages:
             print('sending', data)
-        ws().send(data)
+        try:
+            ws().send(data)
+        except Exception as exc:
+            on_fail(exc, result_callback)
     if _Debug:
         print('requests_thread() finished')
 
@@ -310,7 +324,7 @@ def websocket_thread():
         if _Debug:
             print('websocket_thread() calling run_forever(ping_interval=10) %r' % time.asctime())
         _WebSocketClosed = False
-        ws_url = "ws://localhost:8280/"
+        ws_url = _WebSocketURL
         if _APISecretFilePath:
             if os.path.isfile(_APISecretFilePath):
                 api_secret = system.ReadTextFile(_APISecretFilePath).strip()
@@ -371,7 +385,7 @@ def verify_state():
 def ws_call(json_data, cb=None):
     global _PendingCalls
     st = verify_state()
-    if _Debug:
+    if _DebugMessages:
         print('ws_call', st)
     if st == 'ready':
         ws_queue().put_nowait((json_data, cb, ))
@@ -392,3 +406,13 @@ def ws_call(json_data, cb=None):
             cb(Exception('web socket was not started'))
         return False
     raise Exception('unexpected state %r' % st)
+
+
+def send(json_data):
+    """
+    Sends a message without waiting for a response, returns False if web socket is not ready.
+    """
+    if verify_state() != 'ready':
+        return False
+    ws_queue().put_nowait((json_data, None, ))
+    return True

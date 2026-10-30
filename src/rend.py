@@ -193,6 +193,10 @@ class Renderer(Widget):
         self.this_animation_frame = None
         self.joystick_button = None
         self.joystick_latest_state = None
+        # hero is moved by the server, renderer only collects what the user wants and passes it to the game client
+        self.game_client = None
+        self.input_move = 0
+        self.input_turn = 0
         self.depth_bits_reported = False
         super(Renderer, self).__init__(**kwargs)
         with self.canvas:
@@ -325,8 +329,6 @@ class Renderer(Widget):
         )
         if not unit:
             return
-        unit.max_speed = 0 # random.randint(1, 50) / 1000.0
-        unit.acceleration = 0 # random.randint(1, 5) / 1000.0
         if _Debug:
             d = template_data.copy()
             print(f'    showing template {template_data["m"]} with {len(unit.parts)} parts coefs={coefs} scale={scale}:\n    {d}')
@@ -362,8 +364,9 @@ class Renderer(Widget):
         self.camera_speed = 0.0
         self.camera_acceleration = 0.0
         if keycode[1] in ['w', 's', ]:
-            if self.scene.hero:
-                self.scene.hero.move(forward=False, backward=False)
+            self.input_move = 0
+        elif keycode[1] in ['a', 'd', ]:
+            self.input_turn = 0
     
     def on_keyboard_down(self, keyboard, keycode, text, modifiers):
         if keycode[1] == 'escape':
@@ -742,16 +745,14 @@ class Renderer(Widget):
                 self.camera_move_mode = 1
         elif keycode[1] == 'a':
             if self.camera_move_mode == 1:
-                if self.scene.hero:
-                    self.scene.hero.turn(left=True)
+                self.input_turn = 1
             elif self.camera_move_mode == 2:
                 self.scene.land_shift(0, const.LAND_MOVE_SPEED)
             elif self.camera_move_mode == 3:
                 self.scene.land_move(self.camera_angle_z + 90, const.LAND_MOVE_SPEED)
         elif keycode[1] == 'd':
             if self.camera_move_mode == 1:
-                if self.scene.hero:
-                    self.scene.hero.turn(right=True)
+                self.input_turn = -1
             elif self.camera_move_mode == 2:
                 self.scene.land_shift(0, -const.LAND_MOVE_SPEED)
             elif self.camera_move_mode == 3:
@@ -759,8 +760,7 @@ class Renderer(Widget):
         elif keycode[1] == 's':
             if self.camera_move_mode == 1:
                 return True
-                if self.scene.hero:
-                    self.scene.hero.move(backward=True)
+                self.input_move = -1
             elif self.camera_move_mode == 2:
                 self.scene.land_shift(-const.LAND_MOVE_SPEED, 0)
             elif self.camera_move_mode == 3:
@@ -772,8 +772,7 @@ class Renderer(Widget):
                 self.camera_acceleration = 0.0
         elif keycode[1] == 'w':
             if self.camera_move_mode == 1:
-                if self.scene.hero:
-                    self.scene.hero.move(forward=True)
+                self.input_move = 1
             elif self.camera_move_mode == 2:
                 self.scene.land_shift(const.LAND_MOVE_SPEED, 0)
             elif self.camera_move_mode == 3:
@@ -926,41 +925,32 @@ class Renderer(Widget):
                 unit.animate(self.scene, delta)
 
     def on_run_units(self, delta):
+        self.send_controls()
         if self.camera_unit_lock:
             u = self.scene.units.get(self.camera_unit_lock)
             if u:
-                if self.joystick_latest_state and self.scene.hero.unit_name == u.name:
-                    rel_x, rel_y = self.joystick_latest_state
-                    if not rel_x and not rel_y:
-                        self.camera_speed = 0.0
-                        self.camera_acceleration = 0.0
-                        if self.scene.hero:
-                            self.scene.hero.move(forward=False, backward=False)
-                    else:
-                        joystick_direction = math.degrees(math.atan2(rel_y, rel_x)) + self.camera_angle_z
-                        if joystick_direction > 180.0:
-                            joystick_direction -= 360.0
-                        if joystick_direction < -180.0:
-                            joystick_direction += 360.0
-                        hero_direction = self.scene.hero.get_unit().direction
-                        # if _Debug:
-                        #     print(f'            on_run_units hero joystick={joystick_direction} camera={self.camera_angle_z} hero={hero_direction}')
-                        direction_diff = joystick_direction - hero_direction
-                        if direction_diff > 180.0:
-                            direction_diff -= 360.0
-                        if direction_diff < -180.0:
-                            direction_diff += 360.0
-                        if direction_diff > 0.0:
-                            self.scene.hero.turn(right=True, turn_max=abs(direction_diff))
-                        else:
-                            self.scene.hero.turn(left=True, turn_max=abs(direction_diff))
-                        self.scene.hero.move(forward=True)
                 self.scene.update_land(new_position=(u.w, u.h, u.shift_w, u.shift_h))
         elif self.camera_capital_lock > 0:
             capital = self.scene.land.capitals.get(self.camera_capital_lock, None)
             if capital:
                 if self.scene.area_center_w != capital['x'] or self.scene.area_center_h != capital['y']:
                     self.scene.update_land(new_position=(capital['x'], capital['y'], 0, 0))
-        for unit in self.scene.units.values():
-            if not unit.static:
-                unit.run(self.scene)
+
+    def send_controls(self):
+        if not self.game_client:
+            return
+        if not self.scene.hero or self.scene.hero.unit_name != self.camera_unit_lock:
+            # hero is controlled only while the camera follows him
+            self.game_client.send_controls(move=0, turn=0)
+            return
+        if self.joystick_latest_state and (self.joystick_latest_state[0] or self.joystick_latest_state[1]):
+            rel_x, rel_y = self.joystick_latest_state
+            # joystick is relative to the camera, server needs to know the direction on the map
+            joystick_direction = math.degrees(math.atan2(rel_y, rel_x)) + self.camera_angle_z
+            if joystick_direction > 180.0:
+                joystick_direction -= 360.0
+            if joystick_direction < -180.0:
+                joystick_direction += 360.0
+            self.game_client.send_controls(move=1, turn=0, target_direction=joystick_direction)
+            return
+        self.game_client.send_controls(move=self.input_move, turn=self.input_turn)
