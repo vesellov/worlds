@@ -2,6 +2,7 @@ import os
 import sys
 import math
 import random
+import time
 
 _Debug = True
 
@@ -913,6 +914,14 @@ class Renderer(Widget):
             sys.exit(0)
 
     def on_update_glsl(self, delta):
+        # units are moved smoothly every frame between the server ticks and the camera follows the hero
+        # in the same frame, otherwise hero and land move at different moments and the hero shakes
+        if self.game_client:
+            self.game_client.interpolate(time.perf_counter())
+        if self.camera_unit_lock:
+            u = self.scene.units.get(self.camera_unit_lock)
+            if u:
+                self.scene.update_land(new_position=(u.w, u.h, u.shift_w, u.shift_h))
         self.update_canvas()
 
     def on_update_animations(self, delta):
@@ -926,10 +935,10 @@ class Renderer(Widget):
 
     def on_run_units(self, delta):
         self.send_controls()
+        # land segments are loaded and unloaded at this pace, camera itself follows the hero every frame
+        self.scene.update_segments()
         if self.camera_unit_lock:
-            u = self.scene.units.get(self.camera_unit_lock)
-            if u:
-                self.scene.update_land(new_position=(u.w, u.h, u.shift_w, u.shift_h))
+            pass
         elif self.camera_capital_lock > 0:
             capital = self.scene.land.capitals.get(self.camera_capital_lock, None)
             if capital:

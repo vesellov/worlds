@@ -920,7 +920,10 @@ class Scene(object):
                         added += 1
         # if _Debug:
         #     print(f'visible area at {w_i} {h_i} with {added} added and {removed} removed segments, elevation is {e} / {planet_shift_y}, queue is {len(self.segments_waiting)} / {len(self.segments_cleanup_queue)}')
-        self.update_segments()
+        # update_land() is called every frame while the camera follows the hero, segments loading must not run
+        # that often: it starts here when the center moves and continues from Renderer.on_run_units()
+        if wd != 0 or hd != 0:
+            self.update_segments()
 
     def update_segments(self, dt=None):
         if not self.segments_queue and not self.segments_cleanup_queue:
