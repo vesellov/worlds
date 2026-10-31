@@ -95,6 +95,8 @@ class Simulation(object):
         self.info = None
         self.elevation_map_data = {}
         self.buildings = []
+        # names of all models (templates) used in the world, clients download them before rendering the scene
+        self.templates = []
         self.animations_catalog = {}
         self.action_types_cache = {}
         self.objects = {}
@@ -105,11 +107,15 @@ class Simulation(object):
     def load(self):
         self.load_heightmap(os.path.join(self.root_path, 'assets', 'heightmap.png'))
         self.load_buildings(os.path.join(self.root_path, 'assets', 'buildings.json'))
+        self.load_templates(
+            buildings_file_name=os.path.join(self.root_path, 'assets', 'buildings.json'),
+            plants_file_name=os.path.join(self.root_path, 'assets', 'plants.json'),
+        )
         self.animations_catalog = json.loads(open(os.path.join(self.root_path, 'catalog', 'animations.json'), 'rt').read())
         self.map = models.Map(width=self.width, height=self.height, water_level=const.WATER_LEVEL / 100.0)
         self.info = models.World(name='worlds', width=self.width, height=self.height)
         if _Debug:
-            print(f'world loaded, map is {self.width}x{self.height} with {len(self.buildings)} buildings')
+            print(f'world loaded, map is {self.width}x{self.height} with {len(self.buildings)} buildings and {len(self.templates)} templates')
 
     #--- MAP ---
 
@@ -138,6 +144,16 @@ class Simulation(object):
             radius = BUILDING_RADIUS.get(building_info['k'], 0.3)
             # buildings are placed at the corner of the segment, see scen.Scene.add_land_segment()
             self.buildings.append((float(building_info['x']), float(building_info['y']), radius))
+
+    def load_templates(self, buildings_file_name, plants_file_name):
+        templates = set()
+        for building_info in json.loads(open(buildings_file_name, 'rt').read()):
+            templates.add(building_info['m'])
+        # keys of plants.json are "template#texture#parts", see dat.LandData.load_plants_data() on the client
+        for plant_key in json.loads(open(plants_file_name, 'rt').read()).keys():
+            templates.add(plant_key.split('#')[0])
+        templates.add(DEFAULT_HERO_TEMPLATE['model_name'])
+        self.templates = sorted(t.lower() for t in templates)
 
     def get_elevation(self, w, h):
         return self.elevation_map_data[(w % self.width, h % self.height)]

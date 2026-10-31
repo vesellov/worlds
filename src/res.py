@@ -4,7 +4,6 @@ import json
 import struct
 import collections
 import numpy as np
-import requests
 from PIL import Image
 
 _Debug = True
@@ -377,6 +376,210 @@ def unpack_res_element(file, element, dest_file_name=None):
     return dest_file_name
 
 
+def res_name_hash(name, count):
+    # slot in the .res table where the lookup of that name starts, same as the game does
+    return sum(ord(c) for c in name.lower()) % count
+
+
+def write_res(dest_file_path, items, timestamp=None):
+    """
+    Writes a new .res file, items is a list of (name, data_bytes).
+    Layout: header, data of all elements, table of elements, names.
+    Table rows are placed by the hash of the name, collisions are chained via the first field of the row.
+    """
+    if timestamp is None:
+        timestamp = int(time.time())
+    count = len(items)
+    names = [name.replace('/', '\\').encode(ENCODE) for name, _ in items]
+    rows = []
+    offset = 16
+    for i, (_, data) in enumerate(items):
+        rows.append([0xFFFFFFFF, len(data), offset, timestamp, len(names[i]), 0])
+        offset += len(data)
+    table_offset = offset
+    # place every element at the slot of its hash if possible, others go to free slots and are chained
+    slots = [None] * count
+    pending = []
+    for i, (name, _) in enumerate(items):
+        h = res_name_hash(name, count)
+        if slots[h] is None:
+            slots[h] = i
+        else:
+            pending.append(i)
+    free_slots = [s for s in range(count) if slots[s] is None]
+    for i in pending:
+        s = free_slots.pop(0)
+        slots[s] = i
+        j = res_name_hash(items[i][0], count)
+        while rows[slots[j]][0] != 0xFFFFFFFF:
+            j = rows[slots[j]][0]
+        rows[slots[j]][0] = s
+    # first field keeps the slot index of the next element in the chain, table is written in the slots order
+    names_blob = b''
+    table = b''
+    for s in range(count):
+        i = slots[s]
+        row = rows[i]
+        row[5] = len(names_blob)
+        names_blob += names[i]
+        table += struct.pack('<IIIIHI', *row)
+    tmp_file_path = dest_file_path + '.part'
+    with open(tmp_file_path, 'wb') as f:
+        f.write(b'\x3C\xE2\x9C\x01')
+        f.write(struct.pack('<III', count, table_offset, len(names_blob)))
+        for _, data in items:
+            f.write(data)
+        f.write(table)
+        f.write(names_blob)
+    os.replace(tmp_file_path, dest_file_path)
+    return dest_file_path
+
+
+def figures_templates(figures_file, filetree_dict=None, tmp_dir=None):
+    """
+    Groups elements of figures.res by the model (template) they belong to, returns ({template: [element names]}, [not assigned names]).
+    Templates are the names of .lnk and .mod elements, .anm and .bon with the same name belong to them,
+    parts of a model are named <template><part>.fig / .bon where parts are listed in the <template>.lnk tree.
+    Template names are lower case, element names are as they are in figures.res.
+    """
+    import tempfile
+    import shutil
+    if filetree_dict is None:
+        filetree_dict = read_res_filetree(figures_file, return_dict=True)
+    lower_names = {}
+    for name in filetree_dict.keys():
+        lower_names[name.lower()] = name
+    templates = {}
+    for name_l, name in lower_names.items():
+        if name_l.endswith('.lnk') or name_l.endswith('.mod'):
+            templates.setdefault(name_l[:-4], [])
+    assigned = set()
+    for t in templates.keys():
+        for ext in ('.lnk', '.mod', '.anm', '.bon'):
+            if t + ext in lower_names:
+                templates[t].append(lower_names[t + ext])
+                assigned.add(t + ext)
+    own_tmp_dir = tmp_dir is None
+    if own_tmp_dir:
+        tmp_dir = tempfile.mkdtemp()
+    try:
+        for t in templates.keys():
+            if t + '.lnk' not in lower_names:
+                continue
+            lnk_file_path = unpack_res_element(figures_file, filetree_dict[lower_names[t + '.lnk']], dest_file_name=os.path.join(tmp_dir, t + '.lnk'))
+            lnk_list, _, _, _ = read_lnk_info(lnk_file_path)
+            if not lnk_list:
+                continue
+            for part_name in flat_tree(lnk_list):
+                for ext in ('.fig', '.bon'):
+                    k = t + part_name.lower() + ext
+                    if k in lower_names and k not in assigned:
+                        templates[t].append(lower_names[k])
+                        assigned.add(k)
+    finally:
+        if own_tmp_dir:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+    # the rest of the parts belong to the template with the longest matching name prefix
+    by_length = sorted(templates.keys(), key=lambda x: -len(x))
+    not_assigned = []
+    for name_l, name in lower_names.items():
+        if name_l in assigned:
+            continue
+        for t in by_length:
+            if name_l.startswith(t):
+                templates[t].append(name)
+                assigned.add(name_l)
+                break
+        else:
+            not_assigned.append(name)
+    return templates, not_assigned
+
+
+def extract_figures_template(figures_file, filetree_dict, element_names, dest_file_path):
+    """
+    Writes elements of one template from already opened figures.res into a separate .res file.
+    Names are written in lower case, because the client looks them up in lower case.
+    """
+    items = []
+    for name in element_names:
+        _, offset, size = filetree_dict[name]
+        figures_file.seek(offset)
+        items.append((name.lower(), figures_file.read(size)))
+    return write_res(dest_file_path, items)
+
+
+# Groups of textures.res, every group is written into a separate <group>.res file by tools/split_textures_res.py.
+# Rules are checked in this order, the first matching regex (against the lower case texture name) wins.
+# Textures which do not match any rule go to the "objects" group (props: barrels, chests, carpets and so on).
+TEXTURE_GROUPS = [
+    # terrain of every zone goes to its own file: zone11000 -> zone11, zone11dun1map -> zone11dun1
+    ('zone:', r'^(zone.+?)(\d{3}|map|quest|questm|radar)$'),
+    ('terrain', r'^bz\d+[a-z]\d{3}$'),
+    ('maps', r'^(basegipat|gipat|gipat2|ingos|jigran|suslanger)(\d{3}|map|mapg|sys)$'),
+    ('trees', r'^(tree|oak|bush|mushroom)'),
+    ('nature', r'^(stone|sky|earth|ice|vulkan|cave\d|rainsnow)'),
+    ('armor', r'^(bt|gl|hl|lg|pl|pt|sh)_\d'),
+    ('weapons', r'^(ax|bw|cb|dg|hm|sp|sw)_\d'),
+    ('units', r'^un(an|mo)'),
+    ('faces', r'^(face|orc_face)'),
+    ('creatures', r'^(banshee|bat\d|beholder|bird|boar|cow|crab|cyclop|deer|dog\d|dragon\d|driad\d|eagle|fox|goblin\d'
+                  r'|golem\d|hare|horse|hyena|jlion|jogre|jskeleton|jwolf|lizardman|mindflayer|ogre\d|pig|rat\d'
+                  r'|skeleton|spider|squirrel|succubus|tiger|toad|troll|unicorn|willowisp|wolf|zombie)'),
+    ('items', r'^(litem|qitem|quitem|material|modifier|prototype|mod\d|trap\d)'),
+    ('spells', r'^(spell\d|skill\d)'),
+    ('cursors', r'^(sm_)?cursor_'),
+    ('effects', r'^(acidray|antimagic|astral|bloodprints|curse\d|demonlight|explosion|eye$|fire|footprints|healing$'
+                r'|light$|lightning|particles|poisoncloud|protection|rikarrowsmoke|shapechange|shadow|smtglight|stench'
+                r'|stun|teleport$|tendri|tornado|visionfog)'),
+    ('interface', r'^(camp|casting|changehero|check|constr|inventory|logo|pointer|repair|saveload|scrollbar|select'
+                  r'|sound|trade|link$|level\d|zoneexit|zonemap|ambush|battle|cross$|flag$|rick$|default)'),
+    ('buildings', r'.*(house|tower|wall|bridge|gate|tent|fence|shop|crypt|ruins|temple|door|prison|shipyard|veranda'
+                  r'|cellar|cave|mine|dome|arc\d|pyramid|hall|headquaters|quater|vivary|well\d|fontain|pool|sortir'
+                  r'|smith|throne|tipy|ladder|climb|column|zagon|aquarium|akvarium|statue|idol|altar|cage|waterlock)'),
+]
+
+_texture_groups_compiled = None
+
+
+def texture_group(texture):
+    """
+    Returns the name of the group (and of the <group>.res file) for the texture name.
+    """
+    global _texture_groups_compiled
+    import re
+    if _texture_groups_compiled is None:
+        _texture_groups_compiled = [(g, re.compile(r)) for g, r in TEXTURE_GROUPS]
+    texture = texture.lower()
+    for group, regex in _texture_groups_compiled:
+        m = regex.match(texture)
+        if m:
+            if group.endswith(':'):
+                return m.group(1)
+            return group
+    return 'objects'
+
+
+def textures_groups(textures_file, filetree_dict=None):
+    """
+    Groups elements of textures.res by the groups from TEXTURE_GROUPS: {group: [element names]}.
+    Element names are as they are in textures.res.
+    """
+    if filetree_dict is None:
+        filetree_dict = read_res_filetree(textures_file, return_dict=True)
+    groups = {}
+    for name in filetree_dict.keys():
+        groups.setdefault(texture_group(os.path.splitext(name)[0]), []).append(name)
+    return groups
+
+
+def extract_textures_group(textures_file, filetree_dict, element_names, dest_file_path):
+    """
+    Writes elements of one group from already opened textures.res into a separate .res file.
+    """
+    # same layout as for models: names in lower case
+    return extract_figures_template(textures_file, filetree_dict, element_names, dest_file_path)
+
+
 def scan_figures_data(figures_res_file_path):
     items = {}
     with open(figures_res_file_path, 'rb') as figures_file:
@@ -576,40 +779,3 @@ def build_res_yaml(filetree, f_name):
         res_tree_add(ftree, path)
     generate_res_tree(ftree)
     return _buf
-
-
-def download_file(destination_dir, file_name, parts, url_prefix, parts_delay=3, chunk_size=4096, chunk_delay=None, callback=None):
-    dest_dir = data_path(destination_dir)
-    if not os.path.isdir(dest_dir):
-        os.makedirs(dest_dir)
-    dest_file_path = os.path.join(dest_dir, file_name)
-    if os.path.isfile(dest_file_path):
-        if callback:
-            callback(None)
-        return dest_file_path
-    progress = 0
-    downloaded = 0
-    if not parts:
-        parts = [file_name, ]
-    if not isinstance(parts, list):
-        parts = [parts, ]
-    for part in parts:
-        if downloaded:
-            time.sleep(parts_delay)
-        document_url = url_prefix + part
-        with requests.get(document_url, stream=True) as r:
-            with open(dest_file_path, 'ab') as f:
-                for chunk in r.iter_content(chunk_size):
-                    if chunk:
-                        f.write(chunk)
-                        downloaded += len(chunk)
-                        progress += len(chunk)
-                        if progress >= 10 * 1024 * 1024:
-                            progress -= 10 * 1024 * 1024
-                            if _Debug:
-                                print(f"Downloading {file_name}: {downloaded} bytes")
-                        if chunk_delay:
-                            time.sleep(chunk_delay)
-    if callback:
-        callback(dest_file_path)
-    return dest_file_path

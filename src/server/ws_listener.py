@@ -58,18 +58,21 @@ _WebSocketListener = None
 _WebSocketTransports = {}
 _APISecret = None
 _Callbacks = {}
+_AllowRemote = False
 
 #------------------------------------------------------------------------------
 
 
-def init(port=None, callbacks=None):
+def init(port=None, callbacks=None, host='127.0.0.1'):
     """
-    Starts listening for web socket connections on localhost.
+    Starts listening for web socket connections on the given network interface, localhost by default.
+    Use host "0.0.0.0" to accept connections from other machines.
     callbacks: dict with "on_connected(key)", "on_disconnected(key)" and "on_message(key, json_data)" functions,
     key is a unique identifier of the connection.
     """
     global _WebSocketListener
     global _Callbacks
+    global _AllowRemote
     if _WebSocketListener is not None:
         if _Debug:
             print('_WebSocketListener already initialized')
@@ -77,9 +80,13 @@ def init(port=None, callbacks=None):
     _Callbacks = callbacks or {}
     if not port:
         port = 8280
+    if not host:
+        host = '127.0.0.1'
+    # connections from other machines are refused unless the server was started on another interface on purpose
+    _AllowRemote = host not in ('127.0.0.1', 'localhost')
     try:
         ws = WrappedWebSocketFactory(WebSocketFactory())
-        _WebSocketListener = listen('tcp:%d:interface=127.0.0.1' % port, ws)
+        _WebSocketListener = listen('tcp:%d:interface=%s' % (port, host), ws)
     except:
         traceback.print_exc()
         return
@@ -191,9 +198,9 @@ class WebSocketFactory(Factory):
 
     def buildProtocol(self, addr):
         """
-        Only accepting connections from local machine!
+        Only accepting connections from local machine, unless server listens on another interface.
         """
-        if addr.host != '127.0.0.1':
+        if not _AllowRemote and addr.host != '127.0.0.1':
             if _Debug:
                 print('refused connection from remote host: %r' % addr.host)
             return None

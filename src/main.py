@@ -2,7 +2,8 @@ import os
 import sys
 import gc
 import json
-import random
+import threading
+import traceback
 
 _Debug = True
 
@@ -92,13 +93,17 @@ from kivy.clock import Clock
 from kivy.app import App
 from kivy.uix.progressbar import ProgressBar
 from kivy.uix.popup import Popup
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
+from kivy.uix.button import Button
 
 import res
 import rend
 import dat
 import scen
 import scr
-import game_client
+import cli
+import loader
 
 class WorldsApp(App):
 
@@ -112,8 +117,12 @@ class WorldsApp(App):
         # if system.is_android():
         #     Window.keyboard_mode = 'managed'
         # Window.bind(on_request_close=self.on_request_close)
-        self.inventory_list = [
-            ('data', 'figures.res', ['figures_res_0', 'figures_res_1', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'),
+        self.inventory_list = []
+        if not loader.FIGURES_URL_PREFIX:
+            # models are downloaded one by one when the game server tells which are needed, see loader.ModelsLoader
+            # until the separate models are published the whole figures.res is downloaded and models are taken from it
+            self.inventory_list.append(('data', 'figures.res', ['figures_res_0', 'figures_res_1', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'))
+        self.inventory_list += [
             ('data', 'textures.res', ['textures_res_0', 'textures_res_1', 'textures_res_2', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'),
             ('data', 'redress.res', ['redress_res_0', 'redress_res_1', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'),
             ('data', 'textures2.res', ['textures_res_0', 'textures_res_1', 'textures_res_2', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/eng2001/res/'),
@@ -170,18 +179,34 @@ class WorldsApp(App):
         return True
 
     def do_download_next_file(self, dt):
+        self.task = None
         folder, file_name, file_parts, url_prefix = self.downloading_list.pop(0)
         if _Debug:
             print(f'downloading {folder}/{file_name} from {url_prefix}')
-        self.task = Clock.schedule_once(lambda _: res.download_file(folder, file_name, file_parts, url_prefix, callback=self.on_file_downloaded))
+        # pauses between requests and retries take time, the window must not freeze meanwhile
+        threading.Thread(target=self.download_in_background, args=(folder, file_name, file_parts, url_prefix), daemon=True).start()
+
+    def download_in_background(self, folder, file_name, file_parts, url_prefix):
+        dest_file_path = os.path.join(res.data_path(folder), file_name)
+        urls = [url_prefix + part for part in (file_parts or [file_name, ])]
+        try:
+            loader.download_file(dest_file_path, urls)
+        except Exception:
+            traceback.print_exc()
+            Clock.schedule_once(lambda dt: self.on_download_failed(file_name))
+            return
+        Clock.schedule_once(lambda dt: self.on_file_downloaded(dest_file_path))
+
+    def on_download_failed(self, file_name):
+        # the game can not start without the file, the next start continues from this file
+        if self.downloading_popup:
+            self.downloading_popup.title = f'failed to download {file_name}, please restart the game later'
 
     def on_file_downloaded(self, file_path):
         self.progress_bar.value += 1
         if self.downloading_list:
-            delay = 0
-            if file_path:
-                delay = random.randint(1, 3)
-            self.task = Clock.schedule_once(self.do_download_next_file, delay)
+            # the pause between requests is added by loader.download_file
+            self.task = Clock.schedule_once(self.do_download_next_file)
         else:
             self.task = None
             if self.downloading_popup:
@@ -204,15 +229,85 @@ class WorldsApp(App):
         land.load_cache_tiles_textures(textures_dir_path=res.data_path('assets/land'))
         land.load_plants_data(plants_data_file_name=res.data_path('assets/plants.json'))
         land.load_buildings_data(buildings_data_file_name=res.data_path('assets/buildings.json'))
+        self.catalog = catalog
+        self.land = land
+        self.scene = None
+        self.models_popup = None
+        # scene is rendered only after the game server said which models are used in the world and all of them are on the device
+        self.game_client = cli.GameClient(url=os.environ.get('WORLDS_SERVER_URL'), on_welcome=self.on_welcome)
+        self.show_models_popup(title='connecting to the game server...')
+        self.game_client.start()
+
+    def show_models_popup(self, title, maximum=1):
+        if not self.models_popup:
+            self.models_progress_bar = ProgressBar(value=0, max=maximum, height=32, size_hint=(1, None))
+            self.models_popup = Popup(title=title, separator_height=0, content=self.models_progress_bar, size_hint=(0.8, 0.2), auto_dismiss=False)
+            self.models_popup.open()
+        self.models_popup.title = title
+        self.models_progress_bar.max = max(1, maximum)
+        self.models_progress_bar.value = 0
+
+    def hide_models_popup(self):
+        if self.models_popup:
+            self.models_popup.dismiss()
+            self.models_popup = None
+
+    def on_welcome(self, templates):
+        self.required_templates = templates
+        models_loader = loader.ModelsLoader(templates, on_progress=self.on_models_progress, on_done=self.on_models_ready)
+        if models_loader.missing:
+            self.show_models_popup(title='downloading models...', maximum=len(models_loader.missing))
+        models_loader.start()
+
+    def on_models_progress(self, done, total, template):
+        if self.models_popup:
+            self.models_progress_bar.value = done
+            self.models_popup.title = f'downloading models... {done}/{total}'
+
+    def on_models_ready(self, failed):
+        self.hide_models_popup()
+        if failed:
+            # the world can not be rendered without all of its models, game does not start
+            self.show_models_error(failed)
+            return
+        if not self.scene:
+            self.build_scene()
+        self.game_client.attach(scene=self.scene, renderer=self.renderer)
+
+    def show_models_error(self, failed):
+        content = BoxLayout(orientation='vertical', spacing=dp(10), padding=dp(10))
+        names = ', '.join(failed[:10]) + (f' and {len(failed) - 10} more' if len(failed) > 10 else '')
+        message = Label(
+            text=f'Failed to download {len(failed)} models required by the game server:\n{names}\n\nCheck the network connection and try again.',
+            halign='center',
+            valign='middle',
+        )
+        message.bind(size=lambda instance, value: setattr(instance, 'text_size', value))
+        content.add_widget(message)
+        retry_button = Button(text='try again', size_hint=(1, None), height=dp(44))
+        content.add_widget(retry_button)
+        error_popup = Popup(title='models were not downloaded', content=content, size_hint=(0.9, 0.6), auto_dismiss=False)
+
+        def _retry(*args):
+            error_popup.dismiss()
+            # messages from the server keep waiting in the queue until the scene is ready, see cli.GameClient.attach()
+            self.on_welcome(self.required_templates)
+
+        retry_button.bind(on_release=_retry)
+        error_popup.open()
+
+    def build_scene(self):
+        catalog = self.catalog
+        land = self.land
         scene = scen.Scene(land=land, catalog=catalog)
+        self.scene = scene
         scene.calculate_land_vertices()
         scene.calculate_scaled_elevation_map()
         self.renderer = rend.Renderer(app_root=self, scene=scene)
         self.known_templates = json.loads(open(res.data_path('catalog/figures_samples.json'), 'rt').read())
         scene.renderer = self.renderer
         scene.init_scene(250, 350)
-        # all units are created by the game server, client only renders them, see game_client.GameClient
-        self.game_client = game_client.GameClient(scene=scene, renderer=self.renderer, url=os.environ.get('WORLDS_SERVER_URL'))
+        # all units are created by the game server, client only renders them, see cli.GameClient
         self.renderer.game_client = self.game_client
         # must add renderer the first to properly propagate touch events and draw widgets on top of it
         self.root.add_widget(self.renderer)
@@ -232,7 +327,6 @@ class WorldsApp(App):
         # move them out of the garbage collector reach so periodic collections only check new objects
         gc.collect()
         gc.freeze()
-        self.game_client.start()
 
     def on_stop(self):
         if self.game_client:

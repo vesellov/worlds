@@ -52,8 +52,11 @@ venv_tools:
 run: venv
 	@$(PYTHON) src/main.py
 
+# make server HOST=0.0.0.0 to accept connections from other devices
+HOST ?= 127.0.0.1
+PORT ?= 8280
 server: venv_server
-	@$(PYTHON_SERVER) src/server/main.py
+	@$(PYTHON_SERVER) src/server/main.py --host $(HOST) --port $(PORT)
 
 ei_models_scan:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
@@ -93,6 +96,12 @@ ei_compile:
 	@mv -v repack/EIrepack/weapons.json catalog/
 	@mv -v repack/EIrepack/materials.json catalog/
 	@mv -v repack/EIrepack/animations.json catalog/
+
+FIGURES_RES ?= $(HOME)/.worlds/data/figures.res
+FIGURES_OUT ?= ./figures/
+ei_figures_repack: venv
+	# split big figures.res into one .res file per model, those are downloaded by the client one by one
+	@$(PYTHON) tools/split_figures_res.py $(FIGURES_RES) $(FIGURES_OUT)
 
 tiles_build:
 	@rm -rf ${RES_DIR}/merged_hq/*

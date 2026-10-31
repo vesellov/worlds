@@ -107,11 +107,17 @@ class GameClient(object):
     Server sends objects of the world and their state, client renders them as they are.
     User input is not applied locally, it is only sent to the server as requested controls.
     Between the server ticks movement of the objects is interpolated, see Motion.
+    Server sends the list of all models of the world with the welcome message, nothing is rendered until
+    the client has all of them: other messages are kept in the queue until the scene is attached.
     """
 
-    def __init__(self, scene, renderer, url=None):
+    def __init__(self, scene=None, renderer=None, url=None, on_welcome=None):
         self.scene = scene
         self.renderer = renderer
+        # called with the list of templates from the welcome message, must call attach() when the models are ready
+        self.on_welcome = on_welcome
+        self.ready = scene is not None
+        self.pending_messages = []
         self.url = url or f'ws://127.0.0.1:{models.DEFAULT_PORT}/'
         self.world = None
         self.hero_id = None
@@ -133,6 +139,20 @@ class GameClient(object):
         if web_sock.is_started():
             web_sock.stop()
 
+    def attach(self, scene, renderer):
+        """
+        All required models are ready and the scene was created, process messages received meanwhile.
+        """
+        self.scene = scene
+        self.renderer = renderer
+        self.ready = True
+        pending = self.pending_messages
+        self.pending_messages = []
+        if _Debug:
+            print(f'game client is ready, {len(pending)} messages were waiting')
+        for json_data in pending:
+            self.on_message(json_data)
+
     #--- CONNECTION ---
 
     def on_open(self, ws_inst):
@@ -145,11 +165,14 @@ class GameClient(object):
         if _Debug:
             print(f'disconnected from game server {self.url}')
         # server will create new hero after reconnect, all that client knows about the world is not valid anymore
+        self.pending_messages = []
         for object_id in list(self.objects.keys()):
             self.despawn(object_id)
         self.hero_id = None
-        self.scene.hero = None
-        self.renderer.camera_unit_lock = None
+        if self.scene:
+            self.scene.hero = None
+        if self.renderer:
+            self.renderer.camera_unit_lock = None
         # server may restart and count ticks from zero again
         self.tick_clock_samples.clear()
 
@@ -165,6 +188,9 @@ class GameClient(object):
     def on_message(self, json_data):
         msg_type = json_data.get('t')
         payload = json_data.get('p') or {}
+        if not self.ready and msg_type != models.MSG_WELCOME:
+            self.pending_messages.append(json_data)
+            return True
         try:
             if msg_type == models.MSG_STATE:
                 now = time.perf_counter()
@@ -184,6 +210,10 @@ class GameClient(object):
                     self.tick_interval = 1.0 / self.world.tick_rate
                 if _Debug:
                     print(f'joined world {self.world}, my hero is {self.hero_id}')
+                if self.on_welcome:
+                    # wait until models are downloaded, see attach()
+                    self.ready = False
+                    self.on_welcome(payload.get('templates') or [])
             elif _Debug:
                 print(f'unknown message from game server: {json_data}')
         except:

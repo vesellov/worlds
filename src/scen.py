@@ -30,6 +30,7 @@ import res
 import mth
 import dat
 import unt
+import loader
 
 
 _Debug = True
@@ -456,9 +457,16 @@ class Scene(object):
             if os.path.isdir(res.data_path('models/' + template)):
                 m.load_figure_data(res.data_path('models/' + template), template)
             else:
+                # every model has its own .res file downloaded before the scene is rendered, see loader.ModelsLoader
+                figures_res_path = loader.template_res_path(template)
+                if not os.path.isfile(figures_res_path):
+                    # models which are not in the list received from the server, for example samples shown by debug keys
+                    figures_res_path = res.data_path('data/figures.res')
+                    if not os.path.isfile(figures_res_path):
+                        raise Exception(f'model {template} was not downloaded')
                 if _Debug:
-                    print(f'    loading template {template} from data/figures.res and unpacking into models/')
-                m.unpack_figure_data(res.data_path('data/figures.res'), res.data_path('models'), template=template)
+                    print(f'    loading template {template} from {figures_res_path} and unpacking into models/')
+                m.unpack_figure_data(figures_res_path, res.data_path('models'), template=template)
             for part_name in textures.keys():
                 texture = textures[part_name]
                 if texture.count(':') == 1:

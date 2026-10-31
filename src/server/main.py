@@ -5,7 +5,9 @@ Runs in its own virtual environment (see "make venv_server"), listens for web so
 and runs the game loop: every tick all requests of the connected clients are processed,
 the world state is changed according to the game rules and all changes are sent to the clients.
 
-    venv_server/bin/python3 src/server/main.py [--port 8280]
+    venv_server/bin/python3 src/server/main.py [--host 127.0.0.1] [--port 8280]
+
+Use "--host 0.0.0.0" to accept connections from other devices, for example from a phone in the same network.
 """
 
 import os
@@ -37,8 +39,8 @@ class GameServer(object):
         self.heroes = {}
         self.loop = None
 
-    def start(self, port):
-        ws_listener.init(port=port, callbacks={
+    def start(self, port, host='127.0.0.1'):
+        ws_listener.init(port=port, host=host, callbacks={
             'on_connected': self.on_connected,
             'on_disconnected': self.on_disconnected,
             'on_message': self.on_message,
@@ -46,7 +48,7 @@ class GameServer(object):
         self.loop = task.LoopingCall(self.on_tick)
         self.loop.start(1.0 / models.TICK_RATE, now=False)
         if _Debug:
-            print(f'game server started on ws://127.0.0.1:{port}/ with {models.TICK_RATE} ticks per second')
+            print(f'game server started on ws://{host}:{port}/ with {models.TICK_RATE} ticks per second')
 
     def stop(self):
         if self.loop and self.loop.running:
@@ -83,6 +85,8 @@ class GameServer(object):
         ws_listener.send(key, models.message(models.MSG_WELCOME, {
             'world': self.world.info.to_dict(),
             'hero_id': hero.id,
+            # client must have all these models before it starts rendering the world
+            'templates': self.world.templates,
         }))
         # new client receives the whole world, others only the new hero
         ws_listener.send(key, models.message(models.MSG_SPAWN, {
@@ -101,14 +105,15 @@ class GameServer(object):
 
 def main():
     parser = argparse.ArgumentParser(description='worlds game server')
+    parser.add_argument('--host', default='127.0.0.1', help='network interface to listen on, use 0.0.0.0 to accept connections from other devices')
     parser.add_argument('--port', type=int, default=models.DEFAULT_PORT)
     args = parser.parse_args()
     world = simulation.Simulation(root_path=ROOT_PATH)
     world.load()
     server = GameServer(world)
-    server.start(port=args.port)
-    reactor.addSystemEventTrigger('before', 'shutdown', server.stop)
-    reactor.run()
+    server.start(port=args.port, host=args.host)
+    reactor.addSystemEventTrigger('before', 'shutdown', server.stop)  # @UndefinedVariable
+    reactor.run()  # @UndefinedVariable
 
 
 if __name__ == '__main__':
