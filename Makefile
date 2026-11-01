@@ -112,7 +112,7 @@ fmg_clean:
 	@rm -rf fmg/Fantasy-Map-Generator
 
 fmg_build:
-	@if [ ! -d "./fmg/Fantasy-Map-Generator" ]; then git clone --depth=1 https://github.com/Azgaar/Fantasy-Map-Generator.git ./fmg/Fantasy-Map-Generator; fi
+	@if [ ! -d "./fmg/Fantasy-Map-Generator" ]; then git clone https://github.com/vesellov/Fantasy-Map-Generator.git ./fmg/Fantasy-Map-Generator && cd ./fmg/Fantasy-Map-Generator && git switch --detach faf8a7f498d68427bdc66cbaf8abff53337c807e; fi
 	@mkdir -p fmg/Fantasy-Map-Generator/tests/custom/
 	@cp -v tools/options.js fmg/Fantasy-Map-Generator/public/modules/ui/
 	@cp -v tools/burgs-generator.ts fmg/Fantasy-Map-Generator/src/modules/
@@ -120,7 +120,7 @@ fmg_build:
 	@cp -v tools/heightmap-templates.js fmg/Fantasy-Map-Generator/public/config/ 
 	@cp -v tools/generate.spec.ts fmg/Fantasy-Map-Generator/tests/custom/
 	@cp -v tools/playwright.config.custom.ts fmg/Fantasy-Map-Generator/
-	@cd fmg/Fantasy-Map-Generator/ && npm install && npx playwright install && npm run build
+	@cd fmg/Fantasy-Map-Generator/ && npm install && npm install -D playwright@^1.64.1 @playwright/test@^1.64.1 && npm run build
 
 fmg_generate:
 	@cd fmg/Fantasy-Map-Generator/ && npx playwright test --config playwright.config.custom.ts
@@ -129,5 +129,5 @@ fmg_generate:
 
 land_build:
 	@rm -rfv assets/tiles.png
-	@PYTHONPATH=src venv_tools/bin/python -m client.land map.json 512 512
+	@PYTHONPATH=src venv_tools/bin/python -m server.land map.json 512 512
 	@open assets/minimap.png

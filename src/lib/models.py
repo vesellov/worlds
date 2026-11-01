@@ -50,8 +50,8 @@ def message(msg_type, payload=None):
 
 
 def safe_name(name):
-    # names received from the network are used as folder names, only letters, digits, "-", "_" and "." stay
-    name = re.sub(r'[^A-Za-z0-9_.-]', '_', str(name)).strip('.')
+    # names received from the network are used as folder names, only letters, digits, "-" and "_" stay
+    name = re.sub(r'[^A-Za-z0-9_-]', '_', str(name))
     return name or '_'
 
 

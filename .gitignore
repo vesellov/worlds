@@ -6,6 +6,8 @@ data/*.res
 fmg/
 repack/
 biomes/
+.z/
+.y/
 
 # Generated during map creation
 assets/catalog_stats.json
@@ -235,8 +237,3 @@ __marimo__/
 
 # OS specific
 .DS_Store
-
-# AI
-.claude
-.claude_home/
-.claude-1000/
