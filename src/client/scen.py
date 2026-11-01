@@ -147,6 +147,15 @@ class Scene(object):
     def create_container(self):
         self.container = InstructionGroup()
 
+    def stop(self):
+        """
+        The scene is closed, for example the hero goes into another biome.
+        """
+        Clock.unschedule(self.update_segments)
+        self.land_meshes_trigger.cancel()
+        self.segments_queue = []
+        self.segments_cleanup_queue = []
+
     def init_scene(self, map_center_w=None, map_center_h=None):
         if map_center_w is None:
             map_center_w = int(self.map_width / 2)

@@ -1,7 +1,9 @@
 import os
 import math
 import time
+import base64
 import random
+import threading
 import traceback
 import collections
 
@@ -179,17 +181,36 @@ class GameClient(object):
     User input is not applied locally, it is only sent to the server as requested controls, together with
     the tick they must be applied at. Movement of the objects is calculated with the same rules as on the server,
     see Prediction.
-    Server sends the list of all models of the world with the welcome message, nothing is rendered until
-    the client has all of them: other messages are kept in the queue until the scene is attached.
+    After connecting the server sends its name and the list of its biomes (on_server_info), then the client enters
+    one of them, see enter(). The server sends the archive of the biome unless the client has it already, it is
+    extracted into biomes/<location_id>/ (on_biome) and the application loads the land from there and calls
+    biome_loaded(). Then the server sends the list of all models of the biome with the welcome message (on_welcome),
+    nothing is rendered until the client has all of them: other messages are kept in the queue until
+    the scene is attached.
     """
 
-    def __init__(self, scene=None, renderer=None, url=None, on_welcome=None):
+    def __init__(self, scene=None, renderer=None, url=None, on_welcome=None, on_server_info=None, on_biome=None, on_biome_progress=None):
         self.scene = scene
         self.renderer = renderer
         # called with the list of templates from the welcome message, must call attach() when the models are ready
         self.on_welcome = on_welcome
+        # called with the name of the server and the list of models.Biome, must call enter()
+        self.on_server_info = on_server_info
+        # called with (location_id, folder with the files of the biome, error), must call biome_loaded() when the land is loaded
+        self.on_biome = on_biome
+        # called with (received pieces, all pieces) while the archive of the biome is downloading
+        self.on_biome_progress = on_biome_progress
         self.ready = scene is not None
         self.pending_messages = []
+        self.server_name = None
+        self.biomes = []
+        # the biome the client asked to enter, messages of the previous biome are dropped until the server answers
+        self.entering = None
+        self.biome_id = None
+        self.location_id = None
+        self.biome_ready = scene is not None
+        # archive of the biome being received: {sha256, size, chunks, parts}
+        self.biome_receiving = None
         self.url = url or f'ws://127.0.0.1:{models.DEFAULT_PORT}/'
         self.world = None
         self.hero_id = None
@@ -239,33 +260,45 @@ class GameClient(object):
 
     #--- CONNECTION ---
 
-    def on_open(self, ws_inst):
-        if _Debug:
-            print(f'connected to game server {self.url}')
+    def reset_world(self):
+        """
+        Forgets all about the current biome: its objects, ticks and the own hero.
+        """
+        self.pending_messages = []
+        self.loading.clear()
+        for object_id in list(self.objects.keys()):
+            self.despawn(object_id)
+        self.world = None
+        self.hero_id = None
+        if self.scene:
+            self.scene.hero = None
+        if self.renderer:
+            self.renderer.camera_unit_lock = None
+        # every biome counts its ticks
+        self.tick_clock_samples.clear()
+        self.tick_offset = None
+        self.last_render_tick = None
         self.controls_sent = None
         self.controls_seq = 0
         self.controls_last_tick = 0
         self.controls_lead.clear()
         self.input_acknowledged = 0
+        self.biome_receiving = None
+
+    def on_open(self, ws_inst):
+        if _Debug:
+            print(f'connected to game server {self.url}')
         web_sock.send(models.message(models.MSG_JOIN))
 
     def on_close(self, ws_inst):
         if _Debug:
             print(f'disconnected from game server {self.url}')
         # server will create new hero after reconnect, all that client knows about the world is not valid anymore
-        self.pending_messages = []
-        self.loading.clear()
-        for object_id in list(self.objects.keys()):
-            self.despawn(object_id)
-        self.hero_id = None
-        if self.scene:
-            self.scene.hero = None
-        if self.renderer:
-            self.renderer.camera_unit_lock = None
-        # server may restart and count ticks from zero again
-        self.tick_clock_samples.clear()
-        self.tick_offset = None
-        self.last_render_tick = None
+        self.reset_world()
+        self.entering = None
+        self.biome_id = None
+        self.biome_ready = False
+        self.ready = False
 
     def on_message_received(self, json_data):
         # debug only: delays incoming messages to simulate slow network, messages still keep their order
@@ -282,7 +315,23 @@ class GameClient(object):
             arrived = time.perf_counter()
         msg_type = json_data.get('t')
         payload = json_data.get('p') or {}
-        if not self.ready and msg_type != models.MSG_WELCOME:
+        try:
+            if msg_type == models.MSG_SERVER_INFO:
+                self.on_server_info_received(payload)
+                return True
+            if msg_type == models.MSG_BIOME:
+                self.on_biome_received(payload)
+                return True
+            if msg_type == models.MSG_BIOME_DATA:
+                self.on_biome_data_received(payload)
+                return True
+        except:
+            traceback.print_exc()
+            return True
+        if self.entering or self.biome_id is None:
+            # messages of the previous biome which were sent before the server got "enter"
+            return True
+        if not self.biome_ready or (not self.ready and msg_type != models.MSG_WELCOME):
             self.pending_messages.append((json_data, arrived))
             return True
         try:
@@ -314,7 +363,7 @@ class GameClient(object):
                 if self.world.tick_rate:
                     self.tick_interval = 1.0 / self.world.tick_rate
                 if _Debug:
-                    print(f'joined world {self.world}, my hero is {self.hero_id}')
+                    print(f'joined world {self.world} of biome {self.location_id}, my hero is {self.hero_id}')
                 if self.on_welcome:
                     # wait until models are downloaded, see attach()
                     self.ready = False
@@ -324,6 +373,104 @@ class GameClient(object):
         except:
             traceback.print_exc()
         return True
+
+    #--- BIOMES ---
+
+    def on_server_info_received(self, payload):
+        self.server_name = payload.get('name') or 'server'
+        self.biomes = [models.Biome.from_data(b) for b in payload.get('biomes') or []]
+        if _Debug:
+            print(f'game server {self.server_name!r} has biomes {[b.id for b in self.biomes]}')
+        if self.on_server_info:
+            self.on_server_info(self.server_name, self.biomes)
+
+    def enter(self, biome_id):
+        """
+        Asks the server to move the hero into that biome. The current biome is dropped right away:
+        nothing is rendered until the new biome is downloaded and loaded.
+        """
+        self.reset_world()
+        self.entering = biome_id
+        self.biome_id = None
+        self.biome_ready = False
+        self.ready = False
+        self.scene = None
+        self.renderer = None
+        self.location_id = models.location_id(self.server_name, biome_id)
+        web_sock.send(models.message(models.MSG_ENTER, {
+            'biome_id': biome_id,
+            'sha256': loader.cached_biome_sha256(self.location_id),
+        }))
+        if _Debug:
+            print(f'entering biome {biome_id} as {self.location_id}')
+
+    def on_biome_received(self, payload):
+        if payload.get('biome_id') != self.entering:
+            return
+        self.entering = None
+        self.biome_id = payload['biome_id']
+        if not payload.get('chunks'):
+            # the same archive was received before
+            if _Debug:
+                print(f'biome {self.location_id} is already on the device')
+            self.on_biome_files_ready(loader.biome_dir(self.location_id), None)
+            return
+        self.biome_receiving = {
+            'sha256': payload['sha256'],
+            'size': payload['size'],
+            'chunks': payload['chunks'],
+            'parts': [],
+        }
+        if _Debug:
+            print(f'receiving biome {self.location_id}, {payload["size"]} bytes in {payload["chunks"]} pieces')
+        if self.on_biome_progress:
+            self.on_biome_progress(0, payload['chunks'])
+
+    def on_biome_data_received(self, payload):
+        receiving = self.biome_receiving
+        if not receiving or payload.get('biome_id') != self.biome_id:
+            return
+        if payload.get('index') != len(receiving['parts']):
+            self.biome_receiving = None
+            self.on_biome_files_ready(None, f'piece {payload.get("index")} of biome {self.biome_id} came out of order')
+            return
+        receiving['parts'].append(base64.b64decode(payload['data']))
+        if self.on_biome_progress:
+            self.on_biome_progress(len(receiving['parts']), receiving['chunks'])
+        if len(receiving['parts']) < receiving['chunks']:
+            return
+        self.biome_receiving = None
+        archive_data = b''.join(receiving['parts'])
+        location_id = self.location_id
+        # checking and extracting takes a moment, the window must not freeze meanwhile
+        threading.Thread(target=self.extract_biome, args=(archive_data, location_id, receiving['sha256']), daemon=True).start()
+
+    def extract_biome(self, archive_data, location_id, sha256):
+        try:
+            dest_dir = loader.extract_biome(archive_data, location_id, sha256)
+            error = None
+        except Exception as exc:
+            traceback.print_exc()
+            dest_dir, error = None, str(exc)
+        Clock.schedule_once(lambda dt: self.on_biome_files_ready(dest_dir, error, location_id))
+
+    def on_biome_files_ready(self, dest_dir, error, location_id=None):
+        if location_id is not None and location_id != self.location_id:
+            # the client went somewhere else meanwhile
+            return
+        if self.on_biome:
+            self.on_biome(self.location_id, dest_dir, error)
+
+    def biome_loaded(self):
+        """
+        The land of the biome was loaded by the application, messages received meanwhile are processed:
+        the welcome message comes first, see on_welcome.
+        """
+        self.biome_ready = True
+        pending = self.pending_messages
+        self.pending_messages = []
+        for json_data, arrived in pending:
+            self.on_message(json_data, arrived=arrived)
 
     #--- OBJECTS ---
 
@@ -455,7 +602,7 @@ class GameClient(object):
     def despawn(self, object_id):
         self.loading.pop(object_id, None)
         o, view, _ = self.objects.pop(object_id, (None, None, None))
-        if not view:
+        if not view or not self.scene:
             return
         if view.unit_name in self.scene.units:
             self.scene.remove_unit_from_stage(container=self.scene.container_animated_objects, unit_name=view.unit_name)

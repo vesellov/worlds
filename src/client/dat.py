@@ -687,8 +687,9 @@ class LandData(object):
         self.capitals = {}
         self.towers = {}
 
-    def load_tilemap_file(self, tilemap_file_name):
-        tiles_list = json.loads(open(res.data_path('assets/tiles.json'), 'rt').read())
+    def load_tilemap_file(self, tilemap_file_name, tiles_file_name):
+        with open(tiles_file_name, 'rt') as f:
+            tiles_list = json.loads(f.read())
         tiles_registry = {}
         for tile_info in tiles_list:
             catalog_id, mozaic_id, mozaic_pos = [int(i) for i in tile_info.split(' ')]
@@ -794,7 +795,8 @@ class LandData(object):
                     _tex = Image(file_path_source).texture
                     Cache.append('kv.texture', file_path, _tex)
                     count += 1
-                    self.tiles_files[int(file_name[:-4])] = file_path
+                # textures stay in the kivy cache when the next biome is loaded, but this land needs all of them
+                self.tiles_files[int(file_name[:-4])] = file_path
         if _Debug:
             print(f'  cached {count} textures at {self.tiles_textures_dir_path} for land tiles')
 

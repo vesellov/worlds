@@ -192,20 +192,89 @@ class WorldsApp(App):
         catalog.load_armors(armors_file_name=res.catalog_path('armors.json'))
         catalog.load_weapons(weapons_file_name=res.catalog_path('weapons.json'))
         catalog.load_materials(materials_file_name=res.catalog_path('materials.json'))
-        land = dat.LandData()
-        land.load_heightmap_file(heightmap_file_name=res.data_path('assets/heightmap.png'))
-        land.load_tilemap_file(tilemap_file_name=res.data_path('assets/encoded.png'))
-        land.load_cache_tiles_textures(textures_dir_path=res.data_path('textures/land'))
-        land.load_plants_data(plants_data_file_name=res.data_path('assets/plants.json'))
-        land.load_buildings_data(buildings_data_file_name=res.data_path('assets/buildings.json'))
         self.catalog = catalog
-        self.land = land
+        self.land = None
         self.scene = None
+        self.renderer = None
         self.models_popup = None
-        # scene is rendered only after the game server said which models are used in the world and all of them are on the device
-        self.game_client = cli.GameClient(url=os.environ.get('WORLDS_SERVER_URL'), on_welcome=self.on_welcome)
+        self.server_name = None
+        self.biomes = []
+        # the land comes from the game server: the archive of the biome is downloaded before anything is rendered,
+        # then the scene is rendered only after all models used in the biome are on the device
+        self.game_client = cli.GameClient(
+            url=os.environ.get('WORLDS_SERVER_URL'),
+            on_welcome=self.on_welcome,
+            on_server_info=self.on_server_info,
+            on_biome=self.on_biome,
+            on_biome_progress=self.on_biome_progress,
+        )
         self.show_models_popup(title='connecting to the game server...')
         self.game_client.start()
+
+    #--- BIOMES ---
+
+    def on_server_info(self, server_name, biomes):
+        self.server_name = server_name
+        self.biomes = biomes
+        if not biomes:
+            self.show_models_popup(title=f'game server {server_name} has no biomes')
+            return
+        # the game always starts in the first biome of the server
+        self.enter_biome(biomes[0].id)
+
+    def enter_biome(self, biome_id):
+        self.game_client.enter(biome_id)
+        self.close_scene()
+        name = next((b.name for b in self.biomes if b.id == biome_id), biome_id)
+        self.show_models_popup(title=f'entering {name}...')
+
+    def next_biome(self):
+        # debug: moves the hero into the next biome of the server
+        if len(self.biomes) < 2:
+            if _Debug:
+                print('the game server has only one biome')
+            return
+        ids = [b.id for b in self.biomes]
+        current = self.game_client.biome_id or self.game_client.entering
+        index = (ids.index(current) + 1) % len(ids) if current in ids else 0
+        self.enter_biome(ids[index])
+
+    def close_scene(self):
+        if self.renderer:
+            self.renderer.stop()
+        if self.scene:
+            self.scene.stop()
+        self.root.clear_widgets()
+        self.scene = None
+        self.renderer = None
+        self.land = None
+        # objects of the previous biome were moved out of the garbage collector reach, see build_scene()
+        gc.unfreeze()
+        gc.collect()
+
+    def on_biome_progress(self, done, total):
+        self.show_models_popup(title=f'downloading the land... {done}/{total}', maximum=total)
+        self.models_progress_bar.value = done
+
+    def on_biome(self, location_id, biome_dir, error):
+        if error or not biome_dir:
+            self.show_models_popup(title=f'failed to receive the land: {error}')
+            return
+        self.show_models_popup(title='loading the land...')
+        # let the popup be drawn before the land is loaded
+        Clock.schedule_once(lambda dt: self.load_land(biome_dir))
+
+    def load_land(self, biome_dir):
+        land = dat.LandData()
+        land.load_heightmap_file(heightmap_file_name=os.path.join(biome_dir, 'heightmap.png'))
+        land.load_tilemap_file(tilemap_file_name=os.path.join(biome_dir, 'encoded.png'), tiles_file_name=os.path.join(biome_dir, 'tiles.json'))
+        land.load_cache_tiles_textures(textures_dir_path=res.data_path('textures/land'))
+        land.load_plants_data(plants_data_file_name=os.path.join(biome_dir, 'plants.json'))
+        land.load_buildings_data(buildings_data_file_name=os.path.join(biome_dir, 'buildings.json'))
+        self.land = land
+        if _Debug:
+            print(f'loaded the land of biome {self.game_client.location_id} from {biome_dir}')
+        self.game_client.biome_loaded()
 
     def show_models_popup(self, title, maximum=1):
         if not self.models_popup:

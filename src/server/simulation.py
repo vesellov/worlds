@@ -1,4 +1,5 @@
 import os
+import io
 import json
 
 from PIL import Image
@@ -64,12 +65,14 @@ def get_z_in_triangle(x, y, p1, p2, p3):
 
 class Simulation(object):
     """
-    Authoritative state of the game world.
+    Authoritative state of one biome of the game world, see server.biomes.
     All changes of the world happen here: clients only request actions by sending their controls.
     """
 
-    def __init__(self, root_path):
-        self.root_path = root_path
+    def __init__(self, biome, catalog_path):
+        # server.biomes.BiomeArchive, files of the biome are read from its archive
+        self.biome = biome
+        self.catalog_path = catalog_path
         self.map = None
         self.info = None
         self.elevation_map_data = {}
@@ -85,17 +88,17 @@ class Simulation(object):
         self.next_id = 0
 
     def load(self):
-        self.load_heightmap(os.path.join(self.root_path, 'assets', 'heightmap.png'))
-        self.load_buildings(os.path.join(self.root_path, 'assets', 'buildings.json'))
-        self.load_templates(
-            buildings_file_name=os.path.join(self.root_path, 'assets', 'buildings.json'),
-            plants_file_name=os.path.join(self.root_path, 'assets', 'plants.json'),
-        )
-        self.animations_catalog = json.loads(open(os.path.join(self.root_path, 'catalog', 'animations.json'), 'rt').read())
+        buildings_data = self.biome.read_json('buildings.json')
+        plants_data = self.biome.read_json('plants.json')
+        self.load_heightmap(self.biome.read('heightmap.png'))
+        self.load_buildings(buildings_data)
+        self.load_templates(buildings_data, plants_data)
+        with open(os.path.join(self.catalog_path, 'animations.json'), 'rt') as f:
+            self.animations_catalog = json.loads(f.read())
         self.map = models.Map(width=self.width, height=self.height, water_level=const.WATER_LEVEL / 100.0)
-        self.info = models.World(name='worlds', width=self.width, height=self.height)
+        self.info = models.World(name=self.biome.id, width=self.width, height=self.height)
         if _Debug:
-            print(f'world loaded, map is {self.width}x{self.height} with {len(self.buildings)} buildings and {len(self.templates)} templates')
+            print(f'biome {self.biome.id} loaded, map is {self.width}x{self.height} with {len(self.buildings)} buildings and {len(self.templates)} templates')
 
     #--- MAP ---
 
@@ -107,11 +110,11 @@ class Simulation(object):
             return -1 * (const.INPUT_WATER_LEVEL - 1) * const.ELEVATION_UNPACK_UNDERWATER_FACTOR
         return (float(h - const.INPUT_WATER_LEVEL) / float(h)) * float(const.ELEVATION_UNPACK_UNDERWATER_FACTOR)
 
-    def load_heightmap(self, heightmap_file_name):
+    def load_heightmap(self, heightmap_data):
         e_min_unpacked = self.elevation_unpack(1)
         e_max_unpacked = self.elevation_unpack(100)
         unpacked_delta = e_max_unpacked - e_min_unpacked
-        im = Image.open(heightmap_file_name).convert('RGB')
+        im = Image.open(io.BytesIO(heightmap_data)).convert('RGB')
         self.width, self.height = im.size
         pixels = im.load()
         for w in range(self.width):
@@ -119,18 +122,18 @@ class Simulation(object):
                 e_unpacked = self.elevation_unpack(float(pixels[w, h][0]))
                 self.elevation_map_data[(w, h)] = float(e_unpacked - e_min_unpacked) / unpacked_delta
 
-    def load_buildings(self, buildings_file_name):
-        for building_info in json.loads(open(buildings_file_name, 'rt').read()):
+    def load_buildings(self, buildings_data):
+        for building_info in buildings_data:
             radius = BUILDING_RADIUS.get(building_info['k'], 0.3)
             # buildings are placed at the corner of the segment, see scen.Scene.add_land_segment()
             self.buildings.append((float(building_info['x']), float(building_info['y']), radius))
 
-    def load_templates(self, buildings_file_name, plants_file_name):
+    def load_templates(self, buildings_data, plants_data):
         templates = set()
-        for building_info in json.loads(open(buildings_file_name, 'rt').read()):
+        for building_info in buildings_data:
             templates.add(building_info['m'])
         # keys of plants.json are "template#texture#parts", see dat.LandData.load_plants_data() on the client
-        for plant_key in json.loads(open(plants_file_name, 'rt').read()).keys():
+        for plant_key in plants_data.keys():
             templates.add(plant_key.split('#')[0])
         # buildings and plants are taken from the default store, every hero says where its model is
         world_templates = set((t.lower(), models.DEFAULT_STORE_ID) for t in templates)

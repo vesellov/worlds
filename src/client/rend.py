@@ -13,7 +13,7 @@ from kivy.cache import Cache
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.uix.widget import Widget
-from kivy.uix.image import Image
+from kivy.core.image import Image
 from kivy.resources import resource_find
 from kivy.properties import ObjectProperty  # @UnresolvedImport
 from kivy.graphics.transformation import Matrix  # @UnresolvedImport
@@ -227,7 +227,7 @@ class Renderer(Widget):
         self.sky_background_rotate_x = Rotate(0, 1, 0, 0, group='land')
         self.sky_background_translate = Translate(0, 0, 0, group='land')
         ChangeState(material_density=1.0)
-        sky_background_image = Image(source=res.data_path('textures/nature/sky1.png'))
+        sky_background_image = Image(res.data_path('textures/nature/sky1.png'))
         sky_background_texture = sky_background_image.texture
         sky_background_texture.wrap = 'repeat'
         BindTexture(texture=sky_background_texture, index=1)
@@ -301,6 +301,20 @@ class Renderer(Widget):
     def on_keyboard_closed(self):
         self.keyboard_handler.unbind(on_key_down=self.on_keyboard_down)
         self.keyboard_handler = None
+
+    def stop(self):
+        """
+        The scene is closed, for example the hero goes into another biome.
+        """
+        Clock.unschedule(self.on_update_glsl)
+        Clock.unschedule(self.on_update_animations)
+        Clock.unschedule(self.on_run_units)
+        if self.keyboard_handler:
+            self.keyboard_handler.unbind(on_key_down=self.on_keyboard_down)
+            self.keyboard_handler.unbind(on_key_up=self.on_keyboard_up)
+            self.keyboard_handler.release()
+            self.keyboard_handler = None
+        self.game_client = None
 
     def _show_unit(self, template_data, scale=[1.0, 1.0, 1.0], coefs_index=None):
         if coefs_index is None:
@@ -418,6 +432,9 @@ class Renderer(Widget):
         #     self.this_template_variant_coefs_index = 0
         #     self.this_template_scale[2] -= 0.1
         #     self._show_unit(template_data, scale=self.this_template_scale)
+        elif keycode[1] == 'l':
+            # go to the next biome of the game server
+            self.app_root.next_biome()
         elif keycode[1] == 'x':
             self.this_animation_frame = None
             for unit in self.scene.units.values():

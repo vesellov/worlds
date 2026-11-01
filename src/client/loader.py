@@ -1,6 +1,9 @@
+import io
 import os
 import json
 import gzip
+import hashlib
+import tarfile
 import zlib
 import time
 import shutil
@@ -240,8 +243,6 @@ SHARED_TEXTURES = ('flag_east', 'flag_north', 'flag_south', 'flag_undead', 'gipa
 _StoreIndex = None
 _StoreLock = threading.Lock()
 
-# where files of the map are downloaded from, those are compressed, see download_compressed()
-ASSETS_URL_PREFIX = 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'
 # number of the land tiles textures: textures/land/0.png ... 28.png
 LAND_TILES_COUNT = 29
 
@@ -253,18 +254,11 @@ def inventory_list():
     others as <file name>.xz or .gz, see download_compressed().
     Models and textures are not here: they are downloaded from the stores when the game server tells
     which are needed, see StoreLoader. Files of the catalog/ folder are part of the client.
+    Files of the land (map, buildings, plants) belong to the biome, those come from the game server, see extract_biome().
     """
     files = [
         ('textures/nature', 'water1.png', f'{STORE_URL_PREFIX}nature/'),
         ('textures/nature', 'sky1.png', f'{STORE_URL_PREFIX}nature/'),
-        # TODO: the following needs to move from "assets" to "map" sub dir
-        ('assets', 'tiles.json', ASSETS_URL_PREFIX),
-        ('assets', 'catalog.json', ASSETS_URL_PREFIX),
-        ('assets', 'map.png', ASSETS_URL_PREFIX),
-        ('assets', 'heightmap.png', ASSETS_URL_PREFIX),
-        ('assets', 'encoded.png', ASSETS_URL_PREFIX),
-        ('assets', 'plants.json', ASSETS_URL_PREFIX),
-        ('assets', 'buildings.json', ASSETS_URL_PREFIX),
     ]
     for i in range(LAND_TILES_COUNT):
         files.append(('textures/land', f'{i}.png', f'{STORE_URL_PREFIX}land/'))
@@ -459,3 +453,46 @@ class StoreLoader(object):
             print(f'store loader: ERROR, files not available: {self.failed}')
         if self.on_done:
             self.on_done(self.failed)
+
+
+#--- BIOMES ---
+
+# keeps sha256 of the archive the files of the biome were extracted from
+BIOME_SHA256_FILE_NAME = '.sha256'
+
+
+def biome_dir(location_id):
+    # files of the biome received from the game server: biomes/<server name>_<biome id>/
+    return res.data_path(os.path.join('biomes', location_id))
+
+
+def cached_biome_sha256(location_id):
+    sha256_file_path = os.path.join(biome_dir(location_id), BIOME_SHA256_FILE_NAME)
+    if not os.path.isfile(sha256_file_path):
+        return None
+    with open(sha256_file_path, 'rt') as f:
+        return f.read().strip() or None
+
+
+def extract_biome(archive_data, location_id, sha256):
+    """
+    Checks the archive received from the game server and extracts it into biomes/<location_id>/.
+    Files are extracted into a new folder first, the old files are replaced only when all was extracted,
+    so a broken download never leaves a half written biome. Blocks, so better runs in a background thread.
+    """
+    if hashlib.sha256(archive_data).hexdigest() != sha256:
+        raise ValueError(f'biome {location_id} archive is damaged, sha256 does not match')
+    dest_dir = biome_dir(location_id)
+    part_dir = dest_dir + '.part'
+    shutil.rmtree(part_dir, ignore_errors=True)
+    os.makedirs(part_dir)
+    with tarfile.open(fileobj=io.BytesIO(archive_data), mode='r:gz') as tar:
+        # "data" filter refuses absolute paths, links and anything pointing outside of the folder
+        tar.extractall(part_dir, filter='data')
+    with open(os.path.join(part_dir, BIOME_SHA256_FILE_NAME), 'wt') as f:
+        f.write(sha256)
+    shutil.rmtree(dest_dir, ignore_errors=True)
+    os.replace(part_dir, dest_dir)
+    if _Debug:
+        print(f'loader: biome {location_id} extracted into {dest_dir}, {len(archive_data)} bytes archive')
+    return dest_dir

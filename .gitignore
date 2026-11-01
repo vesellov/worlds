@@ -5,6 +5,7 @@ textures/
 data/*.res
 fmg/
 repack/
+biomes/
 
 # Generated during map creation
 assets/catalog_stats.json

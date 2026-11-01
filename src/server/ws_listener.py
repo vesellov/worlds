@@ -225,6 +225,22 @@ def send(key, json_data):
     return True
 
 
+def send_many(keys, json_data):
+    """
+    Sends same message to the given clients, the message is serialized only once.
+    """
+    raw_bytes = serialization.DictToBytes(json_data, encoding='utf-8')
+    for key in keys:
+        transp = _WebSocketTransports.get(key)
+        if not transp:
+            continue
+        try:
+            transp.write(raw_bytes)
+        except:
+            traceback.print_exc()
+    return True
+
+
 def push(json_data, exclude=None):
     """
     Sends same message to all connected clients.

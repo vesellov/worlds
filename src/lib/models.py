@@ -6,9 +6,10 @@ Client never changes the models by itself, it only renders them and sends user i
 Module is plain Python without any dependencies, so it can be imported by the server (no Kivy there) and by the client.
 """
 
+import re
 from typing import List, Optional
 
-PROTOCOL_VERSION = 3
+PROTOCOL_VERSION = 4
 
 # game data (models and textures) is published in several stores: http://p2p-alice.ai/store/<store_id>/
 # 1 is made of the eng2001 files, 2 of the astral2006 files. Every template says which store its data comes from,
@@ -23,17 +24,40 @@ TICK_RATE = 20
 
 # client -> server
 MSG_JOIN = 'join'
+# {biome_id, sha256}: client wants to enter the biome, sha256 of the biome archive it already has or None
+MSG_ENTER = 'enter'
 MSG_INPUT = 'input'
 
 # server -> client
+# {name, protocol, biomes: [Biome]}: sent after "join", the client enters the first biome of the list
+MSG_SERVER_INFO = 'server_info'
+# {biome_id, sha256, size, chunks}: answer to "enter", "chunks" messages "biome_data" follow if the client
+# does not have that archive yet, then "welcome" and "spawn" of the objects of that biome
+MSG_BIOME = 'biome'
+# {biome_id, index, data}: one piece of the biome archive, data is base64 encoded
+MSG_BIOME_DATA = 'biome_data'
 MSG_WELCOME = 'welcome'
 MSG_SPAWN = 'spawn'
 MSG_STATE = 'state'
 MSG_DESPAWN = 'despawn'
 
+# size of one piece of the biome archive before base64 encoding, bytes
+BIOME_CHUNK_SIZE = 256 * 1024
+
 
 def message(msg_type, payload=None):
     return {'t': msg_type, 'p': payload or {}}
+
+
+def safe_name(name):
+    # names received from the network are used as folder names, only letters, digits, "-", "_" and "." stay
+    name = re.sub(r'[^A-Za-z0-9_.-]', '_', str(name)).strip('.')
+    return name or '_'
+
+
+def location_id(server_name, biome_id):
+    # files of the biome are kept on the client in biomes/<location_id>/
+    return f'{safe_name(server_name)}_{safe_name(biome_id)}'
 
 #------------------------------------------------------------------------------
 
@@ -77,6 +101,17 @@ class World(Model):
         self.height = height
         self.tick_rate = tick_rate
         self.protocol = protocol
+
+
+class Biome(Model):
+    # one world of the server: its land, buildings and plants are in the archive the client downloads before entering
+    data_fields = ('id', 'name', 'sha256', 'size')
+
+    def __init__(self, id: str, name: Optional[str] = None, sha256: Optional[str] = None, size: int = 0):
+        self.id = id
+        self.name = name or id
+        self.sha256 = sha256
+        self.size = size
 
 
 class Map(Model):
