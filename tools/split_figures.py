@@ -2,19 +2,17 @@
 Splits big figures.res into many small .res files: one file per model (template), named <template>.res.
 
 The client downloads only the models listed by the game server instead of the whole figures.res,
-every small file is read by the client with the same functions from src/res.py as figures.res before.
+every small file is read by the client with the same functions from src/lib/res.py as figures.res before.
 
-    venv/bin/python3 tools/split_figures_res.py ~/.worlds/data/figures.res ./figures/
-    venv/bin/python3 tools/split_figures_res.py ~/.worlds/data/figures.res ./figures/ --templates unhuma,stbuho30
+    PYTHONPATH=src venv/bin/python3 tools/split_figures_res.py ~/.worlds/data/figures.res ./figures/
+    PYTHONPATH=src venv/bin/python3 tools/split_figures_res.py ~/.worlds/data/figures.res ./figures/ --templates unhuma,stbuho30
 """
 
 import os
 import sys
 import argparse
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))
-
-import res  # @UnresolvedImport
+from lib import res
 
 
 def main():

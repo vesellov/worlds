@@ -49,7 +49,7 @@ from Cryptodome.Cipher import PKCS1_OAEP
 from lib import strng
 from lib import system
 from lib import hashes
-from lib import number
+import number
 
 #------------------------------------------------------------------------------
 

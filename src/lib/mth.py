@@ -1,7 +1,7 @@
 import math
 import numpy as np
 
-import const
+from lib import const
 
 
 EI_SCALE_FACTOR = const.MODELS_SCALE_FACTOR

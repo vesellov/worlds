@@ -25,12 +25,12 @@ from kivy.graphics.context_instructions import Transform  # @UnresolvedImport
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 from PIL.Image import Transpose
 
-import const
-import res
-import mth
-import dat
-import unt
-import loader
+from lib import const
+from lib import res
+from lib import mth
+from client import dat
+from client import unt
+from client import loader
 
 
 _Debug = True

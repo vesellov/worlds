@@ -26,6 +26,8 @@
 
 #------------------------------------------------------------------------------
 
+import os
+import tempfile
 import sys
 import json
 
@@ -35,7 +37,7 @@ _Debug = True
 
 #------------------------------------------------------------------------------
 
-import strng
+from lib import strng
 
 #------------------------------------------------------------------------------
 
@@ -228,8 +230,6 @@ def dumps(obj, indent=None, separators=None, sort_keys=None, ensure_ascii=False,
             return json.dumps(obj=obj, indent=indent, separators=separators, sort_keys=sort_keys, ensure_ascii=ensure_ascii, default=_to_text, **kw)
     except Exception as exc:
         if _Debug:
-            import os
-            import tempfile
             fd, _ = tempfile.mkstemp(suffix='err', prefix='jsn_dumps_', text=True)
             try:
                 os.write(fd, repr(obj))

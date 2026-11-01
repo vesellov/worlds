@@ -7,10 +7,10 @@ import collections
 
 from kivy.clock import Clock
 
-import web_sock
-import hero
+from client import web_sock
+from client import hero
 
-from server import models
+from lib import models
 
 _Debug = True
 

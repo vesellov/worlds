@@ -3,8 +3,8 @@ import random
 
 from kivy.graphics.transformation import Matrix  # @UnresolvedImport
 
-import const
-import mth
+from lib import const
+from lib import mth
 
 
 class Unit(object):

@@ -9,9 +9,9 @@ from kivy.core.image import Image
 from kivy.cache import Cache
 from kivy.resources import resource_find
 
-import const
-import res
-import mth
+from lib import const
+from lib import res
+from lib import mth
 
 
 _Debug = True

@@ -4,8 +4,8 @@ import math
 
 from PIL import Image
 
-import const
-import models
+from lib import const
+from lib import models
 
 _Debug = True
 

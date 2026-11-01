@@ -14,26 +14,26 @@ from kivy.clock import mainthread
 
 #------------------------------------------------------------------------------
 
-import system
+from lib import system
 
 _USE_PYCRYPTODOME = True
 
 if system.is_ios() or system.is_android():
     _USE_PYCRYPTODOME = False
 
-import strng
-import jsn
-import serialization
-import web_socket
+from lib import strng
+from lib import jsn
+from lib import serialization
+from client import web_socket_client as web_socket
 
 if _USE_PYCRYPTODOME:
-    import rsa_key
-    import cipher
-    import hashes
+    from lib import rsa_key
+    from lib import cipher
+    from lib import hashes
 else:
-    import rsa_key_slow as rsa_key
-    import cipher_slow as cipher
-    import hashes_slow as hashes
+    from lib import rsa_key_slow as rsa_key
+    from lib import cipher_slow as cipher
+    from lib import hashes_slow as hashes
 
 #------------------------------------------------------------------------------
 

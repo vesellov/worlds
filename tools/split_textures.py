@@ -1,21 +1,21 @@
 """
 Splits big textures.res into several smaller .res files: textures are grouped by what they belong to
 (trees, armor, weapons, creatures, terrain of every zone and so on), every group goes into <group>.res.
-Groups are defined by TEXTURE_GROUPS in src/res.py, textures which match no rule go to objects.res.
+Groups are defined by TEXTURE_GROUPS in src/lib/const.py, textures which match no rule go to objects.res.
 
 Also writes textures_index.json next to the files: {texture: group}, so the client knows which file holds a texture.
-Every small file is read with the same functions from src/res.py as textures.res before.
+Every small file is read with the same functions from src/lib/res.py as textures.res before.
 
-    venv/bin/python3 tools/split_textures_res.py ~/.worlds/data/textures.res ./textures/
-    venv/bin/python3 tools/split_textures_res.py ~/.worlds/data/textures.res ./textures/ --groups trees,armor
-    venv/bin/python3 tools/split_textures_res.py ~/.worlds/data/textures.res ./textures/ --list
+    PYTHONPATH=src venv/bin/python3 tools/split_textures_res.py ~/.worlds/data/textures.res ./textures/
+    PYTHONPATH=src venv/bin/python3 tools/split_textures_res.py ~/.worlds/data/textures.res ./textures/ --groups trees,armor
+    PYTHONPATH=src venv/bin/python3 tools/split_textures_res.py ~/.worlds/data/textures.res ./textures/ --list
 
 With --unpack nothing is split: every .mmp file from the source .res is written as a separate file
 into the destination folder (any .res file works, also one of the split files). --groups limits it to those groups.
 
-    venv/bin/python3 tools/split_textures_res.py ~/.worlds/data/textures.res ./textures_mmp/ --unpack
-    venv/bin/python3 tools/split_textures_res.py ./textures/trees.res ./trees_mmp/ --unpack
-    venv/bin/python3 tools/split_textures_res.py ~/.worlds/data/textures.res ./trees_mmp/ --unpack --groups trees
+    PYTHONPATH=src venv/bin/python3 tools/split_textures_res.py ~/.worlds/data/textures.res ./textures_mmp/ --unpack
+    PYTHONPATH=src venv/bin/python3 tools/split_textures_res.py ./textures/trees.res ./trees_mmp/ --unpack
+    PYTHONPATH=src venv/bin/python3 tools/split_textures_res.py ~/.worlds/data/textures.res ./trees_mmp/ --unpack --groups trees
 """
 
 import os
@@ -23,9 +23,7 @@ import sys
 import json
 import argparse
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))
-
-import res  # @UnresolvedImport
+from lib import res
 
 
 def unpack_mmp(res_file, filetree_dict, names, destination):

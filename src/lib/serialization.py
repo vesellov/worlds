@@ -26,8 +26,8 @@ from __future__ import absolute_import
 
 #------------------------------------------------------------------------------
 
-import jsn
-import strng
+from lib import jsn
+from lib import strng
 
 #------------------------------------------------------------------------------
 

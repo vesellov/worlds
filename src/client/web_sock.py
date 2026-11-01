@@ -15,8 +15,8 @@ from kivy.clock import mainthread
 
 #------------------------------------------------------------------------------
 
-import web_socket_client as web_socket
-import system
+from client import web_socket_client
+from lib import system
 
 #------------------------------------------------------------------------------
 
@@ -317,7 +317,7 @@ def websocket_thread():
     global _APISecretFilePath
     global _WebSocketApp
     global _WebSocketClosed
-    web_socket.enableTrace(False)
+    web_socket_client.enableTrace(False)
     if _Debug:
         print('websocket_thread() beginning _APISecretFilePath=%r' % _APISecretFilePath)
     while is_started():
@@ -332,7 +332,7 @@ def websocket_thread():
                     ws_url += '?api_secret=' + api_secret
         if _Debug:
             print('websocket_thread() ws_url=%r' % ws_url)
-        _WebSocketApp = web_socket.WebSocketApp(
+        _WebSocketApp = web_socket_client.WebSocketApp(
             ws_url,
             on_message=on_message,
             on_error=on_error,

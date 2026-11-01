@@ -5,28 +5,22 @@ Runs in its own virtual environment (see "make venv_server"), listens for web so
 and runs the game loop: every tick all requests of the connected clients are processed,
 the world state is changed according to the game rules and all changes are sent to the clients.
 
-    venv_server/bin/python3 src/server/main.py [--host 127.0.0.1] [--port 8280]
+    PYTHONPATH=src venv_server/bin/python3 -m server.main [--host 127.0.0.1] [--port 8280]
 
 Use "--host 0.0.0.0" to accept connections from other devices, for example from a phone in the same network.
 """
 
 import os
-import sys
 import argparse
 
-SERVER_PATH = os.path.dirname(os.path.abspath(__file__))
-SRC_PATH = os.path.dirname(SERVER_PATH)
-ROOT_PATH = os.path.dirname(SRC_PATH)
-
-# server modules are imported as top level modules, shared helpers like "serialization" and "const" are in src/
-sys.path.insert(0, SRC_PATH)
-sys.path.insert(0, SERVER_PATH)
+# repository root folder, "assets" and "catalog" folders are there
+ROOT_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from twisted.internet import reactor, task
 
-import models
-import simulation
-import ws_listener
+from lib import models
+from server import simulation
+from server import ws_listener
 
 _Debug = True
 

@@ -33,7 +33,7 @@ else:
     raise Exception(f'Unsupported platform: {sys.platform}')
 
 
-import system
+from lib import system
 system.current_platform(known_platform=PLATFORM)
 
 ROOT_PATH = ''
@@ -97,13 +97,13 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 
-import res
-import rend
-import dat
-import scen
-import scr
-import cli
-import loader
+from lib import res
+from client import rend
+from client import dat
+from client import scen
+from client import scr
+from client import cli
+from client import loader
 
 class WorldsApp(App):
 
@@ -117,49 +117,50 @@ class WorldsApp(App):
         # if system.is_android():
         #     Window.keyboard_mode = 'managed'
         # Window.bind(on_request_close=self.on_request_close)
+        # (folder, file name, url prefix), every file is downloaded as <url prefix><file name>.xz or .gz, see loader.download_compressed()
         self.inventory_list = []
         if not loader.FIGURES_URL_PREFIX:
             # models are downloaded one by one when the game server tells which are needed, see loader.ModelsLoader
             # until the separate models are published the whole figures.res is downloaded and models are taken from it
-            self.inventory_list.append(('data', 'figures.res', ['figures_res_0', 'figures_res_1', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'))
+            self.inventory_list.append(('data', 'figures.res', 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'))
         self.inventory_list += [
-            ('data', 'textures.res', ['textures_res_0', 'textures_res_1', 'textures_res_2', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'),
-            ('data', 'redress.res', ['redress_res_0', 'redress_res_1', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'),
-            ('data', 'textures2.res', ['textures_res_0', 'textures_res_1', 'textures_res_2', ], 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/eng2001/res/'),
-            ('catalog', 'animations.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'armors.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'buildings.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'figures.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'figures_names.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'figures_parts.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'figures_samples.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'materials.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'plants.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'textures.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'weapons.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('assets', 'water1.png', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'sky1.png', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
+            ('data', 'textures.res', 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'),
+            ('data', 'redress.res', 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'),
+            ('data', 'textures2.res', 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/eng2001/res/'),
+            ('catalog', 'animations.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
+            ('catalog', 'armors.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
+            ('catalog', 'buildings.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
+            ('catalog', 'figures.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
+            ('catalog', 'figures_names.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
+            ('catalog', 'figures_parts.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
+            ('catalog', 'figures_samples.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
+            ('catalog', 'materials.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
+            ('catalog', 'plants.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
+            ('catalog', 'textures.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
+            ('catalog', 'weapons.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
+            ('assets', 'water1.png', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
+            ('assets', 'sky1.png', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
             # TODO: the following needs to move from "assets" to "map" sub dir
-            ('assets', 'tiles.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'catalog.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'map.png', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'heightmap.png', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'encoded.png', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'plants.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'buildings.json', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
+            ('assets', 'tiles.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
+            ('assets', 'catalog.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
+            ('assets', 'map.png', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
+            ('assets', 'heightmap.png', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
+            ('assets', 'encoded.png', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
+            ('assets', 'plants.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
+            ('assets', 'buildings.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
         ]
         for i in range(0, 29):
-            self.inventory_list.append(('assets/land', f'{i}.png', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/land/'))
+            self.inventory_list.append(('assets/land', f'{i}.png', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/land/'))
         for tex in ['flag_east', 'flag_north', 'flag_south', 'flag_undead', 'gipat2sys', 'gipatsys', 'ingossys', 'jigransys', 'quater01', 'suslangersys', ]:
-            self.inventory_list.append(('textures/model', f'{tex}.png', [], 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/flags/'))
+            self.inventory_list.append(('textures/model', f'{tex}.png', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/flags/'))
         self.downloading_list = []
-        for folder, file_name, file_parts, url_prefix in self.inventory_list:
+        for folder, file_name, url_prefix in self.inventory_list:
             dest_file_path = os.path.join(res.data_path(folder), file_name)
             if os.path.isfile(dest_file_path):
                 # if _Debug:
                 #     print(f'        file already exists: {dest_file_path}')
                 continue
-            self.downloading_list.append((folder, file_name, file_parts, url_prefix))
+            self.downloading_list.append((folder, file_name, url_prefix))
         self.root = scr.RootContainer()
         self.downloading_popup = None
         if not self.downloading_list:
@@ -180,17 +181,16 @@ class WorldsApp(App):
 
     def do_download_next_file(self, dt):
         self.task = None
-        folder, file_name, file_parts, url_prefix = self.downloading_list.pop(0)
+        folder, file_name, url_prefix = self.downloading_list.pop(0)
         if _Debug:
             print(f'downloading {folder}/{file_name} from {url_prefix}')
         # pauses between requests and retries take time, the window must not freeze meanwhile
-        threading.Thread(target=self.download_in_background, args=(folder, file_name, file_parts, url_prefix), daemon=True).start()
+        threading.Thread(target=self.download_in_background, args=(folder, file_name, url_prefix), daemon=True).start()
 
-    def download_in_background(self, folder, file_name, file_parts, url_prefix):
+    def download_in_background(self, folder, file_name, url_prefix):
         dest_file_path = os.path.join(res.data_path(folder), file_name)
-        urls = [url_prefix + part for part in (file_parts or [file_name, ])]
         try:
-            loader.download_file(dest_file_path, urls)
+            loader.download_compressed(dest_file_path, url_prefix, file_name)
         except Exception:
             traceback.print_exc()
             Clock.schedule_once(lambda dt: self.on_download_failed(file_name))

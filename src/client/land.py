@@ -9,7 +9,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter
 from shapely.geometry import Point, Polygon
 import numpy as np
 
-import mth
+from lib import mth
 
 
 DEBUG = False

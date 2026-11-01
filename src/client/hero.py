@@ -1,5 +1,5 @@
-import const
-import mth
+from lib import const
+from lib import mth
 
 _Debug = True
 

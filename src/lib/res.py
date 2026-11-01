@@ -1,10 +1,15 @@
 import os
 import time
+import re
 import json
 import struct
+import shutil
+import tempfile
 import collections
 import numpy as np
 from PIL import Image
+
+from lib import const
 
 _Debug = True
 
@@ -442,8 +447,6 @@ def figures_templates(figures_file, filetree_dict=None, tmp_dir=None):
     parts of a model are named <template><part>.fig / .bon where parts are listed in the <template>.lnk tree.
     Template names are lower case, element names are as they are in figures.res.
     """
-    import tempfile
-    import shutil
     if filetree_dict is None:
         filetree_dict = read_res_filetree(figures_file, return_dict=True)
     lower_names = {}
@@ -508,36 +511,6 @@ def extract_figures_template(figures_file, filetree_dict, element_names, dest_fi
     return write_res(dest_file_path, items)
 
 
-# Groups of textures.res, every group is written into a separate <group>.res file by tools/split_textures_res.py.
-# Rules are checked in this order, the first matching regex (against the lower case texture name) wins.
-# Textures which do not match any rule go to the "objects" group (props: barrels, chests, carpets and so on).
-TEXTURE_GROUPS = [
-    # terrain of every zone goes to its own file: zone11000 -> zone11, zone11dun1map -> zone11dun1
-    ('zone:', r'^(zone.+?)(\d{3}|map|quest|questm|radar)$'),
-    ('terrain', r'^bz\d+[a-z]\d{3}$'),
-    ('maps', r'^(basegipat|gipat|gipat2|ingos|jigran|suslanger)(\d{3}|map|mapg|sys)$'),
-    ('trees', r'^(tree|oak|bush|mushroom)'),
-    ('nature', r'^(stone|sky|earth|ice|vulkan|cave\d|rainsnow)'),
-    ('armor', r'^(bt|gl|hl|lg|pl|pt|sh)_\d'),
-    ('weapons', r'^(ax|bw|cb|dg|hm|sp|sw)_\d'),
-    ('units', r'^un(an|mo)'),
-    ('faces', r'^(face|orc_face)'),
-    ('creatures', r'^(banshee|bat\d|beholder|bird|boar|cow|crab|cyclop|deer|dog\d|dragon\d|driad\d|eagle|fox|goblin\d'
-                  r'|golem\d|hare|horse|hyena|jlion|jogre|jskeleton|jwolf|lizardman|mindflayer|ogre\d|pig|rat\d'
-                  r'|skeleton|spider|squirrel|succubus|tiger|toad|troll|unicorn|willowisp|wolf|zombie)'),
-    ('items', r'^(litem|qitem|quitem|material|modifier|prototype|mod\d|trap\d)'),
-    ('spells', r'^(spell\d|skill\d)'),
-    ('cursors', r'^(sm_)?cursor_'),
-    ('effects', r'^(acidray|antimagic|astral|bloodprints|curse\d|demonlight|explosion|eye$|fire|footprints|healing$'
-                r'|light$|lightning|particles|poisoncloud|protection|rikarrowsmoke|shapechange|shadow|smtglight|stench'
-                r'|stun|teleport$|tendri|tornado|visionfog)'),
-    ('interface', r'^(camp|casting|changehero|check|constr|inventory|logo|pointer|repair|saveload|scrollbar|select'
-                  r'|sound|trade|link$|level\d|zoneexit|zonemap|ambush|battle|cross$|flag$|rick$|default)'),
-    ('buildings', r'.*(house|tower|wall|bridge|gate|tent|fence|shop|crypt|ruins|temple|door|prison|shipyard|veranda'
-                  r'|cellar|cave|mine|dome|arc\d|pyramid|hall|headquaters|quater|vivary|well\d|fontain|pool|sortir'
-                  r'|smith|throne|tipy|ladder|climb|column|zagon|aquarium|akvarium|statue|idol|altar|cage|waterlock)'),
-]
-
 _texture_groups_compiled = None
 
 
@@ -546,9 +519,8 @@ def texture_group(texture):
     Returns the name of the group (and of the <group>.res file) for the texture name.
     """
     global _texture_groups_compiled
-    import re
     if _texture_groups_compiled is None:
-        _texture_groups_compiled = [(g, re.compile(r)) for g, r in TEXTURE_GROUPS]
+        _texture_groups_compiled = [(g, re.compile(r)) for g, r in const.TEXTURE_GROUPS]
     texture = texture.lower()
     for group, regex in _texture_groups_compiled:
         m = regex.match(texture)
@@ -561,7 +533,7 @@ def texture_group(texture):
 
 def textures_groups(textures_file, filetree_dict=None):
     """
-    Groups elements of textures.res by the groups from TEXTURE_GROUPS: {group: [element names]}.
+    Groups elements of textures.res by the groups from const.TEXTURE_GROUPS: {group: [element names]}.
     Element names are as they are in textures.res.
     """
     if filetree_dict is None:

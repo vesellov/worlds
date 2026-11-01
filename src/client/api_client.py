@@ -8,8 +8,8 @@ import time
 
 #------------------------------------------------------------------------------
 
-from lib import web_sock
-from lib import web_sock_remote
+from client import web_sock
+from client import web_sock_remote
 
 #------------------------------------------------------------------------------
 

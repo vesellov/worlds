@@ -55,7 +55,7 @@ venv_off:
 	@echo "revision number based on total amount of commits in the Git repository is:" && cat ./cache/revnum
 	@cd ./workspace/ && python3 -c "cv=open('core_version').read().strip().split('.');v=list(open('version').read().strip().split('.'));v[0]=cv[0];v[-2]=str(int(v[-2])+1);v[-1]=open('../cache/revnum').read().strip();open('version','w').write(('.'.join(v)).strip())"
 	@echo "new version will be:" && cat ./workspace/version && echo ""
-	@rm -rf ./workspace/app && mkdir -p -v ./workspace/app && cp -r ../../src/* ./workspace/app/
+	@rm -rf ./workspace/app && mkdir -p -v ./workspace/app && cp -r ../../src/lib ../../src/client ./workspace/app/ && cp ../../src/client/main.py ./workspace/app/main.py && find ./workspace/app -name __pycache__ -prune -exec rm -rf {} +
 	@python3 -c "v=open('./workspace/version').read().strip();open('./workspace/app/version.py','w').write('__version__ = \"%s\"' % v);"
 
 spec: .prepare

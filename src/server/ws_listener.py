@@ -49,8 +49,8 @@ from twisted.internet.protocol import Protocol, Factory
 
 #------------------------------------------------------------------------------
 
-import txws
-import serialization
+from server import txws
+from lib import serialization
 
 #------------------------------------------------------------------------------
 

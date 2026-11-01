@@ -1,5 +1,8 @@
 import os
+import gzip
+import zlib
 import time
+import shutil
 import random
 import threading
 import traceback
@@ -7,15 +10,25 @@ import email.utils
 
 import requests
 
+try:
+    import lzma
+except ImportError:
+    # lzma is an optional module, python-for-android, kivy-ios and Pyodide builds can be without it
+    lzma = None
+
 from kivy.clock import Clock
 
-import res
+from lib import res
 
 _Debug = True
 
 # where separate <template>.res files are downloaded from, see tools/split_figures_res.py
 # while empty the models are taken out of the whole data/figures.res which is downloaded at the start
 FIGURES_URL_PREFIX = os.environ.get('WORLDS_FIGURES_URL', '')
+
+# every file is stored on GitHub as .xz and as .gz, see tools/compress_files.py, this sets which one is downloaded:
+# "xz" is smaller, "gz" decompresses faster and only needs zlib. When lzma is not available .gz is downloaded anyway
+DOWNLOAD_FORMAT = os.environ.get('WORLDS_DOWNLOAD_FORMAT', 'xz').strip().lower()
 
 CLIENT_VERSION = '0.1'
 # GitHub asks every client to send a User-Agent naming the application, so the owner can be reached if it misbehaves
@@ -43,34 +56,99 @@ class DownloadError(Exception):
     pass
 
 
-def download_file(dest_file_path, urls, validate=None, chunk_size=64 * 1024):
+class NotFoundError(DownloadError):
+    pass
+
+
+def download_formats():
     """
-    Downloads one file which can be stored as several parts on GitHub, the parts are joined in the given order.
-    Data goes into <dest>.part first and is moved in place only when all parts arrived and validate(path) did not raise,
+    Formats to try in order: the configured one first when it can be decompressed here, .gz is always the last resort.
+    """
+    formats = []
+    if DOWNLOAD_FORMAT == 'xz' and lzma is not None:
+        formats.append('xz')
+    elif DOWNLOAD_FORMAT not in ('xz', 'gz') and _Debug:
+        print(f'loader: unknown download format {DOWNLOAD_FORMAT!r}, using gz')
+    formats.append('gz')
+    return formats
+
+
+def compressed_url(url_prefix, file_name, fmt='gz'):
+    # every file is stored on GitHub as <file_name>.gz and <file_name>.xz, see tools/compress_files.py
+    return f'{url_prefix}{file_name}.{fmt}'
+
+
+def download_compressed(dest_file_path, url_prefix, file_name, validate=None):
+    """
+    Downloads the file in the configured format (see DOWNLOAD_FORMAT). When the .xz file is not published
+    or can not be decompressed, the .gz file is downloaded instead.
+    Blocks for the whole download including the pauses, so it must run in a background thread.
+    """
+    formats = download_formats()
+    for fmt in formats:
+        try:
+            return download_file(dest_file_path, compressed_url(url_prefix, file_name, fmt), fmt=fmt, validate=validate)
+        except (NotFoundError, DecompressError) as exc:
+            # rate limits and network errors are not retried with another format, it would only make things worse
+            if fmt == formats[-1]:
+                raise
+            if _Debug:
+                print(f'loader: {exc}, trying the next format')
+
+
+def download_file(dest_file_path, url, fmt='gz', validate=None, chunk_size=64 * 1024):
+    """
+    Downloads one compressed file (fmt is "gz" or "xz") into <dest>.<fmt>.part and decompresses it into <dest>.part.
+    The file is moved in place only when it arrived completely, decompressed fine and validate(path) did not raise,
     so an interrupted download never leaves a broken file which looks complete on the next start.
     Blocks for the whole download including the pauses, so it must run in a background thread.
     """
     if os.path.isfile(dest_file_path):
         return dest_file_path
     os.makedirs(os.path.dirname(dest_file_path), exist_ok=True)
+    compressed_file_path = f'{dest_file_path}.{fmt}.part'
     part_file_path = dest_file_path + '.part'
     try:
-        with requests.Session() as session, open(part_file_path, 'wb') as f:
+        with requests.Session() as session, open(compressed_file_path, 'wb') as f:
             session.headers['User-Agent'] = USER_AGENT
-            for url in urls:
-                download_part(session, url, f, chunk_size)
+            download_url(session, url, f, chunk_size)
+        compressed_size = os.path.getsize(compressed_file_path)
+        decompress(compressed_file_path, part_file_path, fmt)
+        os.remove(compressed_file_path)
         if validate:
             validate(part_file_path)
         os.replace(part_file_path, dest_file_path)
     finally:
-        if os.path.isfile(part_file_path):
-            os.remove(part_file_path)
+        for path in (compressed_file_path, part_file_path):
+            if os.path.isfile(path):
+                os.remove(path)
     if _Debug:
-        print(f'loader: downloaded {dest_file_path}, {os.path.getsize(dest_file_path)} bytes')
+        print(f'loader: downloaded {dest_file_path} as .{fmt}, {compressed_size} bytes, {os.path.getsize(dest_file_path)} after decompression')
     return dest_file_path
 
 
-def download_part(session, url, f, chunk_size):
+class DecompressError(DownloadError):
+    pass
+
+
+def decompress(src_file_path, dest_file_path, fmt='gz', chunk_size=1024 * 1024):
+    # gzip only needs zlib which is part of every Python build, also on Android, iOS and in the browser (Pyodide).
+    # gzip checks the CRC32 and the length stored at the end of the data, xz checks CRC64,
+    # so a damaged or cut download fails here
+    if fmt == 'xz':
+        if lzma is None:
+            raise DecompressError(f'can not decompress {src_file_path}, the lzma module is not available')
+        opener, errors = lzma.open, (EOFError, lzma.LZMAError)
+    else:
+        opener, errors = gzip.open, (EOFError, zlib.error, gzip.BadGzipFile)
+    try:
+        with opener(src_file_path, 'rb') as src, open(dest_file_path, 'wb') as dst:
+            shutil.copyfileobj(src, dst, chunk_size)
+    except errors as exc:
+        raise DecompressError(f'failed to decompress {src_file_path}: {exc}')
+
+
+def download_url(session, url, f, chunk_size):
     start = f.tell()
     attempt = 0
     while True:
@@ -83,6 +161,8 @@ def download_part(session, url, f, chunk_size):
                     return
                 wait = retry_wait(r, attempt)
                 if wait is None:
+                    if r.status_code == 404:
+                        raise NotFoundError(f'{url} not found')
                     raise DownloadError(f'{url} rejected with HTTP {r.status_code}')
                 reason = f'HTTP {r.status_code}'
         except (requests.ConnectionError, requests.Timeout, requests.exceptions.ChunkedEncodingError) as exc:
@@ -93,7 +173,7 @@ def download_part(session, url, f, chunk_size):
             raise DownloadError(f'{url} failed after {MAX_RETRIES} retries, last error: {reason}')
         if wait > MAX_WAIT:
             raise DownloadError(f'{url}: {reason}, GitHub asks to wait {wait:.0f} seconds, giving up')
-        # the part is downloaded again from its start, drop what the failed attempt wrote
+        # the file is downloaded again from its start, drop what the failed attempt wrote
         f.seek(start)
         f.truncate()
         if _Debug:
@@ -200,7 +280,7 @@ class ModelsLoader(object):
     def download(self, template):
         try:
             # the file is checked to be a valid .res file before it is used
-            download_file(template_res_path(template), [FIGURES_URL_PREFIX + template + '.res'], validate=validate_res)
+            download_compressed(template_res_path(template), FIGURES_URL_PREFIX, template + '.res', validate=validate_res)
             return True
         except Exception as exc:
             if _Debug:

@@ -47,7 +47,7 @@ import rsa
 
 from lib import strng
 from lib import system
-from lib import number
+import number
 from lib import pkcs1_v2
 
 #------------------------------------------------------------------------------

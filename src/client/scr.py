@@ -6,7 +6,7 @@ from kivy.uix.button import Button
 from kivy.graphics import Color, Ellipse, Triangle
 from kivy.metrics import dp, sp, cm
 
-import system
+from lib import system
 
 class RootContainer(FloatLayout):
     pass

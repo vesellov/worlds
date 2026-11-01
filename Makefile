@@ -22,9 +22,9 @@ PYTHON_SERVER="venv_server/bin/python3"
 .PHONY: clean pyclean run server
 
 pyclean:
-	@find src -name '*.pyc' -exec rm -f {} +
-	@find src -name '*.pyo' -exec rm -f {} +
-	@find src -name __pycache__ -delete
+	@find src tools -name '*.pyc' -exec rm -f {} +
+	@find src tools -name '*.pyo' -exec rm -f {} +
+	@find src tools -name __pycache__ -delete
 	@find . -name .DS_Store -delete
 	@rm -rf *.egg-info build
 	@rm -rf coverage.xml .coverage
@@ -50,13 +50,13 @@ venv_tools:
 	@$(PIP_TOOLS) install -r $(REQUIREMENTS_TOOLS_TXT)
 
 run: venv
-	@$(PYTHON) src/main.py
+	@PYTHONPATH=src $(PYTHON) -m client.main
 
 # make server HOST=0.0.0.0 to accept connections from other devices
 HOST ?= 127.0.0.1
 PORT ?= 8280
 server: venv_server
-	@$(PYTHON_SERVER) src/server/main.py --host $(HOST) --port $(PORT)
+	@PYTHONPATH=src $(PYTHON_SERVER) -m server.main --host $(HOST) --port $(PORT)
 
 ei_models_scan:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
@@ -101,12 +101,12 @@ FIGURES_RES ?= $(HOME)/.worlds/data/figures.res
 FIGURES_OUT ?= ./figures/
 ei_figures_repack: venv
 	# split big figures.res into one .res file per model, those are downloaded by the client one by one
-	@$(PYTHON) tools/split_figures_res.py $(FIGURES_RES) $(FIGURES_OUT)
+	@PYTHONPATH=src $(PYTHON) tools/split_figures_res.py $(FIGURES_RES) $(FIGURES_OUT)
 
 tiles_build:
 	@rm -rf ${RES_DIR}/merged_hq/*
-	@samples_dir="${RES_DIR}/samples_hq/" venv_tools/bin/python3 src/tiles.py merge_tiles ${RES_DIR}/shapes_hq/ ${RES_DIR}/groups_hq/ ${RES_DIR}/merged_hq/ ${RES_DIR}/ready_hq/
-	@venv_tools/bin/python3 src/tiles.py pack_tiles ${RES_DIR}/ready_hq/ ./assets/land/
+	@PYTHONPATH=src samples_dir="${RES_DIR}/samples_hq/" venv_tools/bin/python3 tools/tiles.py merge_tiles ${RES_DIR}/shapes_hq/ ${RES_DIR}/groups_hq/ ${RES_DIR}/merged_hq/ ${RES_DIR}/ready_hq/
+	@PYTHONPATH=src venv_tools/bin/python3 tools/tiles.py pack_tiles ${RES_DIR}/ready_hq/ ./assets/land/
 
 fmg_clean:
 	@rm -rf fmg/Fantasy-Map-Generator
@@ -129,5 +129,5 @@ fmg_generate:
 
 land_build:
 	@rm -rfv assets/tiles.png
-	@venv_tools/bin/python src/land.py map.json 512 512
+	@PYTHONPATH=src venv_tools/bin/python -m client.land map.json 512 512
 	@open assets/minimap.png

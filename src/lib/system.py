@@ -11,7 +11,7 @@ _Debug = False
 
 #------------------------------------------------------------------------------
 
-import strng
+from lib import strng
 
 #------------------------------------------------------------------------------
 
@@ -558,7 +558,7 @@ def open_path_in_os(filepath):
             return True
 
         elif is_android():
-            from sharesheet import ShareSheet
+            from client.sharesheet import ShareSheet
             ShareSheet().view_file(filepath)
             return True
 

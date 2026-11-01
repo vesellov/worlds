@@ -34,10 +34,10 @@ from kivy.graphics import (
     # UpdateNormalMatrix,
 )
 
-import const
-import system
-import mth
-import res
+from lib import const
+from lib import system
+from lib import mth
+from lib import res
 
 
 def ignore_undertouch(func):

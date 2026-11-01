@@ -12,7 +12,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter
 from PIL.Image import Transpose
 from skimage.metrics import structural_similarity  # @UnresolvedImport
 
-import res
+from lib import res
 
 
 logging.getLogger("PIL").propagate = False
