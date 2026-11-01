@@ -227,7 +227,7 @@ class Renderer(Widget):
         self.sky_background_rotate_x = Rotate(0, 1, 0, 0, group='land')
         self.sky_background_translate = Translate(0, 0, 0, group='land')
         ChangeState(material_density=1.0)
-        sky_background_image = Image(source=res.data_path('assets/sky1.png'))
+        sky_background_image = Image(source=res.data_path('textures/nature/sky1.png'))
         sky_background_texture = sky_background_image.texture
         sky_background_texture.wrap = 'repeat'
         BindTexture(texture=sky_background_texture, index=1)

@@ -17,11 +17,17 @@ _Debug = True
 ENCODE = "cp1251"
 ROOT_PATH = ''
 DATA_PATH = ''
+# catalog/ folder is part of the client, files there are never downloaded, see client.main
+CATALOG_PATH = ''
 
 
 def data_path(data_path):
     global DATA_PATH
     return os.path.join(DATA_PATH, data_path)
+
+
+def catalog_path(file_name):
+    return os.path.join(CATALOG_PATH, file_name)
 
 
 def read_byte(file, count=1):
@@ -542,6 +548,70 @@ def textures_groups(textures_file, filetree_dict=None):
     for name in filetree_dict.keys():
         groups.setdefault(texture_group(os.path.splitext(name)[0]), []).append(name)
     return groups
+
+
+def figures_template_names(figures_file, filetree_dict=None):
+    """
+    Returns lower case names of all models (templates) in figures.res: names of the .lnk and .mod elements.
+    """
+    if filetree_dict is None:
+        filetree_dict = read_res_filetree(figures_file, return_dict=True)
+    names = set()
+    for name in filetree_dict.keys():
+        name_l = name.lower()
+        if name_l.endswith('.lnk') or name_l.endswith('.mod'):
+            names.add(name_l[:-4])
+    return names
+
+
+def texture_model(texture, templates_by_length):
+    """
+    Returns the model the texture belongs to, texture names are <model><part / armor / weapon / material>.
+    The model is the longest template name the texture starts with, templates_by_length is sorted longest first.
+    Textures of unknown models go to the model named as the texture without trailing digits: wolf01 -> wolf.
+    """
+    texture = texture.lower()
+    for t in templates_by_length:
+        if texture.startswith(t):
+            return t
+    return re.match(r'^(.*?)\d*$', texture).group(1) or texture
+
+
+def texture_model_group(texture, templates_by_length):
+    """
+    Returns the group of the texture inside redress.res: the model, and for models from const.REDRESS_SPLIT_MODELS
+    also the kind of armor / weapon: unhufeax_01.br.1 -> unhufe_ax, unhumaskin_00 -> unhuma_skin.
+    Pictures of wounds (<body part>w<number>: unhufelhw1, unhumabdw2) go to <model>_w.
+    Textures of a split model which match neither rule stay in <model>.
+    """
+    texture = texture.lower()
+    model = texture_model(texture, templates_by_length)
+    if model not in const.REDRESS_SPLIT_MODELS:
+        return model
+    rest = texture[len(model):]
+    if re.match(r'^[a-z]{2}w\d+$', rest):
+        return model + '_w'
+    m = re.match(r'^([a-z]+)_', rest)
+    if m:
+        return model + '_' + m.group(1)
+    return model
+
+
+def textures_models(textures_file, templates, filetree_dict=None):
+    """
+    Groups elements of redress.res by the model they belong to: {group: [element names]}, see texture_model_group().
+    templates are the model names from figures.res, see figures_template_names().
+    Element names are as they are in redress.res.
+    """
+    if filetree_dict is None:
+        filetree_dict = read_res_filetree(textures_file, return_dict=True)
+    by_length = sorted(templates, key=lambda x: -len(x))
+    models = {}
+    for name in filetree_dict.keys():
+        # names look like unhufeax_01.br.1.mmp, only the last extension is dropped
+        texture = name[:-4] if name.lower().endswith('.mmp') else name
+        models.setdefault(texture_model_group(texture, by_length), []).append(name)
+    return models
 
 
 def extract_textures_group(textures_file, filetree_dict, element_names, dest_file_path):

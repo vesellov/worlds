@@ -98,6 +98,7 @@ from kivy.uix.label import Label
 from kivy.uix.button import Button
 
 from lib import res
+from lib import models
 from client import rend
 from client import dat
 from client import scen
@@ -117,42 +118,7 @@ class WorldsApp(App):
         # if system.is_android():
         #     Window.keyboard_mode = 'managed'
         # Window.bind(on_request_close=self.on_request_close)
-        # (folder, file name, url prefix), every file is downloaded as <url prefix><file name>.xz or .gz, see loader.download_compressed()
-        self.inventory_list = []
-        if not loader.FIGURES_URL_PREFIX:
-            # models are downloaded one by one when the game server tells which are needed, see loader.ModelsLoader
-            # until the separate models are published the whole figures.res is downloaded and models are taken from it
-            self.inventory_list.append(('data', 'figures.res', 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'))
-        self.inventory_list += [
-            ('data', 'textures.res', 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'),
-            ('data', 'redress.res', 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/astral2006/res/'),
-            ('data', 'textures2.res', 'https://raw.githubusercontent.com/eigamer/ei/refs/heads/main/eng2001/res/'),
-            ('catalog', 'animations.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'armors.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'buildings.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'figures.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'figures_names.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'figures_parts.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'figures_samples.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'materials.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'plants.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'textures.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('catalog', 'weapons.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/catalog/'),
-            ('assets', 'water1.png', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'sky1.png', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            # TODO: the following needs to move from "assets" to "map" sub dir
-            ('assets', 'tiles.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'catalog.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'map.png', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'heightmap.png', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'encoded.png', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'plants.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-            ('assets', 'buildings.json', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'),
-        ]
-        for i in range(0, 29):
-            self.inventory_list.append(('assets/land', f'{i}.png', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/land/'))
-        for tex in ['flag_east', 'flag_north', 'flag_south', 'flag_undead', 'gipat2sys', 'gipatsys', 'ingossys', 'jigransys', 'quater01', 'suslangersys', ]:
-            self.inventory_list.append(('textures/model', f'{tex}.png', 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/flags/'))
+        self.inventory_list = loader.inventory_list()
         self.downloading_list = []
         for folder, file_name, url_prefix in self.inventory_list:
             dest_file_path = os.path.join(res.data_path(folder), file_name)
@@ -190,7 +156,10 @@ class WorldsApp(App):
     def download_in_background(self, folder, file_name, url_prefix):
         dest_file_path = os.path.join(res.data_path(folder), file_name)
         try:
-            loader.download_compressed(dest_file_path, url_prefix, file_name)
+            if url_prefix.startswith(loader.STORE_URL_PREFIX):
+                loader.download_plain(dest_file_path, url_prefix + file_name)
+            else:
+                loader.download_compressed(dest_file_path, url_prefix, file_name)
         except Exception:
             traceback.print_exc()
             Clock.schedule_once(lambda dt: self.on_download_failed(file_name))
@@ -200,7 +169,7 @@ class WorldsApp(App):
     def on_download_failed(self, file_name):
         # the game can not start without the file, the next start continues from this file
         if self.downloading_popup:
-            self.downloading_popup.title = f'failed to download {file_name}, please restart the game later'
+            self.downloading_popup.title = f'failed to download {file_name}'
 
     def on_file_downloaded(self, file_path):
         self.progress_bar.value += 1
@@ -218,15 +187,15 @@ class WorldsApp(App):
             print(f'starting the app')
         self.root.clear_widgets()
         catalog = dat.CatalogData()
-        catalog.load_figures(figures_file_name=res.data_path('catalog/figures.json'))
-        catalog.load_animations(animations_file_name=res.data_path('catalog/animations.json'))
-        catalog.load_armors(armors_file_name=res.data_path('catalog/armors.json'))
-        catalog.load_weapons(weapons_file_name=res.data_path('catalog/weapons.json'))
-        catalog.load_materials(materials_file_name=res.data_path('catalog/materials.json'))
+        catalog.load_figures(figures_file_name=res.catalog_path('figures.json'))
+        catalog.load_animations(animations_file_name=res.catalog_path('animations.json'))
+        catalog.load_armors(armors_file_name=res.catalog_path('armors.json'))
+        catalog.load_weapons(weapons_file_name=res.catalog_path('weapons.json'))
+        catalog.load_materials(materials_file_name=res.catalog_path('materials.json'))
         land = dat.LandData()
         land.load_heightmap_file(heightmap_file_name=res.data_path('assets/heightmap.png'))
         land.load_tilemap_file(tilemap_file_name=res.data_path('assets/encoded.png'))
-        land.load_cache_tiles_textures(textures_dir_path=res.data_path('assets/land'))
+        land.load_cache_tiles_textures(textures_dir_path=res.data_path('textures/land'))
         land.load_plants_data(plants_data_file_name=res.data_path('assets/plants.json'))
         land.load_buildings_data(buildings_data_file_name=res.data_path('assets/buildings.json'))
         self.catalog = catalog
@@ -254,10 +223,29 @@ class WorldsApp(App):
 
     def on_welcome(self, templates):
         self.required_templates = templates
-        models_loader = loader.ModelsLoader(templates, on_progress=self.on_models_progress, on_done=self.on_models_ready)
-        if models_loader.missing:
-            self.show_models_popup(title='downloading models...', maximum=len(models_loader.missing))
-        models_loader.start()
+        world_templates = []
+        for t in templates:
+            # [template, store_id], older servers send only the name of the template
+            if isinstance(t, str):
+                world_templates.append((t, models.DEFAULT_STORE_ID))
+            else:
+                world_templates.append((t[0], t[1]))
+        files = loader.missing_files(templates=world_templates, textures=self.world_textures())
+        store_loader = loader.StoreLoader(files, on_progress=self.on_models_progress, on_done=self.on_models_ready)
+        if files:
+            self.show_models_popup(title='downloading models...', maximum=len(files))
+        store_loader.start()
+
+    def world_textures(self):
+        # textures of buildings and plants, the land is rendered while the camera moves so all of them are needed
+        # before the scene is created, those are taken from the default store
+        textures = set()
+        for building_list in self.land.buildings_map_data.values():
+            for building in building_list:
+                textures.add(building['t'])
+        for plant_variant in self.land.plants_variants.values():
+            textures.add(plant_variant['t'])
+        return sorted((t, models.DEFAULT_STORE_ID) for t in textures if t)
 
     def on_models_progress(self, done, total, template):
         if self.models_popup:
@@ -304,7 +292,7 @@ class WorldsApp(App):
         scene.calculate_land_vertices()
         scene.calculate_scaled_elevation_map()
         self.renderer = rend.Renderer(app_root=self, scene=scene)
-        self.known_templates = json.loads(open(res.data_path('catalog/figures_samples.json'), 'rt').read())
+        self.known_templates = json.loads(open(res.catalog_path('figures_samples.json'), 'rt').read())
         scene.renderer = self.renderer
         scene.init_scene(250, 350)
         # all units are created by the game server, client only renders them, see cli.GameClient
@@ -333,11 +321,22 @@ class WorldsApp(App):
             self.game_client.stop()
 
 
+def catalog_path():
+    # in the Android package catalog/ is next to main.py, see installer/android/Makefile,
+    # when running from the repository it is in the root folder: src/client/main.py -> catalog/
+    for path in (os.path.join(ROOT_PATH, 'catalog'), os.path.join(ROOT_PATH, '..', '..', 'catalog')):
+        if os.path.isdir(path):
+            return os.path.abspath(path)
+    raise Exception(f'catalog folder not found near {ROOT_PATH}')
+
+
 def main():
     res.DATA_PATH = system.get_app_data_path()
+    res.CATALOG_PATH = catalog_path()
     if _Debug:
         print(f'data path: {res.DATA_PATH}')
         print(f'root path: {ROOT_PATH}')
+        print(f'catalog path: {res.CATALOG_PATH}')
     if not os.path.exists(res.DATA_PATH):
         os.makedirs(res.DATA_PATH)
     WorldsApp().run()

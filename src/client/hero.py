@@ -1,5 +1,7 @@
 from lib import const
 from lib import mth
+from lib import models
+from client import loader
 
 _Debug = True
 
@@ -10,8 +12,11 @@ class Hero(object):
     received from the server and applies the state of the unit received from the server.
     """
 
-    def __init__(self, scene, model_name, skin=0, hair=None, wears=[], weapon=None, texture=None):
+    def __init__(self, scene, model_name, skin=0, hair=None, wears=[], weapon=None, texture=None, store_id=None):
         self.scene = scene
+        # the model and its textures are taken from that store, see loader.StoreLoader
+        self.store_id = store_id or models.DEFAULT_STORE_ID
+        self.template_data = None
         self.unit_name = None
         self.model_name = model_name
         self.skin = skin
@@ -20,15 +25,31 @@ class Hero(object):
         self.weapon = weapon
         self.texture = texture
 
-    def create_unit(self, map_w, map_h, elevation_correction=None, coefs=[0.5, 0.5, 0.75], shift_w=0.5, shift_h=0.5, direction=0):
-        template = self.scene.catalog.build_template_data(
-            model_name=self.model_name,
-            skin=self.skin,
-            hair=self.hair,
-            wears=self.wears,
-            weapon=self.weapon,
-            texture=self.texture,
+    def build_template(self):
+        if self.template_data is None:
+            self.template_data = self.scene.catalog.build_template_data(
+                model_name=self.model_name,
+                skin=self.skin,
+                hair=self.hair,
+                wears=self.wears,
+                weapon=self.weapon,
+                texture=self.texture,
+            )
+        return self.template_data
+
+    def required_files(self):
+        """
+        Files of the store which must be downloaded before the unit can be created, see loader.missing_files().
+        """
+        template = self.build_template()
+        textures = template['textures'].values() if not self.texture else [self.texture]
+        return loader.missing_files(
+            templates=[(template['model_name'], self.store_id)],
+            textures=[(t, self.store_id) for t in textures],
         )
+
+    def create_unit(self, map_w, map_h, elevation_correction=None, coefs=[0.5, 0.5, 0.75], shift_w=0.5, shift_h=0.5, direction=0):
+        template = self.build_template()
         selected_parts = [p.replace('.hidden', '') for p in template['parts']]
         hidden_parts = [p.replace('.hidden', '') for p in template['parts'] if p.endswith('.hidden')]
         unit = self.scene.place_animated_unit_on_land(
@@ -45,6 +66,7 @@ class Hero(object):
             textures=template['textures'] if not self.texture else {'*': self.texture},
             single_texture=False if self.texture else True,
             selected_animations=template['animations'],
+            store_id=self.store_id,
         )
         unit.animations_list = template['animations']
         unit.action_types = template['action_types']

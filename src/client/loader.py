@@ -1,4 +1,5 @@
 import os
+import json
 import gzip
 import zlib
 import time
@@ -21,10 +22,6 @@ from kivy.clock import Clock
 from lib import res
 
 _Debug = True
-
-# where separate <template>.res files are downloaded from, see tools/split_figures_res.py
-# while empty the models are taken out of the whole data/figures.res which is downloaded at the start
-FIGURES_URL_PREFIX = os.environ.get('WORLDS_FIGURES_URL', '')
 
 # every file is stored on GitHub as .xz and as .gz, see tools/compress_files.py, this sets which one is downloaded:
 # "xz" is smaller, "gz" decompresses faster and only needs zlib. When lzma is not available .gz is downloaded anyway
@@ -227,105 +224,238 @@ def validate_res(file_path):
         res.read_res_filetree(f)
 
 
-def template_res_path(template):
-    return res.data_path(os.path.join('data', 'figures', template + '.res'))
+#--- STORES ---
+
+# store <store_id> keeps <kind>/<name>.res files: figures/<template>.res, textures/<group>.res, redress/<group>.res,
+# see tools/split_figures.py and tools/split_textures.py. Files are published as they are, without compression
+STORE_URL_PREFIX = os.environ.get('WORLDS_STORE_URL', 'http://p2p-alice.ai/store/')
+
+# catalog/textures_store.json says which .res file of the store holds the texture:
+# {store_id: {texture: "<kind>/<group>"}}, for example {"2": {"unhumaskin_41": "redress/unhuma_skin"}}
+TEXTURES_STORE_FILE_NAME = 'textures_store.json'
+
+# flags downloaded from <STORE_URL_PREFIX>flags/ into textures/flags/, those are used instead of the textures of the stores
+SHARED_TEXTURES = ('flag_east', 'flag_north', 'flag_south', 'flag_undead', 'gipat2sys', 'gipatsys', 'ingossys', 'jigransys', 'quater01', 'suslangersys', )
+
+_StoreIndex = None
+_StoreLock = threading.Lock()
+
+# where files of the map are downloaded from, those are compressed, see download_compressed()
+ASSETS_URL_PREFIX = 'https://raw.githubusercontent.com/bitdust-io/worlds/refs/heads/main/assets/'
+# number of the land tiles textures: textures/land/0.png ... 28.png
+LAND_TILES_COUNT = 29
 
 
-def is_template_available(template):
+def inventory_list():
+    """
+    Files the client must have before the game starts: list of (folder, file name, url prefix),
+    every file is downloaded as <url prefix><file name>. Files of the store are downloaded as they are,
+    others as <file name>.xz or .gz, see download_compressed().
+    Models and textures are not here: they are downloaded from the stores when the game server tells
+    which are needed, see StoreLoader. Files of the catalog/ folder are part of the client.
+    """
+    files = [
+        ('textures/nature', 'water1.png', f'{STORE_URL_PREFIX}nature/'),
+        ('textures/nature', 'sky1.png', f'{STORE_URL_PREFIX}nature/'),
+        # TODO: the following needs to move from "assets" to "map" sub dir
+        ('assets', 'tiles.json', ASSETS_URL_PREFIX),
+        ('assets', 'catalog.json', ASSETS_URL_PREFIX),
+        ('assets', 'map.png', ASSETS_URL_PREFIX),
+        ('assets', 'heightmap.png', ASSETS_URL_PREFIX),
+        ('assets', 'encoded.png', ASSETS_URL_PREFIX),
+        ('assets', 'plants.json', ASSETS_URL_PREFIX),
+        ('assets', 'buildings.json', ASSETS_URL_PREFIX),
+    ]
+    for i in range(LAND_TILES_COUNT):
+        files.append(('textures/land', f'{i}.png', f'{STORE_URL_PREFIX}land/'))
+    for texture in SHARED_TEXTURES:
+        files.append(('textures/flags', f'{texture}.png', f'{STORE_URL_PREFIX}flags/'))
+    return files
+
+
+def store_res_path(store_id, kind, name):
+    return res.data_path(os.path.join('data', 'store', str(store_id), kind, name + '.res'))
+
+
+def store_res_url(store_id, kind, name):
+    return f'{STORE_URL_PREFIX}{store_id}/{kind}/{name}.res'
+
+
+def store_index(store_id):
+    global _StoreIndex
+    if _StoreIndex is None:
+        with open(res.catalog_path(TEXTURES_STORE_FILE_NAME), 'rt') as f:
+            _StoreIndex = json.loads(f.read())
+    return _StoreIndex.get(str(store_id), {})
+
+
+def texture_name(texture):
+    # textures of the templates can have the layer number at the end: unhumaskin_41:0
+    return texture.split(':')[0].lower()
+
+
+def texture_location(texture, store_id):
+    """
+    Returns (kind, group) of the .res file in the store which holds the texture, None when the store has no such texture.
+    """
+    location = store_index(store_id).get(texture_name(texture))
+    if not location:
+        return None
+    kind, group = location.split('/', 1)
+    return kind, group
+
+
+def texture_png_path(texture, store_id):
+    # textures of different stores can have the same name, so every store has its own folder
+    return res.data_path(os.path.join('textures', f'store{store_id}', texture_name(texture) + '.png'))
+
+
+def shared_texture_png_path(texture):
+    # textures which are not part of the stores: flags, see SHARED_TEXTURES
+    return res.data_path(os.path.join('textures', 'flags', texture_name(texture) + '.png'))
+
+
+def template_res_path(template, store_id):
+    return store_res_path(store_id, 'figures', template.lower())
+
+
+def template_models_dir(store_id):
+    # models are unpacked into models/store<store_id>/<template>/, see dat.ModelData.unpack_figure_data()
+    return res.data_path(os.path.join('models', f'store{store_id}'))
+
+
+def is_template_available(template, store_id):
     # models which were already unpacked earlier do not need the .res file anymore
-    return os.path.isfile(template_res_path(template)) or os.path.isdir(res.data_path(os.path.join('models', template)))
+    return os.path.isfile(template_res_path(template, store_id)) or os.path.isdir(os.path.join(template_models_dir(store_id), template.lower()))
 
 
-class ModelsLoader(object):
+def missing_files(templates=(), textures=()):
     """
-    Makes sure that all models (templates) needed for the world are on the device before the scene is rendered.
-    Models which were downloaded before are skipped, others are downloaded one by one in a background thread.
+    Files which must be downloaded from the stores before the models can be rendered: sorted list of (store_id, kind, name).
+    templates and textures are lists of (name, store_id).
+    """
+    files = set()
+    for template, store_id in templates:
+        if not is_template_available(template, store_id):
+            files.add((store_id, 'figures', template.lower()))
+    for texture, store_id in textures:
+        if texture_name(texture) in SHARED_TEXTURES or os.path.isfile(texture_png_path(texture, store_id)):
+            continue
+        location = texture_location(texture, store_id)
+        if not location:
+            # not part of the store, it is taken from the shared textures or reported when the model is built
+            continue
+        kind, group = location
+        if not os.path.isfile(store_res_path(store_id, kind, group)):
+            files.add((store_id, kind, group))
+    return sorted(files)
+
+
+def download_plain(dest_file_path, url, validate=None):
+    """
+    Downloads the file as it is (files of the stores are not compressed), see download_file().
+    """
+    if os.path.isfile(dest_file_path):
+        return dest_file_path
+    os.makedirs(os.path.dirname(dest_file_path), exist_ok=True)
+    part_file_path = dest_file_path + '.part'
+    try:
+        with requests.Session() as session, open(part_file_path, 'wb') as f:
+            session.headers['User-Agent'] = USER_AGENT
+            download_url(session, url, f, 64 * 1024)
+        if validate:
+            validate(part_file_path)
+        os.replace(part_file_path, dest_file_path)
+    finally:
+        if os.path.isfile(part_file_path):
+            os.remove(part_file_path)
+    if _Debug:
+        print(f'loader: downloaded {dest_file_path} from {url}, {os.path.getsize(dest_file_path)} bytes')
+    return dest_file_path
+
+
+def download_store_file(store_id, kind, name):
+    """
+    Downloads one .res file of the store, blocks for the whole download so must run in a background thread.
+    The lock makes sure the same file is not downloaded by two threads at the same moment.
+    """
+    with _StoreLock:
+        return download_plain(store_res_path(store_id, kind, name), store_res_url(store_id, kind, name), validate=validate_res)
+
+
+def ensure_texture(texture, store_id):
+    """
+    Returns the path to the .png file of the texture, unpacks it from the .res file of the store when needed.
+    Normally the .res file is already downloaded by StoreLoader, otherwise it is downloaded right here,
+    which freezes the window for the time of the download. Returns None when the texture is not found.
+    """
+    if texture_name(texture) in SHARED_TEXTURES:
+        return shared_texture_png_path(texture)
+    png_file_path = texture_png_path(texture, store_id)
+    if os.path.isfile(png_file_path):
+        return png_file_path
+    location = texture_location(texture, store_id)
+    if location:
+        kind, group = location
+        res_file_path = store_res_path(store_id, kind, group)
+        if not os.path.isfile(res_file_path):
+            if _Debug:
+                print(f'loader: WARNING, {kind}/{group}.res of store {store_id} was not downloaded before, downloading now for texture {texture}')
+            try:
+                download_store_file(store_id, kind, group)
+            except Exception:
+                traceback.print_exc()
+                return None
+        if res.unpack_texture(res_file_path, os.path.dirname(png_file_path), texture_name(texture)):
+            return png_file_path
+        return None
+    shared_file_path = shared_texture_png_path(texture)
+    if os.path.isfile(shared_file_path):
+        return shared_file_path
+    if _Debug:
+        print(f'loader: WARNING, texture {texture} not found in store {store_id}')
+    return None
+
+
+class StoreLoader(object):
+    """
+    Downloads files from the stores one by one in a background thread: models and textures needed to render something.
+    Files which were downloaded before are skipped, see missing_files().
     """
 
-    def __init__(self, templates, on_progress=None, on_done=None):
-        self.templates = list(templates)
+    def __init__(self, files, on_progress=None, on_done=None):
+        self.files = list(files)
         self.on_progress = on_progress
         self.on_done = on_done
-        self.missing = [t for t in self.templates if not is_template_available(t)]
         self.failed = []
         self.thread = None
 
     def start(self):
         if _Debug:
-            print(f'models loader: {len(self.templates)} templates required, {len(self.missing)} need to be downloaded')
-        if not self.missing:
+            print(f'store loader: {len(self.files)} files need to be downloaded')
+        if not self.files:
             Clock.schedule_once(lambda dt: self.finish())
             return
         self.thread = threading.Thread(target=self.run, daemon=True)
         self.thread.start()
 
     def run(self):
-        figures_res = None
-        for i, template in enumerate(self.missing):
-            ok = False
-            if FIGURES_URL_PREFIX:
-                ok = self.download(template)
-            if not ok:
-                if figures_res is None:
-                    figures_res = self.open_figures_res()
-                if figures_res:
-                    ok = self.extract(figures_res, template)
-            if not ok:
-                self.failed.append(template)
-            Clock.schedule_once(lambda dt, i=i, template=template: self.progress(i + 1, template))
-        if figures_res:
-            figures_res[0].close()
+        for i, (store_id, kind, name) in enumerate(self.files):
+            try:
+                download_store_file(store_id, kind, name)
+            except Exception as exc:
+                if _Debug:
+                    print(f'store loader: failed to download {store_res_url(store_id, kind, name)}: {exc}')
+                self.failed.append(f'{kind}/{name}')
+            Clock.schedule_once(lambda dt, i=i, name=name: self.progress(i + 1, name))
         Clock.schedule_once(lambda dt: self.finish())
 
-    def download(self, template):
-        try:
-            # the file is checked to be a valid .res file before it is used
-            download_compressed(template_res_path(template), FIGURES_URL_PREFIX, template + '.res', validate=validate_res)
-            return True
-        except Exception as exc:
-            if _Debug:
-                print(f'models loader: failed to download {template}.res from {FIGURES_URL_PREFIX}: {exc}')
-        return False
-
-    def open_figures_res(self):
-        # the whole figures.res can still be used as the source, models are taken out of it the same way
-        # as tools/split_figures_res.py does
-        figures_res_path = res.data_path(os.path.join('data', 'figures.res'))
-        if not os.path.isfile(figures_res_path):
-            return False
-        try:
-            figures_file = open(figures_res_path, 'rb')
-            filetree_dict = res.read_res_filetree(figures_file, return_dict=True)
-            groups, _ = res.figures_templates(figures_file, filetree_dict)
-        except:
-            traceback.print_exc()
-            return False
-        return figures_file, filetree_dict, groups
-
-    def extract(self, figures_res, template):
-        figures_file, filetree_dict, groups = figures_res
-        if template not in groups:
-            if _Debug:
-                print(f'models loader: template {template} not found in figures.res')
-            return False
-        dest_file_path = template_res_path(template)
-        if not os.path.isdir(os.path.dirname(dest_file_path)):
-            os.makedirs(os.path.dirname(dest_file_path))
-        try:
-            res.extract_figures_template(figures_file, filetree_dict, groups[template], dest_file_path)
-        except:
-            traceback.print_exc()
-            return False
-        if _Debug:
-            print(f'models loader: extracted {template}.res from figures.res')
-        return True
-
-    def progress(self, done, template):
+    def progress(self, done, name):
         if self.on_progress:
-            self.on_progress(done, len(self.missing), template)
+            self.on_progress(done, len(self.files), name)
 
     def finish(self):
         if self.failed:
-            print(f'models loader: ERROR, models not available: {self.failed}')
+            print(f'store loader: ERROR, files not available: {self.failed}')
         if self.on_done:
             self.on_done(self.failed)

@@ -82,6 +82,10 @@ WATER_LEVEL_ELEVATION = PLANET_RADIUS + (WATER_LEVEL / 100.0) * ELEVATION_FACTOR
 
 
 #--- TEXTURES ---
+# Models of redress.res which are split further by the kind of armor / weapon: unhuma_ax.res, unhuma_bt.res,
+# and wound pictures go to unhuma_w.res, see tools/split_textures.py. Other models go into one <model>.res.
+REDRESS_SPLIT_MODELS = ('unhuma', 'unhufe')
+
 # Groups of textures.res, every group is written into a separate <group>.res file by tools/split_textures_res.py.
 # Rules are checked in this order, the first matching regex (against the lower case texture name) wins.
 # Textures which do not match any rule go to the "objects" group (props: barrels, chests, carpets and so on).

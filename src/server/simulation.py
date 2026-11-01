@@ -1,11 +1,11 @@
 import os
 import json
-import math
 
 from PIL import Image
 
 from lib import const
 from lib import models
+from lib import physics
 
 _Debug = True
 
@@ -24,9 +24,13 @@ DEFAULT_HERO_TEMPLATE = dict(
     ],
     weapon='cheat dagger.bronze',
     coefs=[0.5, 0.5, 0.75],
+    store_id=2,
 )
 
 DEFAULT_HERO_POSITION = (261, 337)
+
+# controls requested for a tick further than that in the future are applied earlier, at that many ticks from now
+MAX_INPUT_LEAD = 40
 
 # radius in segments of the area around a building where units can not walk
 BUILDING_RADIUS = {
@@ -34,31 +38,6 @@ BUILDING_RADIUS = {
     'tower': 0.4,
     'flag': 0.15,
 }
-
-
-def normalize_angle(a):
-    while a > 360.0:
-        a -= 360.0
-    while a < 0.0:
-        a += 360.0
-    return a
-
-
-def normalize_position(w, h, shift_w, shift_h):
-    # same as in unt.Unit.run() before: integer part of the shift moves unit to another segment
-    if shift_w > 1.0:
-        w += int(shift_w)
-        shift_w = float(shift_w) - float(int(shift_w))
-    elif shift_w < 0.0:
-        w += int(shift_w) - 1
-        shift_w = float(shift_w) - float(int(shift_w)) + 1.0
-    if shift_h > 1.0:
-        h += int(shift_h)
-        shift_h = float(shift_h) - float(int(shift_h))
-    elif shift_h < 0.0:
-        h += int(shift_h) - 1
-        shift_h = float(shift_h) - float(int(shift_h)) + 1.0
-    return w, h, shift_w, shift_h
 
 
 def point_line_left_or_right(xp, yp, xa, ya, xb, yb):
@@ -95,12 +74,13 @@ class Simulation(object):
         self.info = None
         self.elevation_map_data = {}
         self.buildings = []
-        # names of all models (templates) used in the world, clients download them before rendering the scene
+        # [template, store_id] of all models used in the world, clients download them before rendering the scene
         self.templates = []
         self.animations_catalog = {}
         self.action_types_cache = {}
         self.objects = {}
-        self.controls = {}
+        # unit id -> list of (Controls, slack) received from the client and waiting for their tick
+        self.pending_controls = {}
         self.tick_number = 0
         self.next_id = 0
 
@@ -152,8 +132,10 @@ class Simulation(object):
         # keys of plants.json are "template#texture#parts", see dat.LandData.load_plants_data() on the client
         for plant_key in json.loads(open(plants_file_name, 'rt').read()).keys():
             templates.add(plant_key.split('#')[0])
-        templates.add(DEFAULT_HERO_TEMPLATE['model_name'])
-        self.templates = sorted(t.lower() for t in templates)
+        # buildings and plants are taken from the default store, every hero says where its model is
+        world_templates = set((t.lower(), models.DEFAULT_STORE_ID) for t in templates)
+        world_templates.add((DEFAULT_HERO_TEMPLATE['model_name'].lower(), DEFAULT_HERO_TEMPLATE.get('store_id', models.DEFAULT_STORE_ID)))
+        self.templates = [list(t) for t in sorted(world_templates)]
 
     def get_elevation(self, w, h):
         return self.elevation_map_data[(w % self.width, h % self.height)]
@@ -223,19 +205,44 @@ class Simulation(object):
             h=h,
         )
         hero.animation = self.animation_for(hero)
+        hero.input_tick = self.tick_number
         self.objects[hero.id] = hero
-        self.controls[hero.id] = models.Controls()
+        self.pending_controls[hero.id] = []
         if _Debug:
             print(f'spawned {hero.name} for {owner} at {w},{h}')
         return hero
 
     def remove_object(self, object_id):
-        self.controls.pop(object_id, None)
+        self.pending_controls.pop(object_id, None)
         return self.objects.pop(object_id, None)
 
     def set_controls(self, unit_id, controls):
-        if unit_id in self.controls:
-            self.controls[unit_id] = controls
+        """
+        Client asks to apply the controls at the tick controls.tick, so it knows in advance how its hero is going to move.
+        Controls which came too late are applied at the next tick, the client finds it out from Unit.input_slack.
+        """
+        pending = self.pending_controls.get(unit_id)
+        if pending is None:
+            return
+        next_tick = self.tick_number + 1
+        slack = controls.tick - next_tick
+        tick = max(next_tick, min(controls.tick, self.tick_number + MAX_INPUT_LEAD))
+        # controls are applied in the order they were sent
+        if pending:
+            tick = max(tick, pending[-1][0].tick)
+        controls.tick = tick
+        pending.append((controls, slack))
+
+    def apply_controls(self, u):
+        pending = self.pending_controls.get(u.id)
+        while pending and pending[0][0].tick <= self.tick_number:
+            controls, slack = pending.pop(0)
+            u.move = controls.move
+            u.turn = controls.turn
+            u.target_direction = controls.target_direction
+            u.input_seq = controls.seq
+            u.input_tick = self.tick_number
+            u.input_slack = slack
 
     #--- GAME LOOP ---
 
@@ -248,52 +255,24 @@ class Simulation(object):
         for o in list(self.objects.values()):
             if isinstance(o, models.Unit):
                 before = o.to_state()
-                self.run_unit(o, self.controls.get(o.id) or models.Controls())
+                self.apply_controls(o)
+                self.run_unit(o)
                 if o.to_state() != before:
                     changed.append(o)
         return changed
 
-    def run_unit(self, u, controls):
-        # turning, same as it was in rend.Renderer.on_run_units() and hero.Hero.turn() on the client
-        if controls.target_direction is not None:
-            direction_diff = controls.target_direction - u.direction
-            if direction_diff > 180.0:
-                direction_diff -= 360.0
-            if direction_diff < -180.0:
-                direction_diff += 360.0
-            turn = min(u.turn_speed, abs(direction_diff))
-            u.direction = normalize_angle(u.direction + (-turn if direction_diff > 0.0 else turn))
-        elif controls.turn:
-            u.direction = normalize_angle(u.direction + (u.turn_speed if controls.turn > 0 else -u.turn_speed))
-        # acceleration, same as it was in hero.Hero.move() on the client
-        if controls.move > 0:
-            acceleration_up, acceleration_down = u.acceleration_value, 0.0
-        elif controls.move < 0:
-            acceleration_up, acceleration_down = -u.acceleration_value, 0.0
+    def run_unit(self, u):
+        # the client calculates the movement with the same function, see cli.Prediction
+        w, h, shift_w, shift_h, direction, speed = physics.step(
+            u.w, u.h, u.shift_w, u.shift_h, u.direction, u.speed, u.move, u.turn, u.target_direction,
+            u.max_speed, u.acceleration_value, u.deceleration_value, u.turn_speed,
+        )
+        u.direction = direction
+        # a unit which somehow is already inside of a blocked area must be able to walk out of it
+        if speed and self.is_blocked(w, h, shift_w, shift_h, ignore=u) and not self.is_blocked(u.w, u.h, u.shift_w, u.shift_h, ignore=u):
+            u.speed = 0.0
         else:
-            acceleration_up, acceleration_down = 0.0, u.acceleration_value * 5
-        # speed, same as it was in unt.Unit.run() on the client
-        speed = u.speed + acceleration_up
-        if acceleration_up >= 0:
-            speed = min(speed, u.max_speed)
-        else:
-            speed = max(speed, -u.max_speed)
-        if speed > 0:
-            speed = max(0.0, speed - acceleration_down)
-        elif speed < 0:
-            speed = min(0.0, speed + acceleration_down)
-        u.speed = round(speed, 6)
-        if u.speed:
-            new_position = normalize_position(
-                u.w,
-                u.h,
-                u.shift_w + u.speed * math.cos(math.radians(u.direction)),
-                u.shift_h + u.speed * math.sin(math.radians(u.direction)),
-            )
-            # a unit which somehow is already inside of a blocked area must be able to walk out of it
-            if self.is_blocked(*new_position, ignore=u) and not self.is_blocked(u.w, u.h, u.shift_w, u.shift_h, ignore=u):
-                u.speed = 0.0
-            else:
-                u.w, u.h, u.shift_w, u.shift_h = new_position
-        u.action = 'run' if controls.move else 'idle'
+            u.w, u.h, u.shift_w, u.shift_h = w, h, shift_w, shift_h
+            u.speed = speed
+        u.action = 'run' if u.move else 'idle'
         u.animation = self.animation_for(u)

@@ -3,19 +3,29 @@ Splits big textures.res into several smaller .res files: textures are grouped by
 (trees, armor, weapons, creatures, terrain of every zone and so on), every group goes into <group>.res.
 Groups are defined by TEXTURE_GROUPS in src/lib/const.py, textures which match no rule go to objects.res.
 
-Also writes textures_index.json next to the files: {texture: group}, so the client knows which file holds a texture.
+With --by-model (on by default for redress.res) textures are grouped by the model they belong to instead:
+names are <model><part / armor / weapon / material>.mmp, the model is the longest model name from figures.res
+the texture starts with, every model goes into <model>.res. figures.res is taken next to the source file or from --figures.
+Models from REDRESS_SPLIT_MODELS in src/lib/const.py (unhuma, unhufe) are split further by the kind of armor / weapon:
+unhufeax_01.br.1 -> unhufe_ax.res, unhufeskin_00 -> unhufe_skin.res, and pictures of wounds (unhufelhw1) -> unhufe_w.res.
+So the client downloads only the files of the models it shows.
+
+Also writes <source>_index.json next to the files (textures_index.json, redress_index.json): {texture: group},
+so the client knows which file holds a texture.
 Every small file is read with the same functions from src/lib/res.py as textures.res before.
 
-    PYTHONPATH=src venv/bin/python3 tools/split_textures_res.py ~/.worlds/data/textures.res ./textures/
-    PYTHONPATH=src venv/bin/python3 tools/split_textures_res.py ~/.worlds/data/textures.res ./textures/ --groups trees,armor
-    PYTHONPATH=src venv/bin/python3 tools/split_textures_res.py ~/.worlds/data/textures.res ./textures/ --list
+    PYTHONPATH=src venv/bin/python3 tools/split_textures.py ~/.worlds/data/textures.res ./textures/
+    PYTHONPATH=src venv/bin/python3 tools/split_textures.py ~/.worlds/data/textures.res ./textures/ --groups trees,armor
+    PYTHONPATH=src venv/bin/python3 tools/split_textures.py ~/.worlds/data/textures.res ./textures/ --list
+    PYTHONPATH=src venv/bin/python3 tools/split_textures.py ~/.worlds/data/redress.res ./redress/
+    PYTHONPATH=src venv/bin/python3 tools/split_textures.py ~/.worlds/data/redress.res ./redress/ --groups unhufe --list
 
 With --unpack nothing is split: every .mmp file from the source .res is written as a separate file
 into the destination folder (any .res file works, also one of the split files). --groups limits it to those groups.
 
-    PYTHONPATH=src venv/bin/python3 tools/split_textures_res.py ~/.worlds/data/textures.res ./textures_mmp/ --unpack
-    PYTHONPATH=src venv/bin/python3 tools/split_textures_res.py ./textures/trees.res ./trees_mmp/ --unpack
-    PYTHONPATH=src venv/bin/python3 tools/split_textures_res.py ~/.worlds/data/textures.res ./trees_mmp/ --unpack --groups trees
+    PYTHONPATH=src venv/bin/python3 tools/split_textures.py ~/.worlds/data/textures.res ./textures_mmp/ --unpack
+    PYTHONPATH=src venv/bin/python3 tools/split_textures.py ./textures/trees.res ./trees_mmp/ --unpack
+    PYTHONPATH=src venv/bin/python3 tools/split_textures.py ~/.worlds/data/textures.res ./trees_mmp/ --unpack --groups trees
 """
 
 import os
@@ -65,19 +75,34 @@ def unpack_mmp(res_file, filetree_dict, names, destination):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='split textures.res into one .res file per group of textures')
-    parser.add_argument('source', help='path to textures.res')
+    parser = argparse.ArgumentParser(description='split textures.res (or redress.res) into one .res file per group of textures')
+    parser.add_argument('source', help='path to textures.res or redress.res')
     parser.add_argument('destination', help='output folder for <group>.res files')
     parser.add_argument('--groups', default='', help='comma separated list of groups, all groups by default')
     parser.add_argument('--list', action='store_true', help='only print the groups and their textures, write nothing')
     parser.add_argument('--unpack', action='store_true', help='do not split, just unpack all .mmp files into the destination folder')
+    parser.add_argument('--by-model', action='store_true', help='one group per model, on by default for redress.res')
+    parser.add_argument('--figures', default='', help='path to figures.res with the model names, by default next to the source')
     args = parser.parse_args()
     selected = set(g.strip().lower() for g in args.groups.split(',') if g.strip())
+    source_name = os.path.splitext(os.path.basename(args.source))[0].lower()
+    by_model = args.by_model or source_name == 'redress'
+    templates = None
+    if by_model and not (args.unpack and not selected):
+        figures_path = args.figures or os.path.join(os.path.dirname(args.source), 'figures.res')
+        if not os.path.isfile(figures_path):
+            print(f'figures.res is not found at {figures_path}, use --figures')
+            return 1
+        with open(figures_path, 'rb') as figures_file:
+            templates = res.figures_template_names(figures_file)
     with open(args.source, 'rb') as textures_file:
         filetree_dict = res.read_res_filetree(textures_file, return_dict=True)
         if args.unpack and not selected:
             return unpack_mmp(textures_file, filetree_dict, list(filetree_dict.keys()), args.destination)
-        groups = res.textures_groups(textures_file, filetree_dict)
+        if by_model:
+            groups = res.textures_models(textures_file, templates, filetree_dict)
+        else:
+            groups = res.textures_groups(textures_file, filetree_dict)
         if args.unpack:
             unknown = selected - set(groups.keys())
             if unknown:
@@ -135,11 +160,11 @@ def main():
         for g, names in groups.items():
             for name in names:
                 index[os.path.splitext(name)[0].lower()] = g
-        with open(os.path.join(args.destination, 'textures_index.json'), 'w') as f:
+        with open(os.path.join(args.destination, source_name + '_index.json'), 'w') as f:
             json.dump(index, f, indent=0, sort_keys=True)
     print(f'written {written} files into {args.destination}, total size {total_size / 1e6:.1f} MB')
     print('largest: ' + ', '.join(f'{g} {s / 1e6:.1f} MB' for s, g in sorted(sizes, reverse=True)[:10]))
-    if 'objects' in groups:
+    if not by_model and 'objects' in groups:
         print(f'{len(groups["objects"])} textures did not match any group and went to objects.res')
     if errors:
         print(f'{errors} errors found')

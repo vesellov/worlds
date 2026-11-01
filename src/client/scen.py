@@ -28,6 +28,7 @@ from PIL.Image import Transpose
 from lib import const
 from lib import res
 from lib import mth
+from lib import models
 from client import dat
 from client import unt
 from client import loader
@@ -238,7 +239,7 @@ class Scene(object):
             ).ravel().tolist()
             water_indices = segments_batch_indices(len(water_positions))
             self.container_water_tiles.add(ChangeState(material_density=0.0, water_transparency=(128.0 / 255.0), group='water'))
-            self.container_water_tiles.add(BindTexture(source=res.data_path('assets/water1.png'), index=1, group='water'))
+            self.container_water_tiles.add(BindTexture(source=res.data_path('textures/nature/water1.png'), index=1, group='water'))
             self.container_water_tiles.add(Mesh(
                 vertices=water_vertices,
                 indices=water_indices,
@@ -330,7 +331,7 @@ class Scene(object):
     def add_model_template(self, template, model):
         self.models[template] = model
 
-    def create_mesh_from_fig_data(self, fig_data, prefix='', texture=None, material=None, coefs=[0, 0, 0], scale=[1.0, 1.0, 1.0]):
+    def create_mesh_from_fig_data(self, fig_data, prefix='', texture=None, material=None, coefs=[0, 0, 0], scale=[1.0, 1.0, 1.0], store_id=models.DEFAULT_STORE_ID):
         """
         fig_data fields list:
             0:"blocks",
@@ -371,13 +372,9 @@ class Scene(object):
         name = prefix + '_' + str(_NextMeshID)
         if material is None:
             if texture:
-                tex_path = res.data_path('textures/model/' + texture + '.png')
-                if not os.path.isfile(tex_path):
-                    if not res.unpack_texture(res.data_path('data/textures.res'), res.data_path('textures/model'), texture):
-                        if not res.unpack_texture(res.data_path('data/textures2.res'), res.data_path('textures/model'), texture):
-                            res.unpack_texture(res.data_path('data/redress.res'), res.data_path('textures/model'), texture)
-                if not os.path.isfile(tex_path):
-                    raise Exception(f'figure prefix={prefix} texture={texture} not found at {tex_path}')
+                tex_path = loader.ensure_texture(texture, store_id)
+                if not tex_path:
+                    raise Exception(f'figure prefix={prefix} texture={texture} not found in store {store_id}')
                 material = {'map_Kd': tex_path}
         mesh = dat.MeshData(
             name=name,
@@ -442,6 +439,7 @@ class Scene(object):
         textures=None,
         single_texture=False,
         selected_animations=None,
+        store_id=models.DEFAULT_STORE_ID,
     ):
         global _NextObjectID
         _NextObjectID += 1
@@ -452,32 +450,33 @@ class Scene(object):
         materials = {}
         if single_texture and not os.path.exists(res.data_path('textures/combined/')):
             os.mkdir(res.data_path('textures/combined/'))
-        if template not in self.models:
+        # models of different stores can have the same name, they are kept apart
+        model_key = f'{template}@{store_id}'
+        textures_paths = {}
+        if model_key not in self.models:
             m = dat.ModelData()
-            if os.path.isdir(res.data_path('models/' + template)):
-                m.load_figure_data(res.data_path('models/' + template), template)
+            models_dir = loader.template_models_dir(store_id)
+            if os.path.isdir(os.path.join(models_dir, template)):
+                m.load_figure_data(os.path.join(models_dir, template), template)
             else:
-                # every model has its own .res file downloaded before the scene is rendered, see loader.ModelsLoader
-                figures_res_path = loader.template_res_path(template)
+                # every model has its own .res file downloaded before the scene is rendered, see loader.StoreLoader
+                figures_res_path = loader.template_res_path(template, store_id)
                 if not os.path.isfile(figures_res_path):
                     # models which are not in the list received from the server, for example samples shown by debug keys
-                    figures_res_path = res.data_path('data/figures.res')
-                    if not os.path.isfile(figures_res_path):
-                        raise Exception(f'model {template} was not downloaded')
+                    if _Debug:
+                        print(f'    WARNING, model {template} was not downloaded before, downloading now from store {store_id}')
+                    loader.download_store_file(store_id, 'figures', template)
                 if _Debug:
-                    print(f'    loading template {template} from {figures_res_path} and unpacking into models/')
-                m.unpack_figure_data(figures_res_path, res.data_path('models'), template=template)
+                    print(f'    loading template {template} from {figures_res_path} and unpacking into {models_dir}')
+                m.unpack_figure_data(figures_res_path, models_dir, template=template)
             for part_name in textures.keys():
                 texture = textures[part_name]
                 if texture.count(':') == 1:
                     texture = texture.split(':')[0]
-                tex_file_path = res.data_path('textures/model/' + texture + '.png')
-                if not os.path.isfile(tex_file_path):
-                    if _Debug:
-                        print(f'    loading texture {texture} from data/textures.res and unpacking into textures/')
-                    if not res.unpack_texture(res.data_path('data/textures.res'), res.data_path('textures/model'), texture):
-                        if not res.unpack_texture(res.data_path('data/textures2.res'), res.data_path('textures/model'), texture):
-                            res.unpack_texture(res.data_path('data/redress.res'), res.data_path('textures/model'), texture)
+                tex_file_path = loader.ensure_texture(texture, store_id)
+                if not tex_file_path:
+                    raise Exception(f'model {template} texture {texture} not found in store {store_id}')
+                textures_paths[texture] = tex_file_path
                 if not single_texture:
                     textures[part_name] = texture
                     tex_file_path_source = resource_find(tex_file_path)
@@ -518,7 +517,7 @@ class Scene(object):
                 layers = {}
                 for texture_layer in combined_texture_hash_bases.keys():
                     combined_texture_hash = hashlib.md5(combined_texture_hash_bases[texture_layer].encode()).hexdigest()
-                    combined_texture_file_name = f'{template}_{texture_layer}_{combined_texture_hash}'
+                    combined_texture_file_name = f'{template}_s{store_id}_{texture_layer}_{combined_texture_hash}'
                     combined_tex_file_path = res.data_path('textures/combined/' + combined_texture_file_name + '.png')
                     if os.path.isfile(combined_tex_file_path):
                         if _Debug:
@@ -535,8 +534,7 @@ class Scene(object):
                                 this_texture_layer = texture[-1]
                                 texture = texture[:-2]
                             if this_texture_layer == texture_layer:
-                                tex_file_path = res.data_path('textures/model/' + texture + '.png')
-                                tex_image = Image.open(tex_file_path)
+                                tex_image = Image.open(textures_paths[texture])
                                 image_combined.paste(tex_image, (0, 0))
                         for ordered_part_name in ordered_parts_list:
                             for part_name, texture in textures.items():
@@ -549,8 +547,7 @@ class Scene(object):
                                 if this_texture_layer != texture_layer:
                                     continue
                                 if part_name.startswith(ordered_part_name):
-                                    tex_file_path = res.data_path('textures/model/' + texture + '.png')
-                                    tex_image = Image.open(tex_file_path)
+                                    tex_image = Image.open(textures_paths[texture])
                                     image_combined.paste(tex_image, (0, 0), tex_image.convert('RGBA'))
                                     break
                         image_combined.save(combined_tex_file_path)
@@ -574,8 +571,8 @@ class Scene(object):
                     textures_layers[part_name] = layers[texture_layer]
                     materials[part_name] = {'map_Kd': res.data_path('textures/combined/' + layers[texture_layer] + '.png')}
                 textures = textures_layers.copy()
-            self.add_model_template(template, m)
-        m = self.models[template]
+            self.add_model_template(model_key, m)
+        m = self.models[model_key]
         static = False if selected_animations else True
         o = dat.ObjectData(name=template+'#'+str(_NextObjectID), static=static)
         coefs = mth.quantize_coefs(coefs)
@@ -609,14 +606,14 @@ class Scene(object):
                 mth.trilinear([part_info[i][1] for i in range(8)], coefs) * scale[1],
                 mth.trilinear([part_info[i][2] for i in range(8)], coefs) * scale[2],
             ])
-            mesh_key = self.mesh_key(o.template, part_name, coefs)
+            mesh_key = self.mesh_key(model_key, part_name, coefs)
             texture = o.textures[part_name] if part_name in o.textures else o.textures['*']
             material = materials[part_name] if part_name in materials else None
             if single_texture and not material:
                 if os.path.isfile(res.data_path('textures/combined/' + o.textures['*'] + '.png')):
                     material = {'map_Kd': res.data_path('textures/combined/' + o.textures['*'] + '.png')}
                 else:
-                    material = {'map_Kd': res.data_path('textures/models/' + o.textures['*'] + '.png')}
+                    material = {'map_Kd': loader.texture_png_path(o.textures['*'], store_id)}
             if part_name not in hidden_parts:
                 mesh = None
                 if mesh_key in self.meshes_index:
@@ -633,6 +630,7 @@ class Scene(object):
                         material=material,
                         coefs=coefs,
                         scale=scale,
+                        store_id=store_id,
                     )
                     mesh.object_name = o.name
                     mesh.object_part_name = part_name
@@ -1241,6 +1239,7 @@ class Scene(object):
         textures=None,
         single_texture=False,
         selected_animations=None,
+        store_id=models.DEFAULT_STORE_ID,
     ):
         ao = self.create_object_data_from_model_data(
             template=template,
@@ -1252,6 +1251,7 @@ class Scene(object):
             textures=textures,
             single_texture=single_texture,
             selected_animations=selected_animations,
+            store_id=store_id,
         )
         if not ao:
             return None

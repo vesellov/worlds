@@ -67,7 +67,7 @@ class GameServer(object):
         elif msg_type == models.MSG_INPUT:
             hero_id = self.heroes.get(key)
             if hero_id is not None:
-                self.world.set_controls(hero_id, models.Controls.from_dict(payload))
+                self.world.set_controls(hero_id, models.Controls.from_data(payload))
         elif _Debug:
             print(f'unknown message from {key}: {json_data}')
 
@@ -77,24 +77,30 @@ class GameServer(object):
         hero = self.world.spawn_hero(owner='%s:%s' % (key[1], key[2]))
         self.heroes[key] = hero.id
         ws_listener.send(key, models.message(models.MSG_WELCOME, {
-            'world': self.world.info.to_dict(),
+            'world': self.world.info.to_data(),
             'hero_id': hero.id,
-            # client must have all these models before it starts rendering the world
+            # [template, store_id]: client must have all these models before it starts rendering the world
             'templates': self.world.templates,
         }))
         # new client receives the whole world, others only the new hero
+        # objects are at that tick, clients continue their movement from it
         ws_listener.send(key, models.message(models.MSG_SPAWN, {
-            'objects': [o.to_dict() for o in self.world.objects.values()],
+            'tick': self.world.tick_number,
+            'objects': [o.to_data() for o in self.world.objects.values()],
         }))
-        ws_listener.push(models.message(models.MSG_SPAWN, {'objects': [hero.to_dict(), ]}), exclude=key)
+        ws_listener.push(models.message(models.MSG_SPAWN, {
+            'tick': self.world.tick_number,
+            'objects': [hero.to_data(), ],
+        }), exclude=key)
 
     def on_tick(self):
         changed = self.world.tick()
-        if changed:
-            ws_listener.push(models.message(models.MSG_STATE, {
-                'tick': self.world.tick_number,
-                'objects': [o.to_state() for o in changed],
-            }))
+        # sent every tick even if nothing was changed: clients match their clock to the server ticks
+        # and know that all other objects are still the same at that tick
+        ws_listener.push(models.message(models.MSG_STATE, {
+            'tick': self.world.tick_number,
+            'objects': [o.to_state() for o in changed],
+        }))
 
 
 def main():
