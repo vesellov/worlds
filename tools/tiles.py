@@ -1955,7 +1955,7 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                     ready_top_right_tile_name = f'{counter:05d}.png'
                     top_right_image.save(os.path.join(ready_dir, ready_top_right_tile_name))
                     catalog[key]['c'].append(counter)
-        open('assets/catalog.json', 'w').write(json.dumps(catalog, indent=2))
+        open('catalog/land.json', 'w').write(json.dumps(catalog, indent=2))
     for pair in pairs:
         pair2 = (pair[1], pair[0])
         if pair2 not in pairs:
@@ -2140,7 +2140,7 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                 ready_tile_name = f'{counter:05d}.png'
                 ready_image.save(os.path.join(ready_dir, ready_tile_name))
                 catalog[key].append(counter)
-        open('assets/catalog.json', 'w').write(json.dumps(catalog, indent=2))
+        open('catalog/land.json', 'w').write(json.dumps(catalog, indent=2))
 
 
 def build_index(src_dir, dest_dir):
@@ -2217,7 +2217,7 @@ def pack_tiles(src_dir, dest_dir):
         catalog_stats = json.loads(open('assets/catalog_stats.json').read())
         catalog_ids_sorted = sorted(catalog_stats.keys(), key=lambda k: catalog_stats[k], reverse=True)
     else:
-        catalog = json.loads(open('assets/catalog.json').read())
+        catalog = json.loads(open('catalog/land.json').read())
         catalog_ids_sorted = sorted(catalog.keys())
     tiles = []
     images = {}

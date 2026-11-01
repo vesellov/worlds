@@ -1761,8 +1761,8 @@ def main():
 
     random.seed(1)
 
-    catalog = json.loads(open('assets/catalog.json', 'rt').read())
-    catalog_plants = json.loads(open('assets/catalog_plants.json', 'rt').read())
+    catalog = json.loads(open('catalog/land.json', 'rt').read())
+    catalog_plants = json.loads(open('catalog/plants.json', 'rt').read())
 
     biomes_map = {}  # @UnusedVariable
     tiles_map = {}  # @UnusedVariable
