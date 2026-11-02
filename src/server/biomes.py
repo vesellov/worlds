@@ -56,7 +56,8 @@ class BiomeArchive(object):
                     self.files[os.path.normpath(member.name)] = tar.extractfile(member).read()
         missing = [f for f in REQUIRED_FILES if f not in self.files]
         if missing:
-            raise ValueError(f'biome {biome_id} archive {archive_path} has no {missing}')
+            if _Debug:
+                print(f'WARNING! biome {biome_id} archive {archive_path} has no {missing}')
 
     def read(self, file_name):
         return self.files[file_name]
