@@ -1,11 +1,6 @@
 import os
 import time
-
-try:
-    import thread
-except ImportError:
-    import _thread as thread
-
+import threading
 import queue
 import json
 
@@ -39,6 +34,11 @@ _PendingCalls = []
 _CallbacksQueue = {}
 _RegisteredCallbacks = {}
 _ModelUpdateCallbacks = {}
+_Threads = []
+# set by stop(), wakes up the websocket thread from the pause between reconnects
+_StopEvent = threading.Event()
+# stop() waits that long for the threads to finish, a thread still printing when the interpreter shuts down crashes it
+STOP_TIMEOUT = 5.0
 
 #------------------------------------------------------------------------------
 
@@ -60,10 +60,15 @@ def start(callbacks={}, api_secret_filepath=None, url=None):
     _WebSocketConnecting = True
     _WebSocketStarted = True
     _WebSocketQueue = queue.Queue(maxsize=1000)
-    websocket_thread_id = thread.start_new_thread(websocket_thread, ())
-    requests_thread_id = thread.start_new_thread(requests_thread, (_WebSocketQueue, ))
+    _StopEvent.clear()
+    _Threads[:] = [
+        threading.Thread(target=websocket_thread, name='websocket_thread', daemon=True),
+        threading.Thread(target=requests_thread, args=(_WebSocketQueue, ), name='requests_thread', daemon=True),
+    ]
+    for t in _Threads:
+        t.start()
     if _Debug:
-        print('web_sock.start() ended websocket_thread_id=%r requests_thread_id=%r' % (websocket_thread_id, requests_thread_id, ))
+        print('web_sock.start() ended threads=%r' % ([t.ident for t in _Threads], ))
 
 
 def stop():
@@ -82,6 +87,7 @@ def stop():
     _WebSocketStarted = False
     _WebSocketConnecting = False
     _WebSocketReady = False
+    _StopEvent.set()
     while True:
         try:
             json_data, _ = ws_queue().get_nowait()
@@ -93,6 +99,13 @@ def stop():
         if _Debug:
             print('web_sock.stop() websocket already closed')
         ws().close()
+    for t in _Threads:
+        if t is not threading.current_thread():
+            t.join(STOP_TIMEOUT)
+            if t.is_alive():
+                print('web_sock.stop() WARNING, %s did not finish in %r seconds' % (t.name, STOP_TIMEOUT, ))
+    if _Debug:
+        print('web_sock.stop() finished')
 
 #------------------------------------------------------------------------------
 
@@ -346,7 +359,7 @@ def websocket_thread():
             _WebSocketApp = None
             if _Debug:
                 print('websocket_thread(): %r' % exc)
-            time.sleep(5)
+            _StopEvent.wait(5)
         if _Debug:
             print('websocket_thread().run_forever() returned: %r  is_started: %r' % (ret, is_started(), ))
         if _WebSocketApp:
@@ -354,7 +367,7 @@ def websocket_thread():
             _WebSocketApp = None
         if not is_started():
             break
-        time.sleep(5)
+        _StopEvent.wait(5)
     _WebSocketApp = None
     if _Debug:
         print('websocket_thread() finished')

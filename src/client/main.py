@@ -150,16 +150,13 @@ class WorldsApp(App):
         folder, file_name, url_prefix = self.downloading_list.pop(0)
         if _Debug:
             print(f'downloading {folder}/{file_name} from {url_prefix}')
-        # pauses between requests and retries take time, the window must not freeze meanwhile
+        # the download and its retries take time, the window must not freeze meanwhile
         threading.Thread(target=self.download_in_background, args=(folder, file_name, url_prefix), daemon=True).start()
 
     def download_in_background(self, folder, file_name, url_prefix):
         dest_file_path = os.path.join(res.data_path(folder), file_name)
         try:
-            if url_prefix.startswith(loader.STORE_URL_PREFIX):
-                loader.download_plain(dest_file_path, url_prefix + file_name)
-            else:
-                loader.download_compressed(dest_file_path, url_prefix, file_name)
+            loader.download_file(dest_file_path, url_prefix + file_name)
         except Exception:
             traceback.print_exc()
             Clock.schedule_once(lambda dt: self.on_download_failed(file_name))
@@ -174,7 +171,6 @@ class WorldsApp(App):
     def on_file_downloaded(self, file_path):
         self.progress_bar.value += 1
         if self.downloading_list:
-            # the pause between requests is added by loader.download_file
             self.task = Clock.schedule_once(self.do_download_next_file)
         else:
             self.task = None
@@ -300,6 +296,8 @@ class WorldsApp(App):
             else:
                 world_templates.append((t[0], t[1]))
         files = loader.missing_files(templates=world_templates, textures=self.world_textures())
+        if _Debug:
+            print(f'on_welcome missing files: {files}')
         store_loader = loader.StoreLoader(files, on_progress=self.on_models_progress, on_done=self.on_models_ready)
         if files:
             self.show_models_popup(title='downloading models...', maximum=len(files))

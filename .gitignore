@@ -1,4 +1,6 @@
 # Project
+.z/
+.y/
 res/
 models/
 textures/
@@ -6,24 +8,7 @@ data/*.res
 fmg/
 repack/
 biomes/
-.z/
-.y/
-
-# Generated during map creation
-assets/catalog_stats.json
-assets/tiles_original.png
-assets/cell_index.png
-assets/heightmap_packed.png
-assets/heightmap_raw.png
-assets/rivers.png
-assets/routes.png
-assets/minimap.png
-assets/tiles_raw.png
-assets/tiles.png
-assets/water1a.png
-assets/encoded.png
-assets/heightmap.png
-assets/zonemap.png
+assets/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
