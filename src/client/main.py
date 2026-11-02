@@ -193,7 +193,7 @@ class WorldsApp(App):
             print(f'starting the app')
         self.root.clear_widgets()
         catalog = dat.CatalogData()
-        catalog.load_land_tiles(land_tiles_file_path=res.catalog_path('land.json'))
+        catalog.load_land_tiles(land_tiles_file_path=res.catalog_path('land_tiles.json'))
         catalog.load_figures(figures_file_path=res.catalog_path('figures.json'))
         catalog.load_animations(animations_file_path=res.catalog_path('animations.json'))
         catalog.load_armors(armors_file_path=res.catalog_path('armors.json'))

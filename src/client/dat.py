@@ -721,7 +721,7 @@ class LandData(object):
         self.capitals = {}
         self.towers = {}
 
-    def load_tilemap_file(self, tilemap_file_path, tiles_file_name):
+    def load_tilemap_file(self, tilemap_file_path):
         im = Image(tilemap_file_path, keep_data=True)
         if self.width is not None and self.width != im.width:
             raise ValueError(f'land width mismatch: expected {self.width}, got {im.width}')
