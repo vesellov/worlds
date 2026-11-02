@@ -44,6 +44,10 @@ DEFAULT_HERO_POSITION = (261, 337)
 # controls requested for a tick further than that in the future are applied earlier, at that many ticks from now
 MAX_INPUT_LEAD = 40
 
+# zonemap.png of the biome says where units can walk: white cells are open, black cells are closed,
+# a pixel brighter than that is a white one
+ZONE_OPEN_THRESHOLD = 128
+
 # radius in segments of the area around a building where units can not walk
 BUILDING_RADIUS = {
     'capital': 0.6,
@@ -91,6 +95,8 @@ class Simulation(object):
         self.map = None
         self.info = None
         self.elevation_map_data = {}
+        # one byte per cell of zonemap.png, row by row, see is_open()
+        self.zonemap_data = b''
         self.buildings = []
         # [template, store_id] of all models used in the world, clients download them before rendering the scene
         self.templates = []
@@ -106,6 +112,7 @@ class Simulation(object):
         buildings_data = self.biome.read_json('buildings.json')
         plants_data = self.biome.read_json('plants.json')
         self.load_heightmap(self.biome.read('heightmap.png'))
+        self.load_zonemap(self.biome.read('zonemap.png'))
         self.load_buildings(buildings_data)
         self.load_templates(buildings_data, plants_data)
         with open(os.path.join(self.catalog_path, 'animations.json'), 'rt') as f:
@@ -136,6 +143,19 @@ class Simulation(object):
             for h in range(self.height):
                 e_unpacked = self.elevation_unpack(float(pixels[w, h][0]))
                 self.elevation_map_data[(w, h)] = float(e_unpacked - e_min_unpacked) / unpacked_delta
+
+    def load_zonemap(self, zonemap_data):
+        im = Image.open(io.BytesIO(zonemap_data)).convert('L')
+        if im.size != (self.width, self.height):
+            print(f'biome {self.biome.id}: WARNING, zonemap.png is {im.size[0]}x{im.size[1]} but the map is {self.width}x{self.height}, it is scaled')
+            im = im.resize((self.width, self.height), Image.NEAREST)
+        self.zonemap_data = im.tobytes()
+
+    def is_open(self, w, h):
+        """
+        Units can walk on the cell when it is white on zonemap.png, black cells are closed.
+        """
+        return self.zonemap_data[(h % self.height) * self.width + (w % self.width)] >= ZONE_OPEN_THRESHOLD
 
     def load_buildings(self, buildings_data):
         for building_info in buildings_data:
@@ -169,8 +189,8 @@ class Simulation(object):
         return get_z_in_triangle(shift_w, shift_h, p01, p10, p11)
 
     def is_blocked(self, w, h, shift_w, shift_h, ignore=None):
-        if self.calculate_elevation(w, h, shift_w, shift_h) < self.map.water_level:
-            return 'water'
+        if not self.is_open(w, h):
+            return 'zone'
         x = w + shift_w
         y = h + shift_h
         for bx, by, radius in self.buildings:
@@ -202,7 +222,8 @@ class Simulation(object):
         return names[0] if names else None
 
     def find_free_position(self, w, h):
-        for distance in range(0, 10):
+        # the nearest open cell, the whole map is searched when the cells around are closed
+        for distance in range(0, max(self.width, self.height) // 2 + 1):
             for dw in range(-distance, distance + 1):
                 for dh in range(-distance, distance + 1):
                     if max(abs(dw), abs(dh)) != distance:
