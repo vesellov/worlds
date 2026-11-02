@@ -1,32 +1,10 @@
 #!/usr/bin/python
-# api_web_socket.py
-#
-# Copyright (C) 2008 Veselin Penev, https://bitdust.io
-#
-# This file (api_web_socket.py) is part of BitDust Software.
-#
-# BitDust is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# BitDust Software is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with BitDust Software.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Please contact us if you have any questions at bitdust.io@gmail.com
-#
-#
-#
-#
+# ws_listener.py
+
 """
 ..
 
-module:: api_web_socket
+module:: ws_listener
 """
 
 #------------------------------------------------------------------------------
@@ -36,9 +14,6 @@ from __future__ import absolute_import
 #------------------------------------------------------------------------------
 
 _Debug = True
-_DebugLevel = 10
-
-_DebugMessages = False
 
 #------------------------------------------------------------------------------
 
@@ -49,8 +24,15 @@ from twisted.internet.protocol import Protocol, Factory
 
 #------------------------------------------------------------------------------
 
-from server import txws
 from lib import serialization
+from server import txws
+
+#------------------------------------------------------------------------------
+
+_DebugLevel = 10
+
+_DebugMessages = False
+
 
 #------------------------------------------------------------------------------
 
@@ -139,6 +121,8 @@ class WrappedWebSocketProtocol(txws.WebSocketProtocol):
                 # self.loseConnection()
                 return False
         return txws.WebSocketProtocol.validateHeaders(self)
+
+#------------------------------------------------------------------------------
 
 
 class WrappedWebSocketFactory(txws.WebSocketFactory):

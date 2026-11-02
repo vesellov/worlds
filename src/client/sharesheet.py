@@ -1,9 +1,21 @@
+"""
+Opens the Android share sheet to send text or files to other applications.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
+from os.path import exists, basename  # @UnresolvedImport
+
 from kivy.logger import Logger
 from jnius import autoclass, cast  # @UnresolvedImport
 from android import mActivity, api_version  # @UnresolvedImport
-from os.path import exists, basename  # @UnresolvedImport
-
 from androidstorage4kivy import SharedStorage  # @UnresolvedImport
+
+#------------------------------------------------------------------------------
 
 JString = autoclass('java.lang.String')
 Intent  = autoclass('android.content.Intent')
@@ -13,7 +25,8 @@ ContentValues = autoclass('android.content.ContentValues')
 ContentUris = autoclass('android.content.ContentUris')
 ArrayList = autoclass('java.util.ArrayList')
 
-# Source https://github.com/Android-for-Python/androidstorage4kivy
+#------------------------------------------------------------------------------
+
 
 class ShareSheet():
 

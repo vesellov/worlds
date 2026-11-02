@@ -1,9 +1,22 @@
+"""
+Scans the unpacked figures of the original game and adds their parts lists to figures.json.
+Run inside repack/EIrepack, see the Makefile.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import os
 import sys
 import json
 
 from binary_readers import *
 from textures_link import textures
+
+#------------------------------------------------------------------------------
 
 
 def add_child_to_dict(dct, parent_name, child_name):

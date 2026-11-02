@@ -1,16 +1,27 @@
+"""
+Entry point of the game client: sets up kivy for the platform and the screen, downloads the files
+the client needs before the game starts and runs the application.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = True
+
+#------------------------------------------------------------------------------
+
 import os
 import sys
 import gc
 import json
-import threading
 import traceback
 
-_Debug = True
+#------------------------------------------------------------------------------
 
+# kivy reads its settings when it is imported, so the platform, the window position and size
+# and the screen density are set up here, before any kivy module is imported
 os.environ['KIVY_WINDOW'] = 'sdl2'
 os.environ['KIVY_TEXT'] = 'sdl2'
 os.environ['KIVY_IMAGE'] = 'sdl2'
-
 
 PLATFORM = None
 
@@ -32,25 +43,15 @@ elif sys.platform.startswith('freebsd'):
 else:
     raise Exception(f'Unsupported platform: {sys.platform}')
 
-
 from lib import system
 system.current_platform(known_platform=PLATFORM)
-
-ROOT_PATH = ''
-if system.is_android():
-    ROOT_PATH = os.path.abspath(os.environ['ANDROID_ARGUMENT'])
-elif system.is_osx():
-    ROOT_PATH = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
-elif system.is_ios():
-    ROOT_PATH = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
-else:
-    ROOT_PATH = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
 
 if not system.is_android():
     from screeninfo import get_monitors
     this_monitor = None
     for m in get_monitors():
-        print(f'display monitor: {m.name} {m.width}x{m.height} primary={m.is_primary}')
+        if _Debug:
+            print(f'display monitor: {m.name} {m.width}x{m.height} primary={m.is_primary}')
         if m.is_primary:
             this_monitor = m
     if this_monitor:
@@ -80,15 +81,10 @@ if not system.is_android():
     Config.set('graphics', 'width', f'{int(display_width/2)}')
     Config.set('graphics', 'height', f'{int(display_width/4)}')
 
+#------------------------------------------------------------------------------
+
 from kivy.core.window import Window
 from kivy.metrics import dp, sp, cm, Metrics
-
-if system.is_android():
-    display_width, display_height = Window.system_size
-
-# if system.is_android():
-#     Config.set('kivy', 'keyboard_mode', 'managed')
-
 from kivy.clock import Clock
 from kivy.app import App
 from kivy.uix.progressbar import ProgressBar
@@ -96,6 +92,8 @@ from kivy.uix.popup import Popup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
+
+#------------------------------------------------------------------------------
 
 from lib import res
 from lib import models
@@ -106,6 +104,21 @@ from client import scr
 from client import cli
 from client import loader
 
+#------------------------------------------------------------------------------
+
+if system.is_android():
+    ROOT_PATH = os.path.abspath(os.environ['ANDROID_ARGUMENT'])
+else:
+    ROOT_PATH = os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
+
+#------------------------------------------------------------------------------
+
+if system.is_android():
+    display_width, display_height = Window.system_size
+
+#------------------------------------------------------------------------------
+
+
 class WorldsApp(App):
 
     known_templates = {}
@@ -115,16 +128,11 @@ class WorldsApp(App):
     def build(self):
         if _Debug:
             print(f'building app screen dpi={Metrics.dpi} density={Metrics.density} fontscale={Metrics.fontscale} display={display_width}x{display_height}')
-        # if system.is_android():
-        #     Window.keyboard_mode = 'managed'
-        # Window.bind(on_request_close=self.on_request_close)
         self.inventory_list = loader.inventory_list()
         self.downloading_list = []
         for folder, file_name, url_prefix in self.inventory_list:
             dest_file_path = os.path.join(res.data_path(folder), file_name)
             if os.path.isfile(dest_file_path):
-                # if _Debug:
-                #     print(f'        file already exists: {dest_file_path}')
                 continue
             self.downloading_list.append((folder, file_name, url_prefix))
         self.root = scr.RootContainer()
@@ -151,12 +159,14 @@ class WorldsApp(App):
         if _Debug:
             print(f'downloading {folder}/{file_name} from {url_prefix}')
         # the download and its retries take time, the window must not freeze meanwhile
-        threading.Thread(target=self.download_in_background, args=(folder, file_name, url_prefix), daemon=True).start()
+        loader.start_thread(self.download_in_background, folder, file_name, url_prefix)
 
     def download_in_background(self, folder, file_name, url_prefix):
         dest_file_path = os.path.join(res.data_path(folder), file_name)
         try:
             loader.download_file(dest_file_path, url_prefix + file_name)
+        except loader.StoppedError:
+            return
         except Exception:
             traceback.print_exc()
             Clock.schedule_once(lambda dt: self.on_download_failed(file_name))
@@ -386,6 +396,9 @@ class WorldsApp(App):
     def on_stop(self):
         if self.game_client:
             self.game_client.stop()
+        loader.stop()
+
+#------------------------------------------------------------------------------
 
 
 def catalog_path():

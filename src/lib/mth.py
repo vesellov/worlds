@@ -1,10 +1,28 @@
+"""
+Math helpers: vectors, quaternions, rotation matrices, interpolation and the coordinates on a sphere or a torus.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import math
+
 import numpy as np
+
+#------------------------------------------------------------------------------
 
 from lib import const
 
+#------------------------------------------------------------------------------
 
 EI_SCALE_FACTOR = const.MODELS_SCALE_FACTOR
+
+DEBUG_PRINT = False
+
+#------------------------------------------------------------------------------
 
 
 def vec3sum(v1, v2):
@@ -356,8 +374,6 @@ def wh2xyz_scipy(w, h, width, height, radius=1.0):
     r = matrix_rotations.apply(vector)
     return r[0], r[1], r[2]
 
-
-DEBUG_PRINT = False
 
 def wh2xyz(w, h, width, height, radius=1.0):
     # global DEBUG_PRINT

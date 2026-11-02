@@ -1,13 +1,20 @@
-import os
-import subprocess
-import time
-import platformdirs
-import threading
-from queue import Queue
+"""
+Platform detection and helpers: data folders, reading and writing files, Android specific calls.
+"""
 
 #------------------------------------------------------------------------------
 
 _Debug = False
+
+#------------------------------------------------------------------------------
+
+import os
+import subprocess
+import time
+import threading
+from queue import Queue
+
+import platformdirs
 
 #------------------------------------------------------------------------------
 
@@ -388,6 +395,8 @@ class AsynchronousFileReader(threading.Thread):
 
     def eof(self):
         return not self.is_alive() and self._queue.empty()
+
+#------------------------------------------------------------------------------
 
 
 class BackgroundProcess(object):

@@ -1,13 +1,26 @@
+"""
+Unpacks the resources of the original game folder: copies the files, extracts the archives
+and converts the models and textures. usage: unpack_all.py <game folder> <output folder>
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import sys
 import argparse
 import os
 import os.path
 import json
 import shutil
+import time
+
 import res, mod, bon, adb, anm, cam, db, fig, lnk, mmp, mp, reg, sec, text, mob,\
        convert_map, compact, convert_model, textures_link, merge_collada
 
-import time
+#------------------------------------------------------------------------------
 
 funcs = []
 not_copy = ["asi", "dll", "exe", "sav", "mp", "bmp"]
@@ -892,7 +905,6 @@ folder anymore".format(count))
     for model_name, fig_tree in figures.items():
         figures_parts[model_name] = ':'.join(convert_model.flat_tree(fig_tree))
 
-    import json
     open('figures_samples.json', 'wt').write(json.dumps(models, indent=2))
     open('figures.json', 'wt').write(json.dumps(figures, indent=2))
     open('figures_parts.json', 'wt').write(json.dumps(figures_parts, indent=2))

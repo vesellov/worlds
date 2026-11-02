@@ -1,3 +1,14 @@
+"""
+Prepares the land tiles textures: splits the source images into tiles, groups similar tiles,
+builds shape and corner tiles, merges and packs the ready tiles. Run without arguments to see the stages.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import os
 import sys
 import json
@@ -12,14 +23,22 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter
 from PIL.Image import Transpose
 from skimage.metrics import structural_similarity  # @UnresolvedImport
 
+#------------------------------------------------------------------------------
+
 from lib import res
 
-
-logging.getLogger("PIL").propagate = False
+#------------------------------------------------------------------------------
 
 # TILE_SIZE = 64
 TILE_SIZE = 256   # High quality tiles
 CORNER_SIZE = 8
+DIFF_CACHE = {}
+HASH_DIFF_CACHE = {}
+
+#------------------------------------------------------------------------------
+
+logging.getLogger("PIL").propagate = False
+
 hash_size = 8
 
 
@@ -36,8 +55,6 @@ tile_types_corners_average_color = {}
 tile_types_corners_hash = {}
 tile_types_sides = {}
 tile_types_variants = {}
-DIFF_CACHE = {}
-HASH_DIFF_CACHE = {}
 
 
 def image_tile(source_image, w, h, tile_size=TILE_SIZE):

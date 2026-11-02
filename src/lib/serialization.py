@@ -20,9 +20,17 @@
 #
 # Please contact us if you have any questions at bitdust.io@gmail.com
 
+"""
+Converts dictionaries to JSON bytes and back.
+"""
+
 #------------------------------------------------------------------------------
 
 from __future__ import absolute_import
+
+#------------------------------------------------------------------------------
+
+_Debug = False
 
 #------------------------------------------------------------------------------
 

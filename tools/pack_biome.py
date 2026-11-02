@@ -1,6 +1,8 @@
 """
 Packs files of a biome (by default the ./assets/ folder) into <biomes dir>/<biome_id>.tar.gz and adds the biome
 to <biomes dir>/server.json, the game server loads its biomes from there, see src/server/biomes.py.
+Only the files the client loads go into the archive, see load_land() in src/client/main.py and
+biomes.REQUIRED_FILES, other files of the folder are skipped.
 The first biome of the list is where the clients come when they connect to the server.
 Packing the same biome again replaces its archive and keeps its place in the list.
 
@@ -10,6 +12,12 @@ Packing the same biome again replaces its archive and keeps its place in the lis
     PYTHONPATH=src venv/bin/python3 tools/pack_biome.py desert --remove
 """
 
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import os
 import re
 import sys
@@ -18,9 +26,15 @@ import json
 import tarfile
 import argparse
 
+#------------------------------------------------------------------------------
+
 from server import biomes
 
+#------------------------------------------------------------------------------
+
 ROOT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+#------------------------------------------------------------------------------
 
 
 def read_config(biomes_dir):
@@ -38,15 +52,24 @@ def write_config(biomes_dir, config):
     os.replace(config_path + '.part', config_path)
 
 
-def pack(source_dir, archive_path):
+def skipped_files(source_dir):
     """
-    Writes all files of the source folder into the .tar.gz archive, files are at the root of the archive.
+    Files of the source folder which are not needed by the client and do not go into the archive.
     """
-    names = []
+    skipped = []
     for folder, _, files in os.walk(source_dir):
         for file_name in files:
-            names.append(os.path.relpath(os.path.join(folder, file_name), source_dir))
-    names.sort()
+            name = os.path.relpath(os.path.join(folder, file_name), source_dir)
+            if name not in biomes.REQUIRED_FILES:
+                skipped.append(name)
+    return sorted(skipped)
+
+
+def pack(source_dir, archive_path):
+    """
+    Writes the files of the biome (biomes.REQUIRED_FILES) into the .tar.gz archive, files are at the root of the archive.
+    """
+    names = sorted(biomes.REQUIRED_FILES)
     part_path = archive_path + '.part'
     # no time in the gzip header: the same files give the same archive and the clients do not download it again
     with open(part_path, 'wb') as raw, gzip.GzipFile(filename='', fileobj=raw, mode='wb', mtime=0) as gz, tarfile.open(fileobj=gz, mode='w') as tar:
@@ -105,6 +128,9 @@ def main():
         print(f'{args.source} has no {missing}, those files are needed by the server and the client')
         return 1
     names = pack(args.source, archive_path)
+    skipped = skipped_files(args.source)
+    if skipped:
+        print(f'skipped {len(skipped)} files not needed by the client: {", ".join(skipped)}')
     # read it back the same way the server does
     archive = biomes.BiomeArchive(args.biome_id, args.name, archive_path)
     if existing:

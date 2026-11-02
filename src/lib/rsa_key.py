@@ -22,6 +22,7 @@
 #
 #
 #
+
 """
 .. module:: rsa_key.
 
@@ -35,21 +36,25 @@ from __future__ import absolute_import
 #------------------------------------------------------------------------------
 
 _Debug = False
-_DebugLevel = 10
-_CryptoLog = None
 
 #------------------------------------------------------------------------------
 
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Signature import pkcs1_15
 from Cryptodome.Cipher import PKCS1_OAEP
+import number
 
 #------------------------------------------------------------------------------
 
 from lib import strng
 from lib import system
 from lib import hashes
-import number
+
+#------------------------------------------------------------------------------
+
+_DebugLevel = 10
+_CryptoLog = None
+
 
 #------------------------------------------------------------------------------
 

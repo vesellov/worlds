@@ -16,6 +16,12 @@ so re-running the tool does not produce new git changes.
     python3 tools/compress_files.py catalog --out ./compressed/ --formats gz
 """
 
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import os
 import sys
 import gzip
@@ -24,12 +30,16 @@ import shutil
 import hashlib
 import argparse
 
+#------------------------------------------------------------------------------
+
 CHUNK_SIZE = 1024 * 1024
 
 FORMATS = ('gz', 'xz')
 
 # GitHub refuses files over 100 MB, the tool only warns, the file is still written
 GITHUB_MAX_SIZE = 100 * 1024 * 1024
+
+#------------------------------------------------------------------------------
 
 
 def open_compressed(fmt, fileobj, mode):

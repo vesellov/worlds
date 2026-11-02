@@ -14,20 +14,30 @@ one later. Before entering a biome the client receives its archive over the web 
 Use "--host 0.0.0.0" to accept connections from other devices, for example from a phone in the same network.
 """
 
+#------------------------------------------------------------------------------
+
+_Debug = True
+
+#------------------------------------------------------------------------------
+
 import os
 import argparse
 
-# repository root folder, "catalog" and "biomes" folders are there
-ROOT_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from twisted.internet import reactor, task
+
+#------------------------------------------------------------------------------
 
 from lib import models
 from server import biomes
 from server import simulation
 from server import ws_listener
 
-_Debug = True
+#------------------------------------------------------------------------------
+
+# repository root folder, "catalog" and "biomes" folders are there
+ROOT_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+#------------------------------------------------------------------------------
 
 
 class GameServer(object):
@@ -153,6 +163,8 @@ class GameServer(object):
                 'tick': world.tick_number,
                 'objects': [o.to_state() for o in changed],
             }))
+
+#------------------------------------------------------------------------------
 
 
 def main():

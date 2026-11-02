@@ -11,6 +11,12 @@ come when they connect:
     {"name": "alice", "biomes": [{"id": "main", "name": "Main land", "archive": "main.tar.gz"}]}
 """
 
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import os
 import io
 import json
@@ -18,12 +24,19 @@ import base64
 import hashlib
 import tarfile
 
+#------------------------------------------------------------------------------
+
 from lib import models
+
+#------------------------------------------------------------------------------
 
 CONFIG_FILE_NAME = 'server.json'
 
-# files which every biome must have, the client and the server read them
+# files of the biome archive, the client loads them in load_land() of src/client/main.py and the server reads some of them,
+# tools/pack_biome.py packs only these files
 REQUIRED_FILES = ('heightmap.png', 'encoded.png', 'tiles.json', 'plants.json', 'buildings.json')
+
+#------------------------------------------------------------------------------
 
 
 class BiomeArchive(object):
@@ -63,6 +76,8 @@ class BiomeArchive(object):
 
     def chunks_count(self):
         return (self.size + models.BIOME_CHUNK_SIZE - 1) // models.BIOME_CHUNK_SIZE
+
+#------------------------------------------------------------------------------
 
 
 def load(biomes_dir):

@@ -1,5 +1,14 @@
-from jnius import PythonJavaClass, java_method, autoclass  # @UnresolvedImport
+"""
+Runs Python functions on the Android UI thread, see run_on_ui_thread().
+"""
 
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
+from jnius import PythonJavaClass, java_method, autoclass  # @UnresolvedImport
 from android.config import ACTIVITY_CLASS_NAME  # @UnresolvedImport
 
 #------------------------------------------------------------------------------
@@ -32,6 +41,8 @@ class Runnable(PythonJavaClass):
             import traceback
             traceback.print_exc()
         Runnable.__runnables__.remove(self)
+
+#------------------------------------------------------------------------------
 
 
 def run_on_ui_thread(f):

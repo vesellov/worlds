@@ -1,6 +1,19 @@
+"""
+Compiles armors.json, weapons.json and other catalog files from the JSON tables extracted from the game database.
+Run inside repack/EIrepack, see the Makefile.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import os
 import sys
 import json
+
+#------------------------------------------------------------------------------
 
 
 def main():

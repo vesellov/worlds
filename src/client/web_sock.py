@@ -1,21 +1,34 @@
+"""
+Websocket connection to the game server: sends requests from a background thread
+and passes received messages and model updates to the registered callbacks.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = True
+
+#------------------------------------------------------------------------------
+
 import os
 import time
 import threading
 import queue
 import json
 
-#------------------------------------------------------------------------------
-
 from kivy.clock import mainthread
 
 #------------------------------------------------------------------------------
 
-from client import web_socket_client
 from lib import system
+from client import web_socket_client
 
 #------------------------------------------------------------------------------
 
-_Debug = True
+# stop() waits that long for the threads to finish, a thread still printing when the interpreter shuts down crashes it
+STOP_TIMEOUT = 5.0
+
+#------------------------------------------------------------------------------
+
 _DebugAPIResponses = _Debug
 _DebugMessages = False
 
@@ -37,8 +50,6 @@ _ModelUpdateCallbacks = {}
 _Threads = []
 # set by stop(), wakes up the websocket thread from the pause between reconnects
 _StopEvent = threading.Event()
-# stop() waits that long for the threads to finish, a thread still printing when the interpreter shuts down crashes it
-STOP_TIMEOUT = 5.0
 
 #------------------------------------------------------------------------------
 

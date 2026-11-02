@@ -19,6 +19,7 @@
 # along with BitDust Software.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Please contact us if you have any questions at bitdust.io@gmail.com
+
 """
 .. module:: jsn.
 
@@ -26,14 +27,14 @@
 
 #------------------------------------------------------------------------------
 
+_Debug = True
+
+#------------------------------------------------------------------------------
+
 import os
 import tempfile
 import sys
 import json
-
-#------------------------------------------------------------------------------
-
-_Debug = True
 
 #------------------------------------------------------------------------------
 

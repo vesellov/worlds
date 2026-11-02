@@ -1,5 +1,17 @@
+"""
+Listeners of the Android activity events: new intents and activity results, bind() and unbind() connect callbacks to them.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 from jnius import PythonJavaClass, autoclass, java_method  # @UnresolvedImport
 from android.config import ACTIVITY_CLASS_NAME, ACTIVITY_CLASS_NAMESPACE  # @UnresolvedImport
+
+#------------------------------------------------------------------------------
 
 _activity = autoclass(ACTIVITY_CLASS_NAME).mActivity
 
@@ -7,6 +19,8 @@ _callbacks = {
     'on_new_intent': [],
     'on_activity_result': [],
 }
+
+#------------------------------------------------------------------------------
 
 
 class CustomNewIntentListener(PythonJavaClass):
@@ -21,6 +35,8 @@ class CustomNewIntentListener(PythonJavaClass):
     def onNewIntent(self, intent):
         self.callback(intent)
 
+#------------------------------------------------------------------------------
+
 
 class CustomActivityResultListener(PythonJavaClass):
     __javainterfaces__ = [ACTIVITY_CLASS_NAMESPACE + '$CustomActivityResultListener']
@@ -33,6 +49,8 @@ class CustomActivityResultListener(PythonJavaClass):
     @java_method('(IILandroid/content/Intent;)V')
     def onActivityResult(self, requestCode, resultCode, intent):
         self.callback(requestCode, resultCode, intent)
+
+#------------------------------------------------------------------------------
 
 
 def bind(**kwargs):

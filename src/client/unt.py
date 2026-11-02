@@ -1,10 +1,24 @@
+"""
+A unit of the scene: its model, position and animations.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import math
 import random
 
 from kivy.graphics.transformation import Matrix  # @UnresolvedImport
 
+#------------------------------------------------------------------------------
+
 from lib import const
 from lib import mth
+
+#------------------------------------------------------------------------------
 
 
 class Unit(object):

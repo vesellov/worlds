@@ -1,15 +1,26 @@
+"""
+Simulation of one biome on the server: the authoritative positions and movement of the objects.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = True
+
+#------------------------------------------------------------------------------
+
 import os
 import io
 import json
 
 from PIL import Image
 
+#------------------------------------------------------------------------------
+
 from lib import const
 from lib import models
 from lib import physics
 
-_Debug = True
-
+#------------------------------------------------------------------------------
 
 DEFAULT_HERO_TEMPLATE = dict(
     model_name='unhuma',
@@ -40,6 +51,8 @@ BUILDING_RADIUS = {
     'flag': 0.15,
 }
 
+#------------------------------------------------------------------------------
+
 
 def point_line_left_or_right(xp, yp, xa, ya, xb, yb):
     cross_product = (xb - xa) * (yp - ya) - (yb - ya) * (xp - xa)
@@ -61,6 +74,8 @@ def get_z_in_triangle(x, y, p1, p2, p3):
     if C == 0:
         return (z1 + z2 + z3) / 3.0
     return -(A * x + B * y + D) / C
+
+#------------------------------------------------------------------------------
 
 
 class Simulation(object):

@@ -1,8 +1,21 @@
+"""
+Scans the maps (.mob) of the original game and writes the names of the figures and their textures
+into figures_names.json and textures.json. Run inside repack/EIrepack, see the Makefile.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import os
 import sys
 import json
+
 from binary_readers import *
 
+#------------------------------------------------------------------------------
 
 reg = {}
 model_texture = {}

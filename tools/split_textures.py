@@ -28,12 +28,22 @@ into the destination folder (any .res file works, also one of the split files). 
     PYTHONPATH=src venv/bin/python3 tools/split_textures.py ~/.worlds/data/textures.res ./trees_mmp/ --unpack --groups trees
 """
 
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import os
 import sys
 import json
 import argparse
 
+#------------------------------------------------------------------------------
+
 from lib import res
+
+#------------------------------------------------------------------------------
 
 
 def unpack_mmp(res_file, filetree_dict, names, destination):

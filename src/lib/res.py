@@ -1,3 +1,14 @@
+"""
+Readers of the game resource files: .res archives, models, bones, animations and textures,
+and the paths to the data and catalog folders.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = True
+
+#------------------------------------------------------------------------------
+
 import os
 import time
 import re
@@ -6,19 +17,23 @@ import struct
 import shutil
 import tempfile
 import collections
+
 import numpy as np
 from PIL import Image
 
+#------------------------------------------------------------------------------
+
 from lib import const
 
-_Debug = True
-
+#------------------------------------------------------------------------------
 
 ENCODE = "cp1251"
 ROOT_PATH = ''
 DATA_PATH = ''
 # catalog/ folder is part of the client, files there are never downloaded, see client.main
 CATALOG_PATH = ''
+
+#------------------------------------------------------------------------------
 
 
 def data_path(data_path):

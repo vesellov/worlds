@@ -1,20 +1,32 @@
+"""
+Data of the game loaded into memory: meshes, animations and models of the objects, the catalog of figures,
+armors and weapons, and the land of the biome. Run as a script to list the content of the .res files.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = True
+
+#------------------------------------------------------------------------------
+
 import os
 import sys
 import json
 import traceback
 import pprint
-import numpy as np
 
+import numpy as np
 from kivy.core.image import Image
 from kivy.cache import Cache
 from kivy.resources import resource_find
+
+#------------------------------------------------------------------------------
 
 from lib import const
 from lib import res
 from lib import mth
 
-
-_Debug = True
+#------------------------------------------------------------------------------
 
 
 class MeshData(object):
@@ -33,12 +45,16 @@ class MeshData(object):
         self.material = kwargs.get('material', None)
         self.texture = kwargs.get('texture', {})
 
+#------------------------------------------------------------------------------
+
 
 class MeshTransformData(object):
 
     def __init__(self):
         self.part_translate = None
         self.part_rotate = None
+
+#------------------------------------------------------------------------------
 
 
 class ObjectPartAnimationData(object):
@@ -63,6 +79,8 @@ class ObjectPartAnimationData(object):
         d.morphing_frames = self.morphing_frames.copy()
         return d
 
+#------------------------------------------------------------------------------
+
 
 class ObjectAnimationData(object):
 
@@ -70,6 +88,8 @@ class ObjectAnimationData(object):
         self.template = template
         self.animation = animation
         self.parts = {}
+
+#------------------------------------------------------------------------------
 
 
 class ObjectData(object):
@@ -188,6 +208,8 @@ class ObjectData(object):
             #     print(f'    calculated {count} animations for [{part_name}]')
 
         self.walk_parts_ordered(_part_visitor)
+
+#------------------------------------------------------------------------------
 
 
 class ModelData(object):
@@ -372,6 +394,8 @@ class ModelData(object):
             }, indent=2))
             if _Debug:
                 print(f'      for model {{{template}}} saved {lnk_count} links, {fig_count} figures, {bon_count} bones and {anm_count} animations to {dest_json_file_path}')
+
+#------------------------------------------------------------------------------
 
 
 class CatalogData(object):
@@ -671,6 +695,8 @@ class CatalogData(object):
             max_height=anim['maximal_height'],
         )
 
+#------------------------------------------------------------------------------
+
 
 class LandData(object):
 
@@ -881,6 +907,8 @@ class LandData(object):
             _h = h - self.height
         mozaic_id, tex_coord00, tex_coord01, tex_coord10, tex_coord11 = self.tiles_map_data[(_w, _h)]
         return self.tiles_files[mozaic_id], tex_coord00, tex_coord01, tex_coord10, tex_coord11
+
+#------------------------------------------------------------------------------
 
 
 def main():

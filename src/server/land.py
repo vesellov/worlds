@@ -1,3 +1,14 @@
+"""
+Builds the land of the game world from a Fantasy Map Generator map: biomes, tiles, routes, rivers,
+buildings and plants, and writes the files of the biomes.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import os
 import sys
 import json
@@ -9,8 +20,11 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter
 from shapely.geometry import Point, Polygon
 import numpy as np
 
+#------------------------------------------------------------------------------
+
 from lib import mth
 
+#------------------------------------------------------------------------------
 
 DEBUG = False
 
@@ -23,6 +37,8 @@ RIVERS_MAX_ELEVATION_LEVEL = 3
 LAKES_MAX_ELEVATION_LEVEL = 2
 ROUTES_MIN_ELEVATION_LEVEL = 23
 BUILDINGS_MIN_ELEVATION_LEVEL = 24
+
+#------------------------------------------------------------------------------
 
 min_x = 0
 min_y = 0
@@ -1266,7 +1282,7 @@ def transform_inner_outer_areas_borders(tiles_image, tiles_map, routes_map, rive
         attempt_snapshot_image.save(f'tiles0_after.png')
 
 
-def transform_neighboring_tiles_conditionally(tiles_image, tiles_map, routes_map, rivers_map, buildings_map, heightmap_image, catalog, max_cycles=12):
+def transform_neighboring_tiles_conditionally(tiles_image, tiles_map, routes_map, rivers_map, buildings_map, heightmap_image, catalog, max_cycles=10):
     cycles = max_cycles
     progress = 1
     attempts = 0
@@ -1284,6 +1300,7 @@ def transform_neighboring_tiles_conditionally(tiles_image, tiles_map, routes_map
         attempts += 1
         cycles -= 1
         progress = 0
+        random.seed(attempts)
         if True:
             changes = 0
             for inner, outer, transform in inner_outer_transform_borders_list:

@@ -6,8 +6,16 @@ Client never changes the models by itself, it only renders them and sends user i
 Module is plain Python without any dependencies, so it can be imported by the server (no Kivy there) and by the client.
 """
 
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import re
 from typing import List, Optional
+
+#------------------------------------------------------------------------------
 
 PROTOCOL_VERSION = 4
 
@@ -19,8 +27,6 @@ DEFAULT_STORE_ID = 2
 DEFAULT_PORT = 8280
 
 TICK_RATE = 20
-
-#------------------------------------------------------------------------------
 
 # client -> server
 MSG_JOIN = 'join'
@@ -43,6 +49,8 @@ MSG_DESPAWN = 'despawn'
 
 # size of one piece of the biome archive before base64 encoding, bytes
 BIOME_CHUNK_SIZE = 256 * 1024
+
+#------------------------------------------------------------------------------
 
 
 def message(msg_type, payload=None):
@@ -91,6 +99,8 @@ class Model(object):
     def from_data(cls, d):
         return cls(**{f: d[f] for f in cls.data_fields if f in d})
 
+#------------------------------------------------------------------------------
+
 
 class World(Model):
     data_fields = ('name', 'width', 'height', 'tick_rate', 'protocol')
@@ -101,6 +111,8 @@ class World(Model):
         self.height = height
         self.tick_rate = tick_rate
         self.protocol = protocol
+
+#------------------------------------------------------------------------------
 
 
 class Biome(Model):
@@ -113,6 +125,8 @@ class Biome(Model):
         self.sha256 = sha256
         self.size = size
 
+#------------------------------------------------------------------------------
+
 
 class Map(Model):
     data_fields = ('width', 'height', 'water_level')
@@ -122,6 +136,8 @@ class Map(Model):
         self.height = height
         self.water_level = water_level
 
+#------------------------------------------------------------------------------
+
 
 class Team(Model):
     data_fields = ('name', 'members')
@@ -129,6 +145,8 @@ class Team(Model):
     def __init__(self, name: str, members: Optional[List[int]] = None):
         self.name = name
         self.members = members if members is not None else []
+
+#------------------------------------------------------------------------------
 
 
 class Template(Model):
@@ -158,6 +176,8 @@ class Template(Model):
         self.coefs = coefs if coefs is not None else [0.5, 0.5, 0.75]
         self.elevation_correction = elevation_correction
         self.store_id = store_id
+
+#------------------------------------------------------------------------------
 
 
 class Object(Model):
@@ -189,6 +209,8 @@ class Object(Model):
         self.shift_w = shift_w
         self.shift_h = shift_h
         self.direction = direction
+
+#------------------------------------------------------------------------------
 
 
 class Unit(Object):
@@ -246,6 +268,8 @@ class Unit(Object):
         self.input_tick = input_tick
         self.input_slack = input_slack
 
+#------------------------------------------------------------------------------
+
 
 class Hero(Unit):
     # unit controlled by one of the connected players
@@ -286,13 +310,19 @@ class Hero(Unit):
         )
         self.owner = owner
 
+#------------------------------------------------------------------------------
+
 
 class Monster(Unit):
     kind = 'monster'
 
+#------------------------------------------------------------------------------
+
 
 class Building(Object):
     kind = 'building'
+
+#------------------------------------------------------------------------------
 
 
 class Controls(Model):
@@ -310,6 +340,8 @@ class Controls(Model):
         self.target_direction = target_direction
         self.tick = tick
         self.seq = seq
+
+#------------------------------------------------------------------------------
 
 
 KINDS = {c.kind: c for c in (Object, Unit, Hero, Monster, Building)}

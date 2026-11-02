@@ -1,5 +1,16 @@
+"""
+Constants shared by the client and the server.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import math
 
+#------------------------------------------------------------------------------
 
 #--- CAMERA ---
 CAMERA_DISTANCE_TO_CENTER_INITIAL = 10.0
@@ -23,7 +34,6 @@ ROTATE_VERTICAL_MIN = 5.0
 ROTATE_VERTICAL_MAX = 85.0
 
 ROTATE_VERTICAL_INITIAL = 45
-
 
 #--- PLANET ---
 SEGMENT_SIZE = 5.0
@@ -64,7 +74,6 @@ LAND_MOVE_SPEED = 0.75
 
 LAND_ROTATE_SPEED = 1.0
 
-
 #--- ELEVATION ---
 ELEVATION_FACTOR = PLANET_RADIUS * 0.4
 
@@ -79,7 +88,6 @@ ELEVATION_UNPACK_UNDERWATER_FACTOR = 50.0
 WATER_LEVEL = 11
 
 WATER_LEVEL_ELEVATION = PLANET_RADIUS + (WATER_LEVEL / 100.0) * ELEVATION_FACTOR
-
 
 #--- TEXTURES ---
 # Models of redress.res which are split further by the kind of armor / weapon: unhuma_ax.res, unhuma_bt.res,

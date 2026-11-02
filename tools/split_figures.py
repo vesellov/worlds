@@ -8,11 +8,21 @@ every small file is read by the client with the same functions from src/lib/res.
     PYTHONPATH=src venv/bin/python3 tools/split_figures_res.py ~/.worlds/data/figures.res ./figures/ --templates unhuma,stbuho30
 """
 
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import os
 import sys
 import argparse
 
+#------------------------------------------------------------------------------
+
 from lib import res
+
+#------------------------------------------------------------------------------
 
 
 def main():

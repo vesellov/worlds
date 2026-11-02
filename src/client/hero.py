@@ -1,9 +1,19 @@
+"""
+Client side view of the unit controlled by the server: the 3D model, its parts and textures.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = True
+
+#------------------------------------------------------------------------------
+
 from lib import const
 from lib import mth
 from lib import models
 from client import loader
 
-_Debug = True
+#------------------------------------------------------------------------------
 
 
 class Hero(object):

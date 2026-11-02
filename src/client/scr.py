@@ -1,3 +1,13 @@
+"""
+Screen widgets: the root container of the application and the joystick button.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import math
 
 from kivy.uix.floatlayout import FloatLayout
@@ -6,10 +16,17 @@ from kivy.uix.button import Button
 from kivy.graphics import Color, Ellipse, Triangle
 from kivy.metrics import dp, sp, cm
 
+#------------------------------------------------------------------------------
+
 from lib import system
+
+#------------------------------------------------------------------------------
+
 
 class RootContainer(FloatLayout):
     pass
+
+#------------------------------------------------------------------------------
 
 
 class JoystickRoundButton(Button):

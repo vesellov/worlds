@@ -1,11 +1,18 @@
+"""
+Renderer widget: OpenGL shaders, the camera, the keyboard and touch controls, draws the scene every frame.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = True
+
+#------------------------------------------------------------------------------
+
 import os
 import sys
 import math
 import random
 import time
-
-_Debug = True
-
 
 from kivy.base import EventLoop
 from kivy.app import App
@@ -34,19 +41,14 @@ from kivy.graphics import (
     # UpdateNormalMatrix,
 )
 
+#------------------------------------------------------------------------------
+
 from lib import const
 from lib import system
 from lib import mth
 from lib import res
 
-
-def ignore_undertouch(func):
-    def wrap(self, touch):
-        glst = touch.grab_list
-        if len(glst) == 0 or (self is glst[0]()):
-            return func(self, touch)
-    return wrap
-
+#------------------------------------------------------------------------------
 
 VERTEX_SHADER = """
 #ifdef GL_ES
@@ -145,6 +147,18 @@ void main (void){
     gl_FragColor = vec4(result_color, result_alpha);
 }
 """
+
+#------------------------------------------------------------------------------
+
+
+def ignore_undertouch(func):
+    def wrap(self, touch):
+        glst = touch.grab_list
+        if len(glst) == 0 or (self is glst[0]()):
+            return func(self, touch)
+    return wrap
+
+#------------------------------------------------------------------------------
 
 
 class Renderer(Widget):

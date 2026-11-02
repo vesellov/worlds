@@ -1,22 +1,33 @@
+"""
+Game client: keeps the connection to the game server, receives the biomes and the state of the world,
+predicts the movement of the objects between the server ticks and passes the updates to the scene.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = True
+
+#------------------------------------------------------------------------------
+
 import os
 import math
 import time
 import base64
 import random
-import threading
 import traceback
 import collections
 
 from kivy.clock import Clock
 
+#------------------------------------------------------------------------------
+
+from lib import models
+from lib import physics
 from client import web_sock
 from client import hero
 from client import loader
 
-from lib import models
-from lib import physics
-
-_Debug = True
+#------------------------------------------------------------------------------
 
 # if the drawn position is further than that (in segments) from the position received from the server
 # the unit is moved there right away instead of smooth movement: spawn, teleport, etc.
@@ -41,6 +52,8 @@ INPUT_LEAD_MAX = 20.0
 # spare ticks kept for uneven network
 INPUT_LEAD_MARGIN = 1.0
 
+#------------------------------------------------------------------------------
+
 # simulate slow network on localhost to check the smooth movement, milliseconds
 _FakeLag = float(os.environ.get('WORLDS_FAKE_LAG_MS', 0)) / 1000.0
 _FakeJitter = float(os.environ.get('WORLDS_FAKE_JITTER_MS', 0)) / 1000.0
@@ -55,6 +68,8 @@ def angle_lerp(a, b, t):
         diff -= 360.0
     result = a + diff * t
     return result % 360.0
+
+#------------------------------------------------------------------------------
 
 
 class Prediction(object):
@@ -172,6 +187,8 @@ class Prediction(object):
             return False
         self.drawn = drawn
         return True
+
+#------------------------------------------------------------------------------
 
 
 class GameClient(object):
@@ -443,12 +460,14 @@ class GameClient(object):
         archive_data = b''.join(receiving['parts'])
         location_id = self.location_id
         # checking and extracting takes a moment, the window must not freeze meanwhile
-        threading.Thread(target=self.extract_biome, args=(archive_data, location_id, receiving['sha256']), daemon=True).start()
+        loader.start_thread(self.extract_biome, archive_data, location_id, receiving['sha256'])
 
     def extract_biome(self, archive_data, location_id, sha256):
         try:
             dest_dir = loader.extract_biome(archive_data, location_id, sha256)
             error = None
+        except loader.StoppedError:
+            return
         except Exception as exc:
             traceback.print_exc()
             dest_dir, error = None, str(exc)

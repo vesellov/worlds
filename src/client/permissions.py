@@ -1,3 +1,13 @@
+"""
+Requests and checks the Android permissions, for example the access to the external storage.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = True
+
+#------------------------------------------------------------------------------
+
 import threading
 
 from jnius import autoclass, cast, PythonJavaClass, java_method  # @UnresolvedImport
@@ -6,14 +16,11 @@ from android.config import ACTIVITY_CLASS_NAME, ACTIVITY_CLASS_NAMESPACE  # @Unr
 
 #------------------------------------------------------------------------------
 
-_Debug = True
-
-#------------------------------------------------------------------------------
-
 PERMISSION_GRANTED = 0
 PERMISSION_DENIED = -1
 
 #------------------------------------------------------------------------------
+
 
 class _onRequestCustomPermissionsCallback(PythonJavaClass):
 
@@ -29,6 +36,8 @@ class _onRequestCustomPermissionsCallback(PythonJavaClass):
         if _Debug:
             print('_RequestPermissionsManager.onRequestCustomPermissionsResult', requestCode, permissions, grantResults)
         self.func(requestCode, permissions, grantResults)
+
+#------------------------------------------------------------------------------
 
 
 class _RequestPermissionsManager(object):
@@ -83,6 +92,8 @@ class _RequestPermissionsManager(object):
         grant_results = [x == PERMISSION_GRANTED for x in grantResults]
         if cls._callbacks.get(requestCode):
             cls._callbacks[requestCode](permissions, grant_results)
+
+#------------------------------------------------------------------------------
 
 
 def request_permissions(permissions, callback=None):

@@ -1,5 +1,18 @@
+"""
+Converts a model of the original game (.lnk, .fig, .bon, .anm) into a Collada (.dae) file.
+usage: convert_model.py input.lnk
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import os
 import sys
+from math import sqrt, atan2
+
 import numpy as np
 import collada as dae
 import lnk
@@ -7,7 +20,8 @@ import fig
 import bon
 import anm
 from textures_link import textures
-from math import sqrt, atan2
+
+#------------------------------------------------------------------------------
 
 """
 .lnk

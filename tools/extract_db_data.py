@@ -1,25 +1,22 @@
+"""
+Extracts the records of the original game database files (.db, .adb ...) into JSON files.
+Run inside repack/EIrepack, see the Makefile.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import os
 import sys
 import json
 import os.path
+
 from binary_readers import *
 
-# S - string
-# I - 4b int
-# U - 4b unsigned
-# F - 4b float
-# X - bits byte
-# f - float array
-# i - int array
-# B - bool
-# b - bool array
-# H - unknown hex bytes
-# T - time
-# 1 - " FII"
-# 2 - "SUFF"
-# 3 - "FFFF"
-# 4 - " SISS"
-# 5 - " SISS     U"
+#------------------------------------------------------------------------------
 
 types_struct = [
     # items

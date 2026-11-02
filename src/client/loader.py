@@ -1,3 +1,15 @@
+"""
+Downloads the files of the game: textures and models from the stores on the hosting,
+and extracts the biome archives received from the game server. Downloads run in background threads,
+stop() interrupts them when the application exits.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = True
+
+#------------------------------------------------------------------------------
+
 import io
 import os
 import json
@@ -9,12 +21,13 @@ import threading
 import traceback
 
 import requests
-
 from kivy.clock import Clock
+
+#------------------------------------------------------------------------------
 
 from lib import res
 
-_Debug = True
+#------------------------------------------------------------------------------
 
 REQUEST_TIMEOUT = (10, 60)  # seconds to connect, seconds to wait for the next piece of data
 
@@ -23,9 +36,79 @@ MAX_RETRIES = 3
 RETRY_DELAY = 2.0
 RETRY_STATUSES = {500, 502, 503, 504}
 
+# on exit the background threads are asked to stop and waited that long,
+# a thread still printing when the interpreter shuts down crashes it
+STOP_TIMEOUT = 5.0
+
+# store <store_id> keeps <kind>/<name>.res files: figures/<template>.res, textures/<group>.res, redress/<group>.res,
+# see tools/split_figures.py and tools/split_textures.py
+STORE_URL_PREFIX = os.environ.get('WORLDS_STORE_URL', 'http://p2p-alice.ai/store')
+
+# catalog/textures_store.json says which .res file of the store holds the texture:
+# {store_id: {texture: "<kind>/<group>"}}, for example {"2": {"unhumaskin_41": "redress/unhuma_skin"}}
+TEXTURES_STORE_FILE_NAME = 'textures_store.json'
+
+# flags downloaded from <STORE_URL_PREFIX>flags/ into textures/flags/, those are used instead of the textures of the stores
+SHARED_TEXTURES = ('flag_east', 'flag_north', 'flag_south', 'flag_undead', 'gipat2sys', 'gipatsys', 'ingossys', 'jigransys', 'quater01', 'suslangersys', )
+
+# number of the land tiles textures: textures/land/0.png ... 28.png
+LAND_TILES_COUNT = 29
+
+# keeps sha256 of the archive the files of the biome were extracted from
+BIOME_SHA256_FILE_NAME = '.sha256'
+
+#------------------------------------------------------------------------------
+
+_Stopping = threading.Event()
+_Threads = []
+_ThreadsLock = threading.Lock()
+
+#------------------------------------------------------------------------------
+
 
 class DownloadError(Exception):
     pass
+
+#------------------------------------------------------------------------------
+
+
+class StoppedError(DownloadError):
+    pass
+
+#------------------------------------------------------------------------------
+
+
+def start_thread(target, *args):
+    """
+    Runs target(*args) in a background thread which stop() waits for when the application exits.
+    """
+    t = threading.Thread(target=target, args=args, daemon=True)
+    with _ThreadsLock:
+        _Threads[:] = [x for x in _Threads if x.is_alive()]
+        _Threads.append(t)
+    t.start()
+    return t
+
+
+def is_stopping():
+    return _Stopping.is_set()
+
+
+def stop(timeout=STOP_TIMEOUT):
+    """
+    Interrupts the downloads and waits for the background threads started with start_thread(), called on exit.
+    """
+    _Stopping.set()
+    with _ThreadsLock:
+        threads = [t for t in _Threads if t.is_alive() and t is not threading.current_thread()]
+    deadline = time.monotonic() + timeout
+    for t in threads:
+        t.join(max(0.0, deadline - time.monotonic()))
+    alive = [t.name for t in threads if t.is_alive()]
+    if alive:
+        print(f'loader: WARNING, {len(alive)} threads did not finish in {timeout} seconds: {alive}')
+    elif _Debug:
+        print(f'loader: stopped, {len(threads)} threads were waited for')
 
 
 def download_file(dest_file_path, url, validate=None, chunk_size=64 * 1024):
@@ -58,13 +141,18 @@ def download_url(url, file_path, chunk_size):
             wait = RETRY_DELAY * 2 ** (attempt - 1)
             if _Debug:
                 print(f'loader: {url} {reason}, retry {attempt}/{MAX_RETRIES} in {wait:.0f} seconds')
-            time.sleep(wait)
+            # wakes up at once when the application exits
+            _Stopping.wait(wait)
+        if _Stopping.is_set():
+            raise StoppedError(f'{url} download stopped')
         try:
             with requests.get(url, stream=True, timeout=REQUEST_TIMEOUT) as r:
                 if r.status_code == 200:
                     # opened again on every attempt, so what a failed attempt wrote is dropped
                     with open(file_path, 'wb') as f:
                         for chunk in r.iter_content(chunk_size):
+                            if _Stopping.is_set():
+                                raise StoppedError(f'{url} download stopped')
                             f.write(chunk)
                     return
                 if r.status_code not in RETRY_STATUSES:
@@ -82,22 +170,9 @@ def validate_res(file_path):
 
 #--- STORES ---
 
-# store <store_id> keeps <kind>/<name>.res files: figures/<template>.res, textures/<group>.res, redress/<group>.res,
-# see tools/split_figures.py and tools/split_textures.py
-STORE_URL_PREFIX = os.environ.get('WORLDS_STORE_URL', 'http://p2p-alice.ai/store')
-
-# catalog/textures_store.json says which .res file of the store holds the texture:
-# {store_id: {texture: "<kind>/<group>"}}, for example {"2": {"unhumaskin_41": "redress/unhuma_skin"}}
-TEXTURES_STORE_FILE_NAME = 'textures_store.json'
-
-# flags downloaded from <STORE_URL_PREFIX>flags/ into textures/flags/, those are used instead of the textures of the stores
-SHARED_TEXTURES = ('flag_east', 'flag_north', 'flag_south', 'flag_undead', 'gipat2sys', 'gipatsys', 'ingossys', 'jigransys', 'quater01', 'suslangersys', )
 
 _StoreIndex = None
 _StoreLock = threading.Lock()
-
-# number of the land tiles textures: textures/land/0.png ... 28.png
-LAND_TILES_COUNT = 29
 
 
 def inventory_list():
@@ -240,6 +315,8 @@ def ensure_texture(texture, store_id):
         print(f'loader: WARNING, texture {texture} not found in store {store_id}')
     return None
 
+#------------------------------------------------------------------------------
+
 
 class StoreLoader(object):
     """
@@ -260,13 +337,16 @@ class StoreLoader(object):
         if not self.files:
             Clock.schedule_once(lambda dt: self.finish())
             return
-        self.thread = threading.Thread(target=self.run, daemon=True)
-        self.thread.start()
+        self.thread = start_thread(self.run)
 
     def run(self):
         for i, (store_id, kind, name) in enumerate(self.files):
+            if is_stopping():
+                return
             try:
                 download_store_file(store_id, kind, name)
+            except StoppedError:
+                return
             except Exception as exc:
                 if _Debug:
                     print(f'store loader: failed to download {store_res_url(store_id, kind, name)}: {exc}')
@@ -284,11 +364,7 @@ class StoreLoader(object):
         if self.on_done:
             self.on_done(self.failed)
 
-
-#--- BIOMES ---
-
-# keeps sha256 of the archive the files of the biome were extracted from
-BIOME_SHA256_FILE_NAME = '.sha256'
+#------------------------------------------------------------------------------
 
 
 def biome_dir(location_id):
@@ -319,6 +395,10 @@ def extract_biome(archive_data, location_id, sha256):
     with tarfile.open(fileobj=io.BytesIO(archive_data), mode='r:gz') as tar:
         # "data" filter refuses absolute paths, links and anything pointing outside of the folder
         tar.extractall(part_dir, filter='data')
+    if is_stopping():
+        # the application exits, the old files stay as they were
+        shutil.rmtree(part_dir, ignore_errors=True)
+        raise StoppedError(f'biome {location_id} extraction stopped')
     with open(os.path.join(part_dir, BIOME_SHA256_FILE_NAME), 'wt') as f:
         f.write(sha256)
     shutil.rmtree(dest_dir, ignore_errors=True)

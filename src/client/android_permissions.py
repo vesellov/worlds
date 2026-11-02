@@ -1,3 +1,13 @@
+"""
+Asks the user for the Android runtime permissions the application needs.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = True
+
+#------------------------------------------------------------------------------
+
 from kivy.utils import platform
 
 if platform == 'android':
@@ -6,9 +16,6 @@ if platform == 'android':
 
 #------------------------------------------------------------------------------
 
-_Debug = True
-
-#------------------------------------------------------------------------------
 
 class AndroidPermissions:
 

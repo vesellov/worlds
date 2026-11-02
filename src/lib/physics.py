@@ -8,7 +8,15 @@ there, the client finds out from the next state and corrects the drawn position.
 Module is plain Python without any dependencies, so it can be imported by the server and by the client.
 """
 
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import math
+
+#------------------------------------------------------------------------------
 
 
 def normalize_angle(a):

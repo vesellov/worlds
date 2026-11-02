@@ -1,3 +1,13 @@
+"""
+The 3D scene of a biome: the land, buildings, plants and units, builds their meshes and textures for the renderer.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = True
+
+#------------------------------------------------------------------------------
+
 import os
 import sys
 import json
@@ -8,7 +18,6 @@ import hashlib
 import traceback
 
 import numpy as np
-
 from kivy.core.image import Image as CoreImage
 from kivy.clock import Clock
 from kivy.cache import Cache
@@ -21,9 +30,10 @@ from kivy.graphics import (
 )
 from kivy.graphics.instructions import InstructionGroup  # @UnresolvedImport
 from kivy.graphics.context_instructions import Transform  # @UnresolvedImport
-
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 from PIL.Image import Transpose
+
+#------------------------------------------------------------------------------
 
 from lib import const
 from lib import res
@@ -33,8 +43,7 @@ from client import dat
 from client import unt
 from client import loader
 
-
-_Debug = True
+#------------------------------------------------------------------------------
 
 _NextUnitID = 0
 _NextObjectID = 0
@@ -71,6 +80,8 @@ def build_segments_batch(positions, tex_coords, angles_x, angles_z):
 
 def segments_batch_indices(n):
     return (np.arange(n, dtype=np.int64)[:, None] * 4 + _SegmentQuadIndices[None, :]).ravel().tolist()
+
+#------------------------------------------------------------------------------
 
 
 class Scene(object):

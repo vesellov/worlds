@@ -1,32 +1,34 @@
+"""
+Secured websocket connection to the remote API: messages are signed and encrypted with the session key,
+see lib.rsa_key, lib.cipher and lib.hashes. Requests are sent from a background thread.
+"""
+
+#------------------------------------------------------------------------------
+
+_Debug = False
+
+#------------------------------------------------------------------------------
+
 import time
 import base64
+import queue
 
 try:
     import thread
 except ImportError:
     import _thread as thread
 
-import queue
-
-#------------------------------------------------------------------------------
-
 from kivy.clock import mainthread
 
 #------------------------------------------------------------------------------
 
 from lib import system
-
-_USE_PYCRYPTODOME = True
-
-if system.is_ios() or system.is_android():
-    _USE_PYCRYPTODOME = False
-
 from lib import strng
 from lib import jsn
 from lib import serialization
-from client import web_socket_client as web_socket
 
-if _USE_PYCRYPTODOME:
+# pycryptodome is not available on mobile platforms, pure Python versions of the modules are used there
+if not (system.is_ios() or system.is_android()):
     from lib import rsa_key
     from lib import cipher
     from lib import hashes
@@ -35,9 +37,10 @@ else:
     from lib import cipher_slow as cipher
     from lib import hashes_slow as hashes
 
+from client import web_socket_client as web_socket
+
 #------------------------------------------------------------------------------
 
-_Debug = False
 _DebugAPIResponses = _Debug
 
 #------------------------------------------------------------------------------
