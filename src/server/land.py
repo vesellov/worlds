@@ -2023,7 +2023,7 @@ def main():
     
     encoded_image = Image.new("RGB", (tiles_image.size[0], tiles_image.size[1]), "black")
     catalog_stats = encode_tiles(encoded_image, tiles, water_catalog_id=catalog['water5'][0])
-    open('assets/catalog_stats.json', 'w').write(json.dumps(catalog_stats, indent=2))
+    open('assets/tiles_stats.json', 'w').write(json.dumps(catalog_stats, indent=2))
     encoded_image.save('assets/encoded.png')
     print(f"Generated encoded tiles image")
 

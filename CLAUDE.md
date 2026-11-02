@@ -12,6 +12,14 @@ Every Python file written or edited (modules, tools, one-off scripts) is laid ou
 7. module constants (UPPER_CASE)
 8. the rest of the code
 
+## Naming
+
+- A variable, argument or attribute which holds a path to a file or folder on the disk ends with `_path`:
+  `file_path`, `dest_dir_path`, `heightmap_file_path`, `source_paths` for a list of paths.
+- A variable which holds only the name of a file or folder, not a path, ends with `_name`: `file_name`, `archive_name`.
+- When one value starts as a name and later becomes a path, two variables are used: `mod_file_name` and `mod_file_path`.
+- Command line options keep their flags, the attribute gets the suffix through `dest=` (and `metavar=` for the help).
+
 ## Imports
 
 - When code needs a built-in Python module, its import always goes into the header of the file,

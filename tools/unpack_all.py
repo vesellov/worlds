@@ -109,23 +109,23 @@ def quantize_coefs(coefs, quant_size=0.5):
 def unpack(args):
     update_progress("STARTED_AT_" + time.strftime("%H:%M:%S"))
     if args.verbose:
-        print_log("Source dir: " + args.src_dir)
-        print_log("Destination dir: " + args.dst_dir)
+        print_log("Source dir: " + args.src_dir_path)
+        print_log("Destination dir: " + args.dst_dir_path)
         print_log("\nCreate working copy\n")
 
     count = 0
     if not args.skip_copy:
-        for d, dirs, files in os.walk(args.src_dir):
+        for d, dirs, files in os.walk(args.src_dir_path):
             for file in files:
                 if os.path.splitext(file)[1][1:].lower() not in not_copy:
-                    dest = os.path.join(args.dst_dir,
-                                        os.path.relpath(d, args.src_dir))
-                    if not os.path.exists(dest):
+                    dest_path = os.path.join(args.dst_dir_path,
+                                        os.path.relpath(d, args.src_dir_path))
+                    if not os.path.exists(dest_path):
                         if args.verbose:
-                            print_log("Create folder \"" + dest + "\"")
-                        os.makedirs(dest)
+                            print_log("Create folder \"" + dest_path + "\"")
+                        os.makedirs(dest_path)
                     shutil.copyfile(os.path.join(d, file),
-                                    os.path.join(dest, file))
+                                    os.path.join(dest_path, file))
                     count += 1
                     update_progress()
                 elif args.verbose:
@@ -147,7 +147,7 @@ folder anymore".format(count))
             print_log("\n{} iteration of file unpacking".format(count))
 
         arr = []
-        for d, dirs, files in os.walk(args.dst_dir):
+        for d, dirs, files in os.walk(args.dst_dir_path):
             for file in files:
                 if os.path.splitext(file)[1][1:].lower() in archives:
                     with open(os.path.join(d, file), "rb") as f_tst:
@@ -187,7 +187,7 @@ folder anymore".format(count))
         print_log("\nStart figures folder reorganisation\n")
 
     try:
-        compact.compact_figs(os.path.join(args.dst_dir, "Res", "figures"))
+        compact.compact_figs(os.path.join(args.dst_dir_path, "Res", "figures"))
     except:
         if args.verbose:
             print_log("Can't reorganise figures folder!")
@@ -202,7 +202,7 @@ folder anymore".format(count))
         maps = []
         figs = []
         count = 0
-        for d, dirs, files in os.walk(args.dst_dir):
+        for d, dirs, files in os.walk(args.dst_dir_path):
             for file in files:
                 file_e = os.path.splitext(file)[1][1:].lower()
                 if file_e in convert:
@@ -331,10 +331,10 @@ folder anymore".format(count))
         count = 0
         for i in maps:
             if i[1].lower() not in static_objs:
-                if os.path.isfile(os.path.join(args.dst_dir, "Maps",
+                if os.path.isfile(os.path.join(args.dst_dir_path, "Maps",
                                                i[1] + ".mob.yaml")):
                     buf_objs = []
-                    with open(os.path.join(args.dst_dir, "Maps",
+                    with open(os.path.join(args.dst_dir_path, "Maps",
                                            i[1] + ".mob.yaml")) as f:
                         cnt = 0
                         for line in f.readlines():
@@ -392,7 +392,7 @@ folder anymore".format(count))
             count += map_info[3] + map_info[1] * map_info[2] + 1
             update_progress(map_info[3] + map_info[1] * map_info[2] + 1)
             for j in range(map_info[3]):
-                shutil.copyfile(os.path.join(args.dst_dir, "Res", "textures",
+                shutil.copyfile(os.path.join(args.dst_dir_path, "Res", "textures",
                                              i[1] + "{:03}.png".format(j)),
                                 os.path.join(i[0], i[1] + "{:03}.png".format(j)))
 
@@ -406,13 +406,13 @@ folder anymore".format(count))
             unit_pos = convert_map.convert_map(os.path.join(i[0], i[1]), unit_pos)
 
             if static_objs[i[1].lower()] is not None:
-                list_fpath_inputs = [os.path.join(args.dst_dir, "Res", "figures",
+                list_fpath_inputs = [os.path.join(args.dst_dir_path, "Res", "figures",
                                                   s_obj[0], s_obj[1] + ".dae") \
                                      for s_obj in static_objs[i[1].lower()]]
 
                 if True:
                     for k, s_obj in enumerate(static_objs[i[1].lower()]):
-                        convert_model.convert_model(os.path.join(args.dst_dir, "Res", "figures",
+                        convert_model.convert_model(os.path.join(args.dst_dir_path, "Res", "figures",
                                                                  s_obj[0], s_obj[0]),
                                                 add_suf=s_obj[1][len(s_obj[0]):],
                                                 coefs=s_obj[3],
@@ -635,8 +635,8 @@ folder anymore".format(count))
                 
                 for s_obj in static_objs[i[1].lower()]:
                     if not os.path.isfile(os.path.join(i[0], s_obj[2] + ".png")):
-                        if os.path.exists(os.path.join(args.dst_dir, "Res", "textures", s_obj[2] + ".png")):
-                            shutil.copyfile(os.path.join(args.dst_dir, "Res", "textures", s_obj[2] + ".png"), os.path.join(i[0], s_obj[2] + ".png"))
+                        if os.path.exists(os.path.join(args.dst_dir_path, "Res", "textures", s_obj[2] + ".png")):
+                            shutil.copyfile(os.path.join(args.dst_dir_path, "Res", "textures", s_obj[2] + ".png"), os.path.join(i[0], s_obj[2] + ".png"))
 
                 for st_dae in list_fpath_inputs[:-1]:
                     if os.path.exists(st_dae):
@@ -671,7 +671,7 @@ folder anymore".format(count))
                 continue
             for j in textures_link.textures.get(i[1], []):
                 try:
-                    shutil.copyfile(os.path.join(args.dst_dir, "Res",
+                    shutil.copyfile(os.path.join(args.dst_dir_path, "Res",
                                                  "textures",
                                                  j + ".png"),
                                     os.path.join(i[0], j + ".png"))
@@ -708,31 +708,31 @@ folder anymore".format(count))
             print_log("{} files converted".format(count))
 
     count = 0
-    if args.text_joint and os.path.isdir(os.path.join(args.dst_dir,
+    if args.text_joint and os.path.isdir(os.path.join(args.dst_dir_path,
                                "Res", "texts")):
         if args.verbose:
             print_log("\nJoint game strings\n")
             
-        with open(os.path.join(args.dst_dir,
+        with open(os.path.join(args.dst_dir_path,
                                "Res", "texts", "texts.yaml"), "w") as file:
-            file.write(text.build_yaml(text.read_info(os.path.join(args.dst_dir,
+            file.write(text.build_yaml(text.read_info(os.path.join(args.dst_dir_path,
                                                                    "Res", "texts"))))
-        for file in os.listdir(os.path.join(args.dst_dir, "Res", "texts")):
+        for file in os.listdir(os.path.join(args.dst_dir_path, "Res", "texts")):
             if "." in file or "(" in file:
                 continue
-            os.remove(os.path.join(args.dst_dir, "Res", "texts", file))
+            os.remove(os.path.join(args.dst_dir_path, "Res", "texts", file))
             count += 1
             update_progress()
             
-        with open(os.path.join(args.dst_dir, "Res",
+        with open(os.path.join(args.dst_dir_path, "Res",
                                "textslmp", "textslmp.yaml"), "w") as file:
-            file.write(text.build_yaml(text.read_info(os.path.join(args.dst_dir,
+            file.write(text.build_yaml(text.read_info(os.path.join(args.dst_dir_path,
                                                                    "Res",
                                                                    "textslmp"))))
-        for file in os.listdir(os.path.join(args.dst_dir, "Res", "textslmp")):
+        for file in os.listdir(os.path.join(args.dst_dir_path, "Res", "textslmp")):
             if "." in file or "(" in file:
                 continue
-            os.remove(os.path.join(args.dst_dir, "Res/textslmp", file))
+            os.remove(os.path.join(args.dst_dir_path, "Res/textslmp", file))
             count += 1
             update_progress()
 
@@ -898,7 +898,7 @@ folder anymore".format(count))
     for model_name in models.keys():
         if model_name in figures:
             continue
-        fig_tree = lnk.read_info(os.path.join(args.dst_dir, 'Res', 'figures', model_name, model_name + ".lnk"))
+        fig_tree = lnk.read_info(os.path.join(args.dst_dir_path, 'Res', 'figures', model_name, model_name + ".lnk"))
         figures[model_name] = fig_tree
 
     figures_parts = {}
@@ -918,9 +918,9 @@ def phldr(val=1):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="", add_help=True)
-    parser.add_argument("src_dir", type=str,
+    parser.add_argument("src_dir_path", metavar="src_dir", type=str,
                     help="game folder")
-    parser.add_argument("dst_dir", type=str,
+    parser.add_argument("dst_dir_path", metavar="dst_dir", type=str,
                     help="output folder")
     parser.add_argument("-v", "--verbose", action="store_true",
                     help="increase output verbosity")

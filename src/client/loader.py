@@ -388,21 +388,21 @@ def extract_biome(archive_data, location_id, sha256):
     """
     if hashlib.sha256(archive_data).hexdigest() != sha256:
         raise ValueError(f'biome {location_id} archive is damaged, sha256 does not match')
-    dest_dir = biome_dir(location_id)
-    part_dir = dest_dir + '.part'
-    shutil.rmtree(part_dir, ignore_errors=True)
-    os.makedirs(part_dir)
+    dest_dir_path = biome_dir(location_id)
+    part_dir_path = dest_dir_path + '.part'
+    shutil.rmtree(part_dir_path, ignore_errors=True)
+    os.makedirs(part_dir_path)
     with tarfile.open(fileobj=io.BytesIO(archive_data), mode='r:gz') as tar:
         # "data" filter refuses absolute paths, links and anything pointing outside of the folder
-        tar.extractall(part_dir, filter='data')
+        tar.extractall(part_dir_path, filter='data')
     if is_stopping():
         # the application exits, the old files stay as they were
-        shutil.rmtree(part_dir, ignore_errors=True)
+        shutil.rmtree(part_dir_path, ignore_errors=True)
         raise StoppedError(f'biome {location_id} extraction stopped')
-    with open(os.path.join(part_dir, BIOME_SHA256_FILE_NAME), 'wt') as f:
+    with open(os.path.join(part_dir_path, BIOME_SHA256_FILE_NAME), 'wt') as f:
         f.write(sha256)
-    shutil.rmtree(dest_dir, ignore_errors=True)
-    os.replace(part_dir, dest_dir)
+    shutil.rmtree(dest_dir_path, ignore_errors=True)
+    os.replace(part_dir_path, dest_dir_path)
     if _Debug:
-        print(f'loader: biome {location_id} extracted into {dest_dir}, {len(archive_data)} bytes archive')
-    return dest_dir
+        print(f'loader: biome {location_id} extracted into {dest_dir_path}, {len(archive_data)} bytes archive')
+    return dest_dir_path

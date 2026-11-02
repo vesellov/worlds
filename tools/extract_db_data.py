@@ -322,10 +322,10 @@ def read_record(file, record):
     return buf
 
 
-def read_data(f_name):
+def read_data(file_path):
     data = []
-    base_type = find_db_struct(f_name)
-    with open(f_name, "rb") as file:
+    base_type = find_db_struct(file_path)
+    with open(file_path, "rb") as file:
         read_id_n(file)
         
         for i in range(len(types_struct[base_type])):
@@ -421,7 +421,7 @@ def split_data(data, suffix):
     return buf
 
 
-def read_adb_data(file_name):
+def read_adb_data(file_path):
     weapons = ["SWORD", "AXE", "DAGGER", "SPEAR", "HAMMER", "BOW", "CROSSBOW"]
     states = ["NEUTRAL", "REST", "ATTACK", "UNK3", "WARRY", "UNK5", "LIE", "ALL"]
     forms = ["HIDES", "STEPS", "HIT", "SFXES", "LOWSHAPE", "HIGHSHAPE"]
@@ -429,7 +429,7 @@ def read_adb_data(file_name):
              "SUFFER", "CROSS", "UNK10", "UNK11", "UNK12", "UNK13", "UNK14", "ALL"]             
 
     info = []
-    with open(file_name, "rb") as file:
+    with open(file_path, "rb") as file:
         if file.read(4) != b'\x41\x44\x42\x00':
             print("Incorrect magic!")
             return

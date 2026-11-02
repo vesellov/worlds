@@ -47,12 +47,12 @@ def flat_tree(tree, arr=None):
     return arr
 
 
-def read_lnk_info(file_name):
+def read_lnk_info(file_path):
     lst = []
     parents = {}
     tree = {}
     childs = {}
-    with open(file_name, "rb") as file:
+    with open(file_path, "rb") as file:
         for _ in range(read_uint(file)):
             name_len = read_uint(file)
             new_name = read_str(file, name_len)

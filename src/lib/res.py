@@ -184,20 +184,20 @@ def read_cstr(file, code="cp1251"):
             buf += b.decode(code)
 
 
-def read_bon_info(file_name):
+def read_bon_info(file_path):
     info = []
-    if not os.path.isfile(file_name):
+    if not os.path.isfile(file_path):
         return None
-    with open(file_name, "rb") as file:
+    with open(file_path, "rb") as file:
         file.seek(0)
-        for _ in range(os.path.getsize(file_name) // 12):
+        for _ in range(os.path.getsize(file_path) // 12):
             info.append(read_float(file, 3))
     return info
 
 
-def read_anm_info(file_name):
+def read_anm_info(file_path):
     info = []
-    with open(file_name, "rb") as file:
+    with open(file_path, "rb") as file:
         info.append(read_uint(file))
         info.append([read_float(file, 4) for _ in range(info[0])])
         info.append(read_uint(file))
@@ -209,11 +209,11 @@ def read_anm_info(file_name):
     return info
 
 
-def read_fig_info(file_name):
+def read_fig_info(file_path):
     info = []
-    if not os.path.isfile(file_name):
+    if not os.path.isfile(file_path):
         return None
-    with open(file_name, "rb") as file:
+    with open(file_path, "rb") as file:
         if file.read(3) != b'\x46\x49\x47':
             raise Exception("Incorrect magic!")
         n = read_byte(file) - 48
@@ -243,24 +243,24 @@ def read_fig_info(file_name):
     return info
 
 
-def read_mod_info(file_name):
-    mod_name = file_name.replace('.mod', '')
-    with open(file_name, "rb") as file:
+def read_mod_info(file_path):
+    mod_name = file_path.replace('.mod', '')
+    with open(file_path, "rb") as file:
         tree = read_res_filetree(file)
-        # f_name = os.path.splitext(os.path.basename(file_name))[0]
+        # f_name = os.path.splitext(os.path.basename(file_path))[0]
         for element in tree:
             element[0] += ".fig" if mod_name != element[0] else ".lnk"
-        # unpack_res(file, tree, file_name)
+        # unpack_res(file, tree, file_path)
     return tree
 
 
-def unpack_mod_info(file_name, destination_dir):
-    with open(file_name, "rb") as file:
+def unpack_mod_info(file_path, destination_dir_path):
+    with open(file_path, "rb") as file:
         tree = read_res_filetree(file)
-        f_name = os.path.splitext(os.path.basename(file_name))[0]
+        f_name = os.path.splitext(os.path.basename(file_path))[0]
         for element in tree:
             element[0] += ".fig" if f_name != element[0] else ".lnk"
-        unpack_res(file, tree, destination_dir)
+        unpack_res(file, tree, destination_dir_path)
     return tree
 
 
@@ -316,12 +316,12 @@ def walk_tree(tree, parent, visitor, arr=None, dct=None):
             walk_tree(leaf, tree[0], visitor, arr)
 
 
-def read_lnk_info(file_name):
+def read_lnk_info(file_path):
     lst = []
     parents = {}
     tree = {}
     childs = {}
-    with open(file_name, "rb") as file:
+    with open(file_path, "rb") as file:
         for _ in range(read_uint(file)):
             name_len = read_uint(file)
             new_name = read_str(file, name_len)
@@ -377,29 +377,29 @@ def read_res_filetree(file, return_dict=False):
     return filetree
 
 
-def unpack_res(file, filetree, destination_dir):
+def unpack_res(file, filetree, destination_dir_path):
     for element in filetree:
-        dest_file_name = os.path.join(destination_dir, element[0])
-        if os.path.isfile(dest_file_name):
+        dest_file_path = os.path.join(destination_dir_path, element[0])
+        if os.path.isfile(dest_file_path):
             continue
-        if not os.path.exists(destination_dir):
-            os.makedirs(destination_dir)
-        with open(dest_file_name, "wb") as new_file:
+        if not os.path.exists(destination_dir_path):
+            os.makedirs(destination_dir_path)
+        with open(dest_file_path, "wb") as new_file:
             file.seek(element[1])
             buf = file.read(element[2])
             new_file.write(buf)
 
 
-def unpack_res_element(file, element, dest_file_name=None):
-    if not dest_file_name:
-        dest_file_name = element[0]
-    if os.path.isfile(dest_file_name):
-        return dest_file_name
-    with open(dest_file_name, "wb") as new_file:
+def unpack_res_element(file, element, dest_file_path=None):
+    if not dest_file_path:
+        dest_file_path = element[0]
+    if os.path.isfile(dest_file_path):
+        return dest_file_path
+    with open(dest_file_path, "wb") as new_file:
         file.seek(element[1])
         buf = file.read(element[2])
         new_file.write(buf)
-    return dest_file_name
+    return dest_file_path
 
 
 def res_name_hash(name, count):
@@ -461,7 +461,7 @@ def write_res(dest_file_path, items, timestamp=None):
     return dest_file_path
 
 
-def figures_templates(figures_file, filetree_dict=None, tmp_dir=None):
+def figures_templates(figures_file, filetree_dict=None, tmp_dir_path=None):
     """
     Groups elements of figures.res by the model (template) they belong to, returns ({template: [element names]}, [not assigned names]).
     Templates are the names of .lnk and .mod elements, .anm and .bon with the same name belong to them,
@@ -483,14 +483,14 @@ def figures_templates(figures_file, filetree_dict=None, tmp_dir=None):
             if t + ext in lower_names:
                 templates[t].append(lower_names[t + ext])
                 assigned.add(t + ext)
-    own_tmp_dir = tmp_dir is None
+    own_tmp_dir = tmp_dir_path is None
     if own_tmp_dir:
-        tmp_dir = tempfile.mkdtemp()
+        tmp_dir_path = tempfile.mkdtemp()
     try:
         for t in templates.keys():
             if t + '.lnk' not in lower_names:
                 continue
-            lnk_file_path = unpack_res_element(figures_file, filetree_dict[lower_names[t + '.lnk']], dest_file_name=os.path.join(tmp_dir, t + '.lnk'))
+            lnk_file_path = unpack_res_element(figures_file, filetree_dict[lower_names[t + '.lnk']], dest_file_path=os.path.join(tmp_dir_path, t + '.lnk'))
             lnk_list, _, _, _ = read_lnk_info(lnk_file_path)
             if not lnk_list:
                 continue
@@ -502,7 +502,7 @@ def figures_templates(figures_file, filetree_dict=None, tmp_dir=None):
                         assigned.add(k)
     finally:
         if own_tmp_dir:
-            shutil.rmtree(tmp_dir, ignore_errors=True)
+            shutil.rmtree(tmp_dir_path, ignore_errors=True)
     # the rest of the parts belong to the template with the longest matching name prefix
     by_length = sorted(templates.keys(), key=lambda x: -len(x))
     not_assigned = []
@@ -661,18 +661,18 @@ def scan_textures_data(texture_res_file_path):
     return lst
 
 
-def unpack_texture(texture_res_file_path, destination_dir, name):
-    if not os.path.isdir(destination_dir):
-        os.makedirs(destination_dir)
+def unpack_texture(texture_res_file_path, destination_dir_path, name):
+    if not os.path.isdir(destination_dir_path):
+        os.makedirs(destination_dir_path)
     if _Debug:
-        print(f'    unpacking texture {name} from {texture_res_file_path} into {destination_dir}')
+        print(f'    unpacking texture {name} from {texture_res_file_path} into {destination_dir_path}')
     with open(texture_res_file_path, 'rb') as texture_file:
         res_filetree_dict = read_res_filetree(texture_file, return_dict=True)
         for k in res_filetree_dict.keys():
             if k.lower().endswith('.mmp') and k[:-4].lower() == name.lower():
-                mmp_file_path = os.path.join(destination_dir, name.lower() + '.mmp')
-                png_file_path = os.path.join(destination_dir, name.lower() + '.png')
-                unpack_res_element(texture_file, res_filetree_dict[k], dest_file_name=mmp_file_path)
+                mmp_file_path = os.path.join(destination_dir_path, name.lower() + '.mmp')
+                png_file_path = os.path.join(destination_dir_path, name.lower() + '.png')
+                unpack_res_element(texture_file, res_filetree_dict[k], dest_file_path=mmp_file_path)
                 pil_img = read_mmp(mmp_file_path)
                 pil_img.save(png_file_path)
                 os.remove(mmp_file_path)
@@ -759,8 +759,8 @@ def decompress_PNT3(file, size, width, height):
     return data
 
 
-def read_mmp(file_name):
-    with open(file_name, "rb") as file:
+def read_mmp(file_path):
+    with open(file_path, "rb") as file:
         if file.read(4) != b"\x4D\x4D\x50\x00":
             print("Incorrect magic!")
             return

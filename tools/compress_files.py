@@ -11,9 +11,9 @@ Folders are compressed file by file, their sub folders are kept.
 The output does not change when the same files are compressed again (no timestamp is stored),
 so re-running the tool does not produce new git changes.
 
-    python3 tools/compress_files.py ~/.worlds/data/figures.res ~/.worlds/data/textures.res --out ./compressed/
-    python3 tools/compress_files.py catalog assets --out ./compressed/
-    python3 tools/compress_files.py catalog --out ./compressed/ --formats gz
+    python3 tools/compress_files.py ~/.worlds/data/figures.res ~/.worlds/data/textures.res --out_dir_path ./compressed/
+    python3 tools/compress_files.py catalog assets --out_dir_path ./compressed/
+    python3 tools/compress_files.py catalog --out_dir_path ./compressed/ --formats gz
 """
 
 #------------------------------------------------------------------------------
@@ -68,11 +68,11 @@ def compress_file(source_path, dest_path, fmt):
 
 def old_parts(dest_path, fmt):
     # <name>.<fmt>.0, <name>.<fmt>.1 ... left from older versions of the tool which cut big files into parts
-    folder = os.path.dirname(dest_path) or '.'
+    folder_path = os.path.dirname(dest_path) or '.'
     prefix = f'{os.path.basename(dest_path)}.{fmt}.'
-    if not os.path.isdir(folder):
+    if not os.path.isdir(folder_path):
         return []
-    return [os.path.join(folder, n) for n in os.listdir(folder) if n.startswith(prefix) and n[len(prefix):].isdigit()]
+    return [os.path.join(folder_path, n) for n in os.listdir(folder_path) if n.startswith(prefix) and n[len(prefix):].isdigit()]
 
 
 def file_hash(f):
@@ -98,31 +98,31 @@ def is_compressed_output(name):
     return len(pieces) > 1 and pieces[-1] in FORMATS
 
 
-def collect(sources):
-    # (source file, output name relative to --out)
+def collect(source_paths):
+    # (source_path file, output name relative to --out_dir_path)
     result = []
-    for source in sources:
-        source = os.path.abspath(os.path.expanduser(source))
-        if os.path.isfile(source):
-            result.append((source, os.path.basename(source)))
-        elif os.path.isdir(source):
-            base = os.path.dirname(source)
-            for root, _, files in os.walk(source):
-                for name in sorted(files):
+    for source_path in source_paths:
+        source_path = os.path.abspath(os.path.expanduser(source_path))
+        if os.path.isfile(source_path):
+            result.append((source_path, os.path.basename(source_path)))
+        elif os.path.isdir(source_path):
+            base_path = os.path.dirname(source_path)
+            for root_path, _, file_names in os.walk(source_path):
+                for name in sorted(file_names):
                     if is_compressed_output(name):
                         continue
-                    path = os.path.join(root, name)
-                    result.append((path, os.path.relpath(path, base)))
+                    path = os.path.join(root_path, name)
+                    result.append((path, os.path.relpath(path, base_path)))
         else:
-            print(f'not found: {source}')
+            print(f'not found: {source_path}')
             sys.exit(1)
     return result
 
 
 def main():
     parser = argparse.ArgumentParser(description='compress game data files with gzip and xz for downloading by the client')
-    parser.add_argument('sources', nargs='+', help='files or folders to compress')
-    parser.add_argument('--out', required=True, help='output folder')
+    parser.add_argument('source_paths', metavar='sources', nargs='+', help='files or folders to compress')
+    parser.add_argument('--out', dest='out_dir_path', metavar='OUT', required=True, help='output folder')
     parser.add_argument('--formats', default=','.join(FORMATS), help=f'comma separated list of formats to write (default {",".join(FORMATS)})')
     args = parser.parse_args()
     formats = [f.strip() for f in args.formats.split(',') if f.strip()]
@@ -132,14 +132,14 @@ def main():
     total_raw = 0
     total_compressed = {fmt: 0 for fmt in formats}
     errors = 0
-    for source_path, rel_name in collect(args.sources):
+    for source_path, rel_path in collect(args.source_paths):
         raw = os.path.getsize(source_path)
         total_raw += raw
         with open(source_path, 'rb') as f:
             expected_hash = file_hash(f)
         line = []
         for fmt in formats:
-            out_path = compress_file(source_path, os.path.join(args.out, rel_name), fmt)
+            out_path = compress_file(source_path, os.path.join(args.out_dir_path, rel_path), fmt)
             compressed = os.path.getsize(out_path)
             total_compressed[fmt] += compressed
             ok = verify(expected_hash, out_path, fmt)
@@ -147,9 +147,9 @@ def main():
                 errors += 1
             warning = ', WARNING: over 100 MB, GitHub will refuse it' if compressed > GITHUB_MAX_SIZE else ''
             line.append(f'{"" if ok else "ERROR, content differs: "}{fmt} {compressed / 1e6:.2f} MB ({compressed / max(raw, 1):.0%}){warning}')
-        print(f'{rel_name}: {raw / 1e6:.2f} MB -> ' + ', '.join(line))
+        print(f'{rel_path}: {raw / 1e6:.2f} MB -> ' + ', '.join(line))
     for fmt in formats:
-        print(f'total {fmt}: {total_raw / 1e6:.1f} MB -> {total_compressed[fmt] / 1e6:.1f} MB ({total_compressed[fmt] / max(total_raw, 1):.0%}) in {args.out}')
+        print(f'total {fmt}: {total_raw / 1e6:.1f} MB -> {total_compressed[fmt] / 1e6:.1f} MB ({total_compressed[fmt] / max(total_raw, 1):.0%}) in {args.out_dir_path}')
     return 1 if errors else 0
 
 

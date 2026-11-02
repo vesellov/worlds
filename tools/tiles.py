@@ -142,7 +142,7 @@ def add_to_index(tile_hash, map_name, map_image_variant, w, h):
 def rename_files():
     global index_by_ahash
     global index_by_phash
-    dest_dir = sys.argv[2]
+    dest_dir_path = sys.argv[2]
     index_by_ahash = json.loads(open('tiles_ahash.json', 'r').read())
     for map_name in index_by_ahash.keys():
         sorted_hashes = index_by_ahash[map_name]['hashes']
@@ -151,8 +151,8 @@ def rename_files():
             entries = index_by_ahash[map_name]['files'][ahash]
             for entry in entries:
                 map_name, map_image_variant, w, h = entry
-                src_file_path = os.path.abspath(os.path.join(dest_dir, map_name, 'ahash', f'{ahash}_{map_image_variant}_{w}_{h}.png'))
-                dest_file_path = os.path.abspath(os.path.join(dest_dir, map_name, 'ahash', f'{pos:04d}_{map_image_variant}_{w}_{h}.png'))
+                src_file_path = os.path.abspath(os.path.join(dest_dir_path, map_name, 'ahash', f'{ahash}_{map_image_variant}_{w}_{h}.png'))
+                dest_file_path = os.path.abspath(os.path.join(dest_dir_path, map_name, 'ahash', f'{pos:04d}_{map_image_variant}_{w}_{h}.png'))
                 os.rename(src_file_path, dest_file_path)
     index_by_phash = json.loads(open('tiles_phash.json', 'r').read())
     for map_name in index_by_phash.keys():
@@ -162,8 +162,8 @@ def rename_files():
             entries = index_by_phash[map_name]['files'][phash]
             for entry in entries:
                 map_name, map_image_variant, w, h = entry
-                src_file_path = os.path.abspath(os.path.join(dest_dir, map_name, 'phash', f'{phash}_{map_image_variant}_{w}_{h}.png'))
-                dest_file_path = os.path.abspath(os.path.join(dest_dir, map_name, 'phash', f'{pos:04d}_{map_image_variant}_{w}_{h}.png'))
+                src_file_path = os.path.abspath(os.path.join(dest_dir_path, map_name, 'phash', f'{phash}_{map_image_variant}_{w}_{h}.png'))
+                dest_file_path = os.path.abspath(os.path.join(dest_dir_path, map_name, 'phash', f'{pos:04d}_{map_image_variant}_{w}_{h}.png'))
                 os.rename(src_file_path, dest_file_path)
 
 
@@ -386,11 +386,11 @@ def get_two_side_images_deep(image, side, size=7):
 
 
 def build_similarity_matrix():
-    dest_dir = sys.argv[2]
+    dest_dir_path = sys.argv[2]
     matrix = {}
-    for map_name in os.listdir(dest_dir):
-        map_dir = os.path.join(dest_dir, map_name)
-        if not os.path.isdir(map_dir):
+    for map_name in os.listdir(dest_dir_path):
+        map_dir_path = os.path.join(dest_dir_path, map_name)
+        if not os.path.isdir(map_dir_path):
             continue
         if map_name not in matrix:
             matrix[map_name] = {}
@@ -399,12 +399,12 @@ def build_similarity_matrix():
         most_similar_tiles = None
         lowest_score = None
         most_different_tiles = None
-        for tile_file_name in os.listdir(map_dir):
+        for tile_file_name in os.listdir(map_dir_path):
             if not tile_file_name.endswith('.png'):
                 continue
             tile_name = tile_file_name.replace('.png','')
-            tile_file_path = os.path.join(map_dir, tile_file_name)
-            for another_tile_file_name in os.listdir(map_dir):
+            tile_file_path = os.path.join(map_dir_path, tile_file_name)
+            for another_tile_file_name in os.listdir(map_dir_path):
                 if not another_tile_file_name.endswith('.png'):
                     continue
                 if another_tile_file_name == tile_file_name:
@@ -416,7 +416,7 @@ def build_similarity_matrix():
                     continue
                 if k2 in similarity_matrix:
                     continue
-                another_tile_file_path = os.path.join(map_dir, another_tile_file_name)
+                another_tile_file_path = os.path.join(map_dir_path, another_tile_file_name)
                 score = images_diff_score(tile_file_path, another_tile_file_path)
                 similarity_matrix[k1] = score
                 similarity_matrix[k2] = score
@@ -433,11 +433,11 @@ def build_similarity_matrix():
 
 
 def build_hash_diff_matrix(hash_type='ahash'):
-    dest_dir = sys.argv[2]
+    dest_dir_path = sys.argv[2]
     matrix = {}
-    for map_name in os.listdir(dest_dir):
-        map_dir = os.path.join(dest_dir, map_name)
-        if not os.path.isdir(map_dir):
+    for map_name in os.listdir(dest_dir_path):
+        map_dir_path = os.path.join(dest_dir_path, map_name)
+        if not os.path.isdir(map_dir_path):
             continue
         if map_name not in matrix:
             matrix[map_name] = {}
@@ -446,12 +446,12 @@ def build_hash_diff_matrix(hash_type='ahash'):
         similar_tiles = None
         biggest_diff = None
         dissimilar_tiles = None
-        for tile_file_name in os.listdir(map_dir):
+        for tile_file_name in os.listdir(map_dir_path):
             if not tile_file_name.endswith('.png'):
                 continue
             tile_name = tile_file_name.replace('.png','')
-            tile_file_path = os.path.join(map_dir, tile_file_name)
-            for another_tile_file_name in os.listdir(map_dir):
+            tile_file_path = os.path.join(map_dir_path, tile_file_name)
+            for another_tile_file_name in os.listdir(map_dir_path):
                 if not another_tile_file_name.endswith('.png'):
                     continue
                 if another_tile_file_name == tile_file_name:
@@ -463,7 +463,7 @@ def build_hash_diff_matrix(hash_type='ahash'):
                     continue
                 if k2 in hash_diff_matrix:
                     continue
-                another_tile_file_path = os.path.join(map_dir, another_tile_file_name)
+                another_tile_file_path = os.path.join(map_dir_path, another_tile_file_name)
                 diff = images_hash_diff(tile_file_path, another_tile_file_path, hash_type=hash_type)
                 hash_diff_matrix[k1] = diff
                 hash_diff_matrix[k2] = diff
@@ -480,43 +480,43 @@ def build_hash_diff_matrix(hash_type='ahash'):
 
 
 def find_similar_images():
-    dest_dir = sys.argv[2]
+    dest_dir_path = sys.argv[2]
     score_threshold = float(sys.argv[3])
-    for map_name in os.listdir(dest_dir):
-        map_dir = os.path.join(dest_dir, map_name)
-        if not os.path.isdir(map_dir):
+    for map_name in os.listdir(dest_dir_path):
+        map_dir_path = os.path.join(dest_dir_path, map_name)
+        if not os.path.isdir(map_dir_path):
             continue
         next_group_id = 0
         groups = []
         graph = {}
-        if not os.path.isdir(map_dir):
+        if not os.path.isdir(map_dir_path):
             continue
 
         # read existing groups
-        if os.path.exists(os.path.join(dest_dir, map_name+'_groups')):
-            for group_id in os.listdir(os.path.join(dest_dir, map_name+'_groups')):
-                if not os.path.isdir(os.path.join(dest_dir, map_name+'_groups', group_id)):
+        if os.path.exists(os.path.join(dest_dir_path, map_name+'_groups')):
+            for group_id in os.listdir(os.path.join(dest_dir_path, map_name+'_groups')):
+                if not os.path.isdir(os.path.join(dest_dir_path, map_name+'_groups', group_id)):
                     continue
                 groups.append(int(group_id))
-                for tile_file_name in os.listdir(os.path.join(dest_dir, map_name+'_groups', group_id)):
+                for tile_file_name in os.listdir(os.path.join(dest_dir_path, map_name+'_groups', group_id)):
                     if not tile_file_name.endswith('.png'):
                         continue
                     tile_name = tile_file_name.replace('.png','')
                     graph[tile_name] = int(group_id)
 
         # first try to fit ungrouped tiles into existing groups
-        for tile_file_name in sorted(os.listdir(map_dir)):
+        for tile_file_name in sorted(os.listdir(map_dir_path)):
             if not tile_file_name.endswith('.png'):
                 continue
             tile_name = tile_file_name.replace('.png','')
             if tile_name in graph:
                 continue
-            tile_file_path = os.path.join(map_dir, tile_file_name)
+            tile_file_path = os.path.join(map_dir_path, tile_file_name)
 
             # compare with existing groups
             groups_scores = {}
             for group_id in groups:
-                group_dir_path = os.path.join(dest_dir, map_name+'_groups', str(group_id))
+                group_dir_path = os.path.join(dest_dir_path, map_name+'_groups', str(group_id))
                 max_score_in_group = 0.0
                 group_entries_found = 0
                 for group_tile_file_name in os.listdir(group_dir_path):
@@ -544,21 +544,21 @@ def find_similar_images():
 
         next_group_id = max(groups) if groups else 0
         # then compare ungrouped tiles with each other
-        for tile_file_name in sorted(os.listdir(map_dir)):
+        for tile_file_name in sorted(os.listdir(map_dir_path)):
             if not tile_file_name.endswith('.png'):
                 continue
             tile_name = tile_file_name.replace('.png','')
             if tile_name in graph:
                 continue
-            tile_file_path = os.path.join(map_dir, tile_file_name)
+            tile_file_path = os.path.join(map_dir_path, tile_file_name)
             max_score = 0.0
             similar_tile_file_name = None
-            for another_tile_file_name in os.listdir(map_dir):
+            for another_tile_file_name in os.listdir(map_dir_path):
                 if not another_tile_file_name.endswith('.png'):
                     continue
                 if another_tile_file_name == tile_file_name:
                     continue
-                another_tile_file_path = os.path.join(map_dir, another_tile_file_name)
+                another_tile_file_path = os.path.join(map_dir_path, another_tile_file_name)
                 score = images_diff_score(tile_file_path, another_tile_file_path)
                 if score > max_score:
                     max_score = score
@@ -585,17 +585,17 @@ def find_similar_images():
         counter = 1
         for tile_name in graph.keys():
             group_id = graph[tile_name]
-            group_dir_path = os.path.join(dest_dir, map_name+'_groups', str(group_id))
+            group_dir_path = os.path.join(dest_dir_path, map_name+'_groups', str(group_id))
             if not os.path.exists(group_dir_path):
                 os.makedirs(group_dir_path)
-            if os.path.isfile(os.path.join(dest_dir, map_name, f'{tile_name}.png')):
+            if os.path.isfile(os.path.join(dest_dir_path, map_name, f'{tile_name}.png')):
                 if not os.path.exists(os.path.join(group_dir_path, f'{tile_name}.png')):
-                    os.rename(os.path.join(dest_dir, map_name, f'{tile_name}.png'), os.path.join(group_dir_path, f'{tile_name}.png'))
+                    os.rename(os.path.join(dest_dir_path, map_name, f'{tile_name}.png'), os.path.join(group_dir_path, f'{tile_name}.png'))
                     counter += 1
                     print(f'For {map_name} moved {tile_name}.png to group {group_id}')
 
 
-def read_tile_types(corner_size=None, samples_dir=None):
+def read_tile_types(corner_size=None, samples_dir_path=None):
     global tile_types
     global tile_average_colors
     global tile_types_images
@@ -605,16 +605,16 @@ def read_tile_types(corner_size=None, samples_dir=None):
     global tile_types_variants
     if corner_size is None:
         corner_size = CORNER_SIZE
-    if samples_dir is None:
-        samples_dir = os.environ.get('samples_dir', 'samples_hq')        
+    if samples_dir_path is None:
+        samples_dir_path = os.environ.get('samples_dir', 'samples_hq')        
     average_colors = {}
-    for tile_file_name in os.listdir(samples_dir):
+    for tile_file_name in os.listdir(samples_dir_path):
         if not tile_file_name.endswith('.png'):
             continue
         tile_type = tile_file_name.replace('.png','')
         tile_variant = tile_type[-1]
         tile_type = tile_type[:-1]
-        tile_file_path = os.path.join(samples_dir, tile_file_name)
+        tile_file_path = os.path.join(samples_dir_path, tile_file_name)
         tile_types[tile_type] = tile_file_path
         if tile_type not in tile_types_variants:
             tile_types_variants[tile_type] = []
@@ -663,7 +663,7 @@ def read_tile_types(corner_size=None, samples_dir=None):
     pprint.pprint(average_colors)
 
 
-def move_tiles_by_type_1(tiles_dir, groups_dir, min_score, remove_original=False):
+def move_tiles_by_type_1(tiles_dir_path, groups_dir_path, min_score, remove_original=False):
     global tile_types
     global tile_average_colors
     global tile_types_images
@@ -674,11 +674,11 @@ def move_tiles_by_type_1(tiles_dir, groups_dir, min_score, remove_original=False
     diff_color_factor = 200.0
     corner_size = CORNER_SIZE
     detected_tile_types = set()
-    for tile_file_name in sorted(os.listdir(tiles_dir)):
+    for tile_file_name in sorted(os.listdir(tiles_dir_path)):
         if not tile_file_name.endswith('.png'):
             continue
         tile_id = tile_file_name.replace('.png','')
-        tile_file_path = os.path.join(tiles_dir, tile_file_name)
+        tile_file_path = os.path.join(tiles_dir_path, tile_file_name)
         tile_image = Image.open(tile_file_path)
         tile_average_color = average_color(tile_file_path)
         tile_corners_best = {}
@@ -716,7 +716,7 @@ def move_tiles_by_type_1(tiles_dir, groups_dir, min_score, remove_original=False
         if tl_score >= min_score and tr_score >= min_score and bl_score >= min_score and br_score >= min_score:
             if tl == tr == bl == br:
                 detected_tile_types.add(tl)
-                tile_type_dir_path = os.path.join(groups_dir, tl)
+                tile_type_dir_path = os.path.join(groups_dir_path, tl)
                 if not os.path.exists(tile_type_dir_path):
                     os.makedirs(tile_type_dir_path)
                 tile_dest_file_path = os.path.join(tile_type_dir_path, f'{tile_id}.png')
@@ -730,14 +730,14 @@ def move_tiles_by_type_1(tiles_dir, groups_dir, min_score, remove_original=False
     return detected_tile_types
 
 
-def move_tiles_by_type(tiles_dir, groups_dir, min_score, remove_original=False):
+def move_tiles_by_type(tiles_dir_path, groups_dir_path, min_score, remove_original=False):
     diff_color_factor = 300.0
     detected_tile_types = set()
-    for tile_file_name in sorted(os.listdir(tiles_dir)):
+    for tile_file_name in sorted(os.listdir(tiles_dir_path)):
         if not tile_file_name.endswith('.png'):
             continue
         tile_name = tile_file_name.replace('.png','')
-        tile_file_path = os.path.join(tiles_dir, tile_file_name)
+        tile_file_path = os.path.join(tiles_dir_path, tile_file_name)
         tile_average_color = average_color(tile_file_path)
         tile_image = Image.open(tile_file_path)
         best_type = None
@@ -761,7 +761,7 @@ def move_tiles_by_type(tiles_dir, groups_dir, min_score, remove_original=False):
         if best_diff_score:
             best_diff_score = round(best_diff_score, 3)
         if best_score > min_score:
-            tile_type_dir_path = os.path.join(groups_dir, best_type)
+            tile_type_dir_path = os.path.join(groups_dir_path, best_type)
             if not os.path.exists(tile_type_dir_path):
                 os.makedirs(tile_type_dir_path)
             tile_dest_file_path = os.path.join(tile_type_dir_path, f'{tile_name}.png')
@@ -776,18 +776,18 @@ def move_tiles_by_type(tiles_dir, groups_dir, min_score, remove_original=False):
     return detected_tile_types
 
 
-def move_tiles_by_corner_type(tiles_dir, groups_dir, selected_tile_types=None):
+def move_tiles_by_corner_type(tiles_dir_path, groups_dir_path, selected_tile_types=None):
     corner_names = ['tl', 'tr', 'br', 'bl']
     color_distance_threshold = int((CORNER_SIZE * CORNER_SIZE) * 2.0)
     diff_hash_threshold = CORNER_SIZE * CORNER_SIZE * 2
     color_distance_factor = 400
-    for tile_file_name in sorted(os.listdir(tiles_dir)):
+    for tile_file_name in sorted(os.listdir(tiles_dir_path)):
         if not tile_file_name.endswith('.png'):
             continue
         tile_name = tile_file_name.replace('.png','')
         # if tile_name != '00050':
         #     continue
-        tile_file_path = os.path.join(tiles_dir, tile_file_name)
+        tile_file_path = os.path.join(tiles_dir_path, tile_file_name)
         c = {}
         best_rotation = None
         best_rotation_score = None
@@ -890,7 +890,7 @@ def move_tiles_by_corner_type(tiles_dir, groups_dir, selected_tile_types=None):
         types_list.sort(key=lambda x: types_counts[x], reverse=True)
         # if len(types_set) == 1:
         #     best_type = tl_type
-        #     tile_type_dir_path = os.path.join(groups_dir, best_type)
+        #     tile_type_dir_path = os.path.join(groups_dir_path, best_type)
         #     if not os.path.exists(tile_type_dir_path):
         #         os.makedirs(tile_type_dir_path)
         #     tile_dest_file_path = os.path.join(tile_type_dir_path, f'{best_type}_{tile_name}.png')
@@ -904,7 +904,7 @@ def move_tiles_by_corner_type(tiles_dir, groups_dir, selected_tile_types=None):
             second_type_count = types_counts[second_type]
             if best_type_count == 3 and second_type_count == 1:
                 direction = corner_names[corners.index(second_type)]
-                tile_type_dir_path = os.path.join(groups_dir, best_type)
+                tile_type_dir_path = os.path.join(groups_dir_path, best_type)
                 if not os.path.exists(tile_type_dir_path):
                     os.makedirs(tile_type_dir_path)
                 tile_dest_file_path = os.path.join(tile_type_dir_path, f'{best_type}_{second_type}_{direction}_{tile_name}.png')
@@ -921,7 +921,7 @@ def move_tiles_by_corner_type(tiles_dir, groups_dir, selected_tile_types=None):
                         direction = 'lr' if corners[0] == best_type else 'rl'
                     else:
                         direction = 'trbl' if corners[0] == best_type else 'tlbr'
-                tile_type_dir_path = os.path.join(groups_dir, best_type)
+                tile_type_dir_path = os.path.join(groups_dir_path, best_type)
                 if not os.path.exists(tile_type_dir_path):
                     os.makedirs(tile_type_dir_path)
                 tile_dest_file_path = os.path.join(tile_type_dir_path, f'{best_type}_{second_type}_{direction}_{tile_name}.png')
@@ -931,12 +931,12 @@ def move_tiles_by_corner_type(tiles_dir, groups_dir, selected_tile_types=None):
         print(f'{tile_name}    {tl_type} {tl_score} {tl_diff_score} {tl_color_dist} {tl_hash_diff} {tl_rotation}   {tr_type} {tr_score} {tr_diff_score} {tr_color_dist} {tr_hash_diff} {tr_rotation}   {br_type} {br_score} {br_diff_score} {br_color_dist} {br_hash_diff} {bl_rotation}   {bl_type} {bl_score} {bl_diff_score} {bl_color_dist} {bl_hash_diff} {br_rotation}    ??? {",".join(list(types_set))}')
 
 
-def move_tiles_by_one_corner_similarity(tiles_dir, groups_dir, min_score, selected_corner, selected_types, remove_original=False):
-    for tile_file_name in sorted(os.listdir(tiles_dir)):
+def move_tiles_by_one_corner_similarity(tiles_dir_path, groups_dir_path, min_score, selected_corner, selected_types, remove_original=False):
+    for tile_file_name in sorted(os.listdir(tiles_dir_path)):
         if not tile_file_name.endswith('.png'):
             continue
         tile_name = tile_file_name.replace('.png','')
-        tile_file_path = os.path.join(tiles_dir, tile_file_name)
+        tile_file_path = os.path.join(tiles_dir_path, tile_file_name)
         tile_image = Image.open(tile_file_path)
         tile_corner_image = get_corner_image(tile_image, selected_corner)
         best_sample = None
@@ -959,7 +959,7 @@ def move_tiles_by_one_corner_similarity(tiles_dir, groups_dir, min_score, select
             continue
         if best_sample_corner_score < min_score:
             continue
-        tile_dest_dir_path = os.path.join(groups_dir, best_sample)
+        tile_dest_dir_path = os.path.join(groups_dir_path, best_sample)
         if not os.path.exists(tile_dest_dir_path):
             os.makedirs(tile_dest_dir_path)
         tile_dest_file_path = os.path.join(tile_dest_dir_path, f'{best_sample}_{selected_corner.replace("_","")}_{tile_name}.png')
@@ -970,12 +970,12 @@ def move_tiles_by_one_corner_similarity(tiles_dir, groups_dir, min_score, select
         print(f'{tile_name}    {best_sample} {best_sample_corner_score} {best_sample_corner} {best_sample_rotation}')
 
 
-def move_tiles_by_one_side_similarity(tiles_dir, groups_dir, min_score, selected_side, selected_types, remove_original=False):
-    for tile_file_name in sorted(os.listdir(tiles_dir)):
+def move_tiles_by_one_side_similarity(tiles_dir_path, groups_dir_path, min_score, selected_side, selected_types, remove_original=False):
+    for tile_file_name in sorted(os.listdir(tiles_dir_path)):
         if not tile_file_name.endswith('.png'):
             continue
         tile_name = tile_file_name.replace('.png','')
-        tile_file_path = os.path.join(tiles_dir, tile_file_name)
+        tile_file_path = os.path.join(tiles_dir_path, tile_file_name)
         tile_image = Image.open(tile_file_path)
         best_tile_side_score = None
         # best_tile_rotation = None
@@ -1057,7 +1057,7 @@ def move_tiles_by_one_side_similarity(tiles_dir, groups_dir, min_score, selected
             # pos = (128, 64)
         tile_im = get_rotated_image(best_tile_image, tile_rotation)
         # im.paste(tile_im, pos)
-        tile_dest_dir_path = os.path.join(groups_dir, best_sample)
+        tile_dest_dir_path = os.path.join(groups_dir_path, best_sample)
         if not os.path.exists(tile_dest_dir_path):
             os.makedirs(tile_dest_dir_path)
         tile_dest_file_path = os.path.join(tile_dest_dir_path, f'{best_sample}_{side_sample}_{tile_name}.png')
@@ -1069,12 +1069,12 @@ def move_tiles_by_one_side_similarity(tiles_dir, groups_dir, min_score, selected
         print(f'{tile_name}    {best_score}   sample:({best_sample} {best_sample_side})   tile:({best_tile_side})   top:({t[0]} {t[1]} {t[2]}/{t[3]})   bottom:({b[0]} {b[1]} {b[2]}/{b[3]})   left:({l[0]} {l[1]} {l[2]}/{l[3]})   right:({r[0]} {r[1]} {r[2]}/{r[3]})')
 
 
-def move_tiles_by_two_sides_similarity(tiles_dir, groups_dir, min_score, selected_types):
-    for tile_file_name in sorted(os.listdir(tiles_dir)):
+def move_tiles_by_two_sides_similarity(tiles_dir_path, groups_dir_path, min_score, selected_types):
+    for tile_file_name in sorted(os.listdir(tiles_dir_path)):
         if not tile_file_name.endswith('.png'):
             continue
         tile_name = tile_file_name.replace('.png','')
-        tile_file_path = os.path.join(tiles_dir, tile_file_name)
+        tile_file_path = os.path.join(tiles_dir_path, tile_file_name)
         tile_image = Image.open(tile_file_path)
         tile_sides = {}
         tile_sides_best = {}
@@ -1125,7 +1125,7 @@ def move_tiles_by_two_sides_similarity(tiles_dir, groups_dir, min_score, selecte
         #             side = s
         #             break
         #     best_sample, best_sample_side, best_sample_rotation, best_tile_side, best_tile_rotation = tile_sides[side]
-        #     tile_dest_dir_path = os.path.join(groups_dir, best_sample)
+        #     tile_dest_dir_path = os.path.join(groups_dir_path, best_sample)
         #     if not os.path.exists(tile_dest_dir_path):
         #         os.makedirs(tile_dest_dir_path)
         #     tile_dest_file_path = os.path.join(tile_dest_dir_path, f'{best_sample}_{best_sample_side}_{best_sample_rotation}_{best_tile_side}_{best_tile_rotation}_{tile_name}.png')
@@ -1144,7 +1144,7 @@ def move_tiles_by_two_sides_similarity(tiles_dir, groups_dir, min_score, selecte
                         break
             best_sample1, best_sample_side1, best_sample_rotation1, best_tile_side1, best_tile_rotation1 = tile_sides[side1]
             best_sample2, best_sample_side2, best_sample_rotation2, best_tile_side2, best_tile_rotation2 = tile_sides[side2]
-            tile_dest_dir_path = os.path.join(groups_dir, best_sample1)
+            tile_dest_dir_path = os.path.join(groups_dir_path, best_sample1)
             if not os.path.exists(tile_dest_dir_path):
                 os.makedirs(tile_dest_dir_path)
             tile_dest_file_path = os.path.join(tile_dest_dir_path, f'{best_sample1}_{best_sample2}_{tile_name}.png')
@@ -1153,9 +1153,9 @@ def move_tiles_by_two_sides_similarity(tiles_dir, groups_dir, min_score, selecte
             continue
 
 
-def move_tiles_within_group_by_second_side_similarity(groups_dir, dest_dir, min_score, selected_side, selected_types, remove_original=False):
-    for group_name in sorted(os.listdir(groups_dir)):
-        group_dir_path = os.path.join(groups_dir, group_name)
+def move_tiles_within_group_by_second_side_similarity(groups_dir_path, dest_dir_path, min_score, selected_side, selected_types, remove_original=False):
+    for group_name in sorted(os.listdir(groups_dir_path)):
+        group_dir_path = os.path.join(groups_dir_path, group_name)
         if not os.path.isdir(group_dir_path):
             continue
         lst = sorted(os.listdir(group_dir_path))
@@ -1211,9 +1211,9 @@ def move_tiles_within_group_by_second_side_similarity(groups_dir, dest_dir, min_
             # if best_score < min_score:
                 # print(f'    no sides matched for {tile_name} in group {group_name}, best match: {best_score} {best_sample_side}   tile: {best_tile_side} {best_tile_rotation}')
             #     continue
-            if not os.path.exists(dest_dir):
-                os.makedirs(dest_dir)
-            dest_file_path = os.path.join(dest_dir, f'{tile_id}_{tile_sample}_{tile_side}_{best_sample}.png')
+            if not os.path.exists(dest_dir_path):
+                os.makedirs(dest_dir_path)
+            dest_file_path = os.path.join(dest_dir_path, f'{tile_id}_{tile_sample}_{tile_side}_{best_sample}.png')
             if remove_original:
                 os.rename(tile_file_path, dest_file_path)
             else:
@@ -1221,9 +1221,9 @@ def move_tiles_within_group_by_second_side_similarity(groups_dir, dest_dir, min_
             print(f'{group_name}/{tile_id}    {best_score}    {tile_sample} {best_sample} {best_sample_rotation}')
 
 
-def move_tiles_within_group_by_second_corner_similarity(groups_dir, dest_dir, min_score, selected_corner, selected_types, remove_original=False):
-    for group_name in sorted(os.listdir(groups_dir)):
-        group_dir_path = os.path.join(groups_dir, group_name)
+def move_tiles_within_group_by_second_corner_similarity(groups_dir_path, dest_dir_path, min_score, selected_corner, selected_types, remove_original=False):
+    for group_name in sorted(os.listdir(groups_dir_path)):
+        group_dir_path = os.path.join(groups_dir_path, group_name)
         if not os.path.isdir(group_dir_path):
             continue
         lst = sorted(os.listdir(group_dir_path))
@@ -1260,9 +1260,9 @@ def move_tiles_within_group_by_second_corner_similarity(groups_dir, dest_dir, mi
                         best_sample_rotation = rotation
             best_score = best_tile_corner_score
             best_score = round(best_score, 3)
-            if not os.path.exists(dest_dir):
-                os.makedirs(dest_dir)
-            dest_file_path = os.path.join(dest_dir, f'{tile_id}_{tile_sample}_{tile_corner}_{best_sample}.png')
+            if not os.path.exists(dest_dir_path):
+                os.makedirs(dest_dir_path)
+            dest_file_path = os.path.join(dest_dir_path, f'{tile_id}_{tile_sample}_{tile_corner}_{best_sample}.png')
             if remove_original:
                 os.rename(tile_file_path, dest_file_path)
             else:
@@ -1270,12 +1270,12 @@ def move_tiles_within_group_by_second_corner_similarity(groups_dir, dest_dir, mi
             print(f'{group_name}/{tile_id}    {best_score}    {tile_sample} {best_sample} {best_sample_rotation}')
 
 
-# def move_tiles_50_50(tiles_dir, groups_dir, min_score, selected_types):
-#     for tile_file_name in sorted(os.listdir(tiles_dir)):
+# def move_tiles_50_50(tiles_dir_path, groups_dir_path, min_score, selected_types):
+#     for tile_file_name in sorted(os.listdir(tiles_dir_path)):
 #         if not tile_file_name.endswith('.png'):
 #             continue
 #         tile_name = tile_file_name.replace('.png','')
-#         tile_file_path = os.path.join(tiles_dir, tile_file_name)
+#         tile_file_path = os.path.join(tiles_dir_path, tile_file_name)
 #         tile_image = Image.open(tile_file_path)
 #         tile_sides = {}
 #         tile_sides_best = {}
@@ -1329,7 +1329,7 @@ def move_tiles_within_group_by_second_corner_similarity(groups_dir, dest_dir, mi
 #             print(f'    no matching sides for 50/50 for {tile_name}, best couple: {best_couple} score: {best_score}')
 #             continue
 #         side1, side2 = best_couple
-#         tile_dest_dir_path = os.path.join(groups_dir, best_sample)
+#         tile_dest_dir_path = os.path.join(groups_dir_path, best_sample)
 #         if not os.path.exists(tile_dest_dir_path):
 #             os.makedirs(tile_dest_dir_path)
 #         tile_dest_file_path = os.path.join(tile_dest_dir_path, f'{best_sample}_{side1}_{side2}_{tile_name}.png')
@@ -1337,14 +1337,14 @@ def move_tiles_within_group_by_second_corner_similarity(groups_dir, dest_dir, mi
 #         print(f'{tile_name}    {best_score}   sample:({best_sample} {side1} {side2})   tile:({best_tile_side} {best_tile_rotation})')
 
 
-def move_tiles_by_shape(tiles_dir, dest_dir, min_score, remove_original=False):
+def move_tiles_by_shape(tiles_dir_path, dest_dir_path, min_score, remove_original=False):
     corner_size = int(TILE_SIZE / 4)
-    lst = list(sorted(os.listdir(tiles_dir)))
+    lst = list(sorted(os.listdir(tiles_dir_path)))
     for tile_file_name in lst:
         if not tile_file_name.endswith('.png'):
             continue
         tile_name = tile_file_name.replace('.png','')
-        tile_file_path = os.path.join(tiles_dir, tile_file_name)
+        tile_file_path = os.path.join(tiles_dir_path, tile_file_name)
         tile_image = Image.open(tile_file_path)
         tile_image_transposed = tile_image.transpose(Transpose.TRANSPOSE)
         tile_image_transversed = tile_image.transpose(Transpose.TRANSVERSE)
@@ -1393,7 +1393,7 @@ def move_tiles_by_shape(tiles_dir, dest_dir, min_score, remove_original=False):
                 shape = 'top_left'
             else:
                 shape = 'bottom_right'
-        shape_dest_dir_path = os.path.join(dest_dir, shape)
+        shape_dest_dir_path = os.path.join(dest_dir_path, shape)
         if not os.path.exists(shape_dest_dir_path):
             os.makedirs(shape_dest_dir_path)
         shape_dest_file_path = os.path.join(shape_dest_dir_path, f'{tile_name}.png')
@@ -1402,12 +1402,12 @@ def move_tiles_by_shape(tiles_dir, dest_dir, min_score, remove_original=False):
         else:
             tile_image.save(shape_dest_file_path)
         print(f'{tile_name}:{shape}    {ratio} {direction} ({transposed_diff_score}:{transversed_diff_score}) {ratio_diag} top_left({ratio_top_left}) top_right({ratio_top_right}) bottom_right({ratio_bottom_right}) bottom_left({ratio_bottom_left})')
-    lst = list(sorted(os.listdir(tiles_dir)))
-    for tile_file_name in sorted(os.listdir(tiles_dir)):
+    lst = list(sorted(os.listdir(tiles_dir_path)))
+    for tile_file_name in sorted(os.listdir(tiles_dir_path)):
         if not tile_file_name.endswith('.png'):
             continue
         tile_name = tile_file_name.replace('.png','')
-        tile_file_path = os.path.join(tiles_dir, tile_file_name)
+        tile_file_path = os.path.join(tiles_dir_path, tile_file_name)
         tile_image = Image.open(tile_file_path)
         left_half_image = get_half_image(tile_image, 'left')
         right_half_image = get_half_image(tile_image, 'right').transpose(Transpose.FLIP_LEFT_RIGHT)
@@ -1430,7 +1430,7 @@ def move_tiles_by_shape(tiles_dir, dest_dir, min_score, remove_original=False):
             shape = 'top_bottom'
         else:
             shape = 'left_right'
-        shape_dest_dir_path = os.path.join(dest_dir, shape)
+        shape_dest_dir_path = os.path.join(dest_dir_path, shape)
         if not os.path.exists(shape_dest_dir_path):
             os.makedirs(shape_dest_dir_path)
         shape_dest_file_path = os.path.join(shape_dest_dir_path, f'{tile_name}.png')
@@ -1441,17 +1441,17 @@ def move_tiles_by_shape(tiles_dir, dest_dir, min_score, remove_original=False):
         print(f'{tile_name}    {ratio}    left_right:{left_right_diff_score}    top_bottom:{top_bottom_diff_score}')
 
 
-def move_tiles_by_shape_by_four_corners(tiles_dir, dest_dir, min_score, corner_size=None, selected_tile_types=None, remove_original=False):
-    if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir)
+def move_tiles_by_shape_by_four_corners(tiles_dir_path, dest_dir_path, min_score, corner_size=None, selected_tile_types=None, remove_original=False):
+    if not os.path.exists(dest_dir_path):
+        os.makedirs(dest_dir_path)
     diff_color_factor = 200.0
     if corner_size is None:
         corner_size = CORNER_SIZE
-    for tile_file_name in sorted(os.listdir(tiles_dir)):
+    for tile_file_name in sorted(os.listdir(tiles_dir_path)):
         if not tile_file_name.endswith('.png'):
             continue
         tile_id = tile_file_name.replace('.png','')
-        tile_file_path = os.path.join(tiles_dir, tile_file_name)
+        tile_file_path = os.path.join(tiles_dir_path, tile_file_name)
         try:
             tile_image = Image.open(tile_file_path)
             tile_image.load()
@@ -1534,8 +1534,8 @@ def move_tiles_by_shape_by_four_corners(tiles_dir, dest_dir, min_score, corner_s
         if not shape:
             print(f'        {tile_id}    tl:{tl}({tl_score}) tr:{tr}({tr_score}) bl:{bl}({bl_score}) br:{br}({br_score})')
             continue
-        # shape_dest_dir_path = os.path.join(dest_dir, shape)
-        shape_dest_file_path = os.path.join(dest_dir, f'{sample1}_{sample2}_{shape}_{tile_id}.png')
+        # shape_dest_dir_path = os.path.join(dest_dir_path, shape)
+        shape_dest_file_path = os.path.join(dest_dir_path, f'{sample1}_{sample2}_{shape}_{tile_id}.png')
         # shape_dest_file_path = os.path.join(shape_dest_dir_path, f'{tile_id}_{sample1}_{sample2}.png')
         if remove_original:
             os.rename(tile_file_path, shape_dest_file_path)
@@ -1544,17 +1544,17 @@ def move_tiles_by_shape_by_four_corners(tiles_dir, dest_dir, min_score, corner_s
         print(f'{tile_id}    {shape}    {sample1} {sample2}    t:{t} b:{b} l:{l} r:{r}     tl:{tl}({tl_score}) tr:{tr}({tr_score}) bl:{bl}({bl_score}) br:{br}({br_score})')
 
 
-def move_tiles_by_shape_by_four_corners_with_three_types(tiles_dir, dest_dir, min_score, corner_size=None, selected_tile_types=None, remove_original=False):
-    if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir)
+def move_tiles_by_shape_by_four_corners_with_three_types(tiles_dir_path, dest_dir_path, min_score, corner_size=None, selected_tile_types=None, remove_original=False):
+    if not os.path.exists(dest_dir_path):
+        os.makedirs(dest_dir_path)
     diff_color_factor = 200.0
     if corner_size is None:
         corner_size = CORNER_SIZE
-    for tile_file_name in sorted(os.listdir(tiles_dir)):
+    for tile_file_name in sorted(os.listdir(tiles_dir_path)):
         if not tile_file_name.endswith('.png'):
             continue
         tile_id = tile_file_name.replace('.png','')
-        tile_file_path = os.path.join(tiles_dir, tile_file_name)
+        tile_file_path = os.path.join(tiles_dir_path, tile_file_name)
         try:
             tile_image = Image.open(tile_file_path)
             tile_image.load()
@@ -1661,8 +1661,8 @@ def move_tiles_by_shape_by_four_corners_with_three_types(tiles_dir, dest_dir, mi
         if not shape:
             print(f'        {tile_id}    tl:{tl}({tl_score}) tr:{tr}({tr_score}) bl:{bl}({bl_score}) br:{br}({br_score})')
             continue
-        # shape_dest_dir_path = os.path.join(dest_dir, shape)
-        shape_dest_file_path = os.path.join(dest_dir, f'{sample1}_{sample2}_{sample3}_{shape}_{tile_id}.png')
+        # shape_dest_dir_path = os.path.join(dest_dir_path, shape)
+        shape_dest_file_path = os.path.join(dest_dir_path, f'{sample1}_{sample2}_{sample3}_{shape}_{tile_id}.png')
         # shape_dest_file_path = os.path.join(shape_dest_dir_path, f'{tile_id}_{sample1}_{sample2}.png')
         if remove_original:
             os.rename(tile_file_path, shape_dest_file_path)
@@ -1671,14 +1671,14 @@ def move_tiles_by_shape_by_four_corners_with_three_types(tiles_dir, dest_dir, mi
         print(f'{tile_id}    {shape}    {sample1} {sample2} {sample3}   tl:{tl}({tl_score}) tr:{tr}({tr_score}) bl:{bl}({bl_score}) br:{br}({br_score})')
 
 
-def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False, save_merged_tiles=True):
-    if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir)
-    if not os.path.exists(ready_dir):
-        os.makedirs(ready_dir)
+def merge_tiles(src_dir_path, group_dir_path, dest_dir_path, ready_dir_path, save_ready_tiles=False, save_merged_tiles=True):
+    if not os.path.exists(dest_dir_path):
+        os.makedirs(dest_dir_path)
+    if not os.path.exists(ready_dir_path):
+        os.makedirs(ready_dir_path)
     registry = {}
     graph = {}
-    lst = sorted(os.listdir(src_dir))
+    lst = sorted(os.listdir(src_dir_path))
     pairs = set()
     triples = set()
     errors = []
@@ -1686,7 +1686,7 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
         if not tile_file_name.endswith('.png'):
             continue
         tile_name = tile_file_name.replace('.png','').rstrip('_')
-        tile_file_path = os.path.join(src_dir, tile_file_name)
+        tile_file_path = os.path.join(src_dir_path, tile_file_name)
         tile_image = Image.open(tile_file_path)
         tile_image.load()
         parts = tile_name.split('_')
@@ -1933,7 +1933,7 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                             top_right_image = tile_image
                     tiles_ids = '_'.join(tiles_ids)
                     merged_tile_name = f'{tile_sample1}_{tile_sample2}_{j}_{tiles_ids}.png'
-                    merged_tile_file_path = os.path.join(dest_dir, merged_tile_name)
+                    merged_tile_file_path = os.path.join(dest_dir_path, merged_tile_name)
                     if save_merged_tiles:
                         im.save(merged_tile_file_path)
                         print(f'    saved merged fragment to {merged_tile_name}, more possible fragments: {stack_difference}')
@@ -1951,7 +1951,7 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                 counter += 1
                 tile_image = tile_types_images[tile_sample][tile_variant][0]
                 ready_tile_name = f'{counter:05d}.png'
-                tile_image.save(os.path.join(ready_dir, ready_tile_name))
+                tile_image.save(os.path.join(ready_dir_path, ready_tile_name))
                 catalog[key].append(counter)
         for tile_sample1 in graph.keys():
             for tile_sample2 in graph[tile_sample1].keys():
@@ -1965,12 +1965,12 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                     counter += 1
                     top_image = graph[tile_sample1][tile_sample2][i]['top']
                     ready_top_tile_name = f'{counter:05d}.png'
-                    top_image.save(os.path.join(ready_dir, ready_top_tile_name))
+                    top_image.save(os.path.join(ready_dir_path, ready_top_tile_name))
                     catalog[key]['s'].append(counter)
                     counter += 1
                     top_right_image = graph[tile_sample1][tile_sample2][i]['top_right']
                     ready_top_right_tile_name = f'{counter:05d}.png'
-                    top_right_image.save(os.path.join(ready_dir, ready_top_right_tile_name))
+                    top_right_image.save(os.path.join(ready_dir_path, ready_top_right_tile_name))
                     catalog[key]['c'].append(counter)
         open('catalog/land.json', 'w').write(json.dumps(catalog, indent=2))
     for pair in pairs:
@@ -1980,12 +1980,12 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
     registry3types = {}
     missing = set()
     quadruples = set()
-    lst = sorted(os.listdir(src_dir))
+    lst = sorted(os.listdir(src_dir_path))
     for tile_file_name in lst:
         if not tile_file_name.endswith('.png'):
             continue
         tile_name = tile_file_name.replace('.png','').rstrip('_')
-        tile_file_path = os.path.join(src_dir, tile_file_name)
+        tile_file_path = os.path.join(src_dir_path, tile_file_name)
         tile_image = Image.open(tile_file_path)
         tile_image.load()
         parts = tile_name.split('_')
@@ -2128,7 +2128,7 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                 quadruples.add(q1)
                 quadruples.add(q2)
                 merged_tile_name = f'{q1[0]}_{q1[1]}_{q1[2]}_{q1[3]}_{tile_id}.png'
-                merged_tile_file_path = os.path.join(dest_dir, merged_tile_name)
+                merged_tile_file_path = os.path.join(dest_dir_path, merged_tile_name)
                 if save_merged_tiles:
                     im.save(merged_tile_file_path)
                 if q1 not in ready:
@@ -2155,18 +2155,18 @@ def merge_tiles(src_dir, group_dir, dest_dir, ready_dir, save_ready_tiles=False,
                 # ready_image = ready[q]
                 counter += 1
                 ready_tile_name = f'{counter:05d}.png'
-                ready_image.save(os.path.join(ready_dir, ready_tile_name))
+                ready_image.save(os.path.join(ready_dir_path, ready_tile_name))
                 catalog[key].append(counter)
         open('catalog/land.json', 'w').write(json.dumps(catalog, indent=2))
 
 
-def build_index(src_dir, dest_dir):
+def build_index(src_dir_path, dest_dir_path):
     global index_by_hash
     processed = 0
     total_tiles = 0
-    if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir)
-    for file_name in sorted(os.listdir(src_dir)):
+    if not os.path.exists(dest_dir_path):
+        os.makedirs(dest_dir_path)
+    for file_name in sorted(os.listdir(src_dir_path)):
         if not file_name.endswith('.png'):
             print(f'Skipping {file_name}, not a .png file')
             continue
@@ -2174,7 +2174,7 @@ def build_index(src_dir, dest_dir):
         img_name = file_name.replace('.png', '')
         map_name = img_name[:-3]
         map_image_variant = int(img_name[-3:])
-        file_path = os.path.join(src_dir, file_name)
+        file_path = os.path.join(src_dir_path, file_name)
         source_image = Image.open(file_path)
         source_image.load()
         if source_image.width != TILE_SIZE * 8 or source_image.height != TILE_SIZE * 8:
@@ -2197,7 +2197,7 @@ def build_index(src_dir, dest_dir):
                     continue
                 for rotation in [0, ]:  # [0, 90, 180, 270]:
                     total_tiles += 1
-                    tile_file_path = os.path.abspath(os.path.join(dest_dir, f'{total_tiles:05d}.png'))
+                    tile_file_path = os.path.abspath(os.path.join(dest_dir_path, f'{total_tiles:05d}.png'))
                     # if os.path.exists(tile_file_path):
                     #     if tile_hash not in index_by_hash:
                     #         add_to_index(tile_hash, map_name, map_image_variant, w, h)
@@ -2212,16 +2212,16 @@ def build_index(src_dir, dest_dir):
     print(f'indexed {len(index_by_hash)} unique tiles')
 
 
-def unpack_textures(dest_dir):
-    if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir)
+def unpack_textures(dest_dir_path):
+    if not os.path.exists(dest_dir_path):
+        os.makedirs(dest_dir_path)
     with open('data/textures.res', 'rb') as texture_file:
         res_filetree_dict = res.read_res_filetree(texture_file, return_dict=True)
         for k in res_filetree_dict.keys():
             if k.endswith('.mmp'):
                 name = k[:-4].lower()
-                mmp_file_path = os.path.join(dest_dir, name + '.mmp')
-                png_file_path = os.path.join(dest_dir, name + '.png')
+                mmp_file_path = os.path.join(dest_dir_path, name + '.mmp')
+                png_file_path = os.path.join(dest_dir_path, name + '.png')
                 res.unpack_res_element(texture_file, res_filetree_dict[k], dest_file_name=mmp_file_path)
                 pil_img = res.read_mmp(mmp_file_path)
                 pil_img.save(png_file_path)
@@ -2229,21 +2229,21 @@ def unpack_textures(dest_dir):
                 print(f'Unpacked {k} to {png_file_path}')
 
 
-def pack_tiles(src_dir, dest_dir):
-    if os.path.exists('assets/catalog_stats.json'):
-        catalog_stats = json.loads(open('assets/catalog_stats.json').read())
+def pack_tiles(src_dir_path, dest_dir_path):
+    if os.path.exists('assets/tiles_stats.json'):
+        catalog_stats = json.loads(open('assets/tiles_stats.json').read())
         catalog_ids_sorted = sorted(catalog_stats.keys(), key=lambda k: catalog_stats[k], reverse=True)
     else:
         catalog = json.loads(open('catalog/land.json').read())
         catalog_ids_sorted = sorted(catalog.keys())
     tiles = []
     images = {}
-    lst = sorted(os.listdir(src_dir))
+    lst = sorted(os.listdir(src_dir_path))
     for tile_file_name in lst:
         if not tile_file_name.endswith('.png'):
             continue
         tile_name = tile_file_name.replace('.png', '')
-        tile_file_path = os.path.join(src_dir, tile_file_name)
+        tile_file_path = os.path.join(src_dir_path, tile_file_name)
         tile_image = Image.open(tile_file_path)
         tile_image.load()
         tiles.append(tile_name)
@@ -2259,7 +2259,7 @@ def pack_tiles(src_dir, dest_dir):
         if not current_mozaic_image:
             current_mozaic_image = Image.new("RGB", (TILE_SIZE * 8, TILE_SIZE * 8), "black")
         if current_mozaic_id >= 64:
-            current_mozaic_image.save(os.path.join(dest_dir, f'{current_mozaic_num}.png'))
+            current_mozaic_image.save(os.path.join(dest_dir_path, f'{current_mozaic_num}.png'))
             current_mozaic_num += 1
             current_mozaic_image = Image.new("RGB", (TILE_SIZE * 8, TILE_SIZE * 8), "black")
             current_mozaic_id = 0
@@ -2272,7 +2272,7 @@ def pack_tiles(src_dir, dest_dir):
         if not current_mozaic_image:
             current_mozaic_image = Image.new("RGB", (TILE_SIZE * 8, TILE_SIZE * 8), "black")
         if current_mozaic_id >= 64:
-            current_mozaic_image.save(os.path.join(dest_dir, f'{current_mozaic_num}.png'))
+            current_mozaic_image.save(os.path.join(dest_dir_path, f'{current_mozaic_num}.png'))
             current_mozaic_num += 1
             current_mozaic_image = Image.new("RGB", (TILE_SIZE * 8, TILE_SIZE * 8), "black")
             current_mozaic_id = 0
@@ -2280,15 +2280,15 @@ def pack_tiles(src_dir, dest_dir):
         registry.append(f'{int(tile_name)} {current_mozaic_num} {current_mozaic_id}')
         current_mozaic_id += 1
     if current_mozaic_id > 0:
-        current_mozaic_image.save(os.path.join(dest_dir, f'{current_mozaic_num}.png'))
+        current_mozaic_image.save(os.path.join(dest_dir_path, f'{current_mozaic_num}.png'))
     open(os.path.join('assets/tiles.json'), 'w').write(json.dumps(registry, indent=2))
     print(f'Packed {len(tiles)} tiles into {current_mozaic_num + 1} mozaic images')
 
 
-def match_tiles(src_dir, maps_dir):
+def match_tiles(src_dir_path, maps_dir_path):
     tiles_hash = {}
     processed = 0
-    for map_file_name in sorted(os.listdir(maps_dir)):
+    for map_file_name in sorted(os.listdir(maps_dir_path)):
         if not map_file_name.endswith('.png'):
             continue
         map_name = map_file_name[:-7]  # ending with "000.png" 
@@ -2296,7 +2296,7 @@ def match_tiles(src_dir, maps_dir):
         img_name = map_file_name.replace('.png', '')
         map_name = img_name[:-3]
         map_image_variant = int(img_name[-3:])
-        map_file_path = os.path.join(maps_dir, map_file_name)
+        map_file_path = os.path.join(maps_dir_path, map_file_name)
         map_source_image = Image.open(map_file_path)
         map_source_image.load()
         if map_source_image.width != TILE_SIZE * 8 or map_source_image.height != TILE_SIZE * 8:
@@ -2319,11 +2319,11 @@ def match_tiles(src_dir, maps_dir):
         print(f'Cached {map_file_path}')
     unmatched = []
     matched = {}
-    for tile_file_name in sorted(os.listdir(src_dir)):
+    for tile_file_name in sorted(os.listdir(src_dir_path)):
         if not tile_file_name.endswith('.png'):
             continue
         tile_name = tile_file_name.replace('.png', '')
-        tile_file_path = os.path.join(src_dir, tile_file_name)
+        tile_file_path = os.path.join(src_dir_path, tile_file_name)
         tile_image = Image.open(tile_file_path)
         tile_image.load()
         if tile_image.width != TILE_SIZE or tile_image.height != TILE_SIZE:
@@ -2341,12 +2341,12 @@ def match_tiles(src_dir, maps_dir):
     open(os.path.join('matched_tiles.json'), 'w').write(json.dumps(matched, indent=2))
 
 
-def copy_matched_tiles(maps_dir, dest_dir):
+def copy_matched_tiles(maps_dir_path, dest_dir_path):
     matched = json.loads(open('matched_tiles.json').read())
     for tile_name, variants in matched.items():
         for variant in variants:
             map_name, map_image_variant, w, h, rotation = variant
-            map_file_path = os.path.join(maps_dir, f'{map_name}{map_image_variant:03d}.png')
+            map_file_path = os.path.join(maps_dir_path, f'{map_name}{map_image_variant:03d}.png')
             if not os.path.exists(map_file_path):
                 print(f'Warning: map file {map_file_path} not found for tile {tile_name}, trying next variant')
                 continue
@@ -2355,7 +2355,7 @@ def copy_matched_tiles(maps_dir, dest_dir):
             tile_texture, tile_hash = image_tile(map_source_image, w, h, tile_size=256)
             if rotation != 0:
                 tile_texture = get_rotated_image(tile_texture, rotation)
-            tile_file_path = os.path.join(dest_dir, f'{tile_name}.png')
+            tile_file_path = os.path.join(dest_dir_path, f'{tile_name}.png')
             tile_texture.save(tile_file_path)
             print(f'Copied matched tile {tile_name} to {tile_file_path}')
             break

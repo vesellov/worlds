@@ -144,10 +144,10 @@ class RSAKey(object):
         # gc.collect()
         return True
 
-    def fromFile(self, keyfilename):
+    def fromFile(self, key_file_path):
         if self.keyObject:
             raise ValueError('key object already exist')
-        key_src = system.ReadTextFile(keyfilename)
+        key_src = system.ReadTextFile(key_file_path)
         key_src = strng.to_bin(key_src)
         try:
             self.keyObject = RSA.import_key(key_src)  # @UndefinedVariable

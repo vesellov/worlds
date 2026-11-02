@@ -475,9 +475,9 @@ class Scene(object):
         textures_paths = {}
         if model_key not in self.models:
             m = dat.ModelData()
-            models_dir = loader.template_models_dir(store_id)
-            if os.path.isdir(os.path.join(models_dir, template)):
-                m.load_figure_data(os.path.join(models_dir, template), template)
+            models_dir_path = loader.template_models_dir(store_id)
+            if os.path.isdir(os.path.join(models_dir_path, template)):
+                m.load_figure_data(os.path.join(models_dir_path, template), template)
             else:
                 # every model has its own .res file downloaded before the scene is rendered, see loader.StoreLoader
                 figures_res_path = loader.template_res_path(template, store_id)
@@ -487,8 +487,8 @@ class Scene(object):
                         print(f'    WARNING, model {template} was not downloaded before, downloading now from store {store_id}')
                     loader.download_store_file(store_id, 'figures', template)
                 if _Debug:
-                    print(f'    loading template {template} from {figures_res_path} and unpacking into {models_dir}')
-                m.unpack_figure_data(figures_res_path, models_dir, template=template)
+                    print(f'    loading template {template} from {figures_res_path} and unpacking into {models_dir_path}')
+                m.unpack_figure_data(figures_res_path, models_dir_path, template=template)
             for part_name in textures.keys():
                 texture = textures[part_name]
                 if texture.count(':') == 1:

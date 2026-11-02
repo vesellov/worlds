@@ -27,14 +27,14 @@ from lib import res
 
 def main():
     parser = argparse.ArgumentParser(description='split figures.res into one .res file per template')
-    parser.add_argument('source', help='path to figures.res')
-    parser.add_argument('destination', help='output folder for <template>.res files')
+    parser.add_argument('source_path', metavar='source', help='path to figures.res')
+    parser.add_argument('destination_dir_path', metavar='destination', help='output folder for <template>.res files')
     parser.add_argument('--templates', default='', help='comma separated list of templates, all templates by default')
     args = parser.parse_args()
-    if not os.path.isdir(args.destination):
-        os.makedirs(args.destination)
+    if not os.path.isdir(args.destination_dir_path):
+        os.makedirs(args.destination_dir_path)
     selected = set(t.strip().lower() for t in args.templates.split(',') if t.strip())
-    with open(args.source, 'rb') as figures_file:
+    with open(args.source_path, 'rb') as figures_file:
         filetree_dict = res.read_res_filetree(figures_file, return_dict=True)
         templates, not_assigned = res.figures_templates(figures_file, filetree_dict)
         if selected:
@@ -48,9 +48,9 @@ def main():
         sizes = []
         errors = 0
         for t in sorted(templates.keys()):
-            dest_file_path = os.path.join(args.destination, t + '.res')
+            dest_file_path = os.path.join(args.destination_dir_path, t + '.res')
             res.extract_figures_template(figures_file, filetree_dict, templates[t], dest_file_path)
-            # read the new file back and compare every element with the source
+            # read the new file back and compare every element with the source_path
             with open(dest_file_path, 'rb') as new_file:
                 new_filetree = res.read_res_filetree(new_file, return_dict=True)
                 if len(new_filetree) != len(templates[t]):
@@ -73,7 +73,7 @@ def main():
             sizes.append((size, t))
             total_size += size
             written += 1
-    print(f'written {written} files into {args.destination}, total size {total_size / 1e6:.1f} MB')
+    print(f'written {written} files into {args.destination_dir_path}, total size {total_size / 1e6:.1f} MB')
     print('largest: ' + ', '.join(f'{t} {s / 1e6:.1f} MB' for s, t in sorted(sizes, reverse=True)[:10]))
     if not_assigned and not selected:
         print(f'{len(not_assigned)} elements do not belong to any template and were skipped: {sorted(not_assigned)}')

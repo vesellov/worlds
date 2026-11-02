@@ -53,7 +53,7 @@ _StopEvent = threading.Event()
 
 #------------------------------------------------------------------------------
 
-def start(callbacks={}, api_secret_filepath=None, url=None):
+def start(callbacks={}, api_secret_file_path=None, url=None):
     global _APISecretFilePath
     global _WebSocketURL
     global _WebSocketStarted
@@ -63,8 +63,8 @@ def start(callbacks={}, api_secret_filepath=None, url=None):
     if is_started():
         raise Exception('already started')
     if _Debug:
-        print('web_sock.start() api_secret_filepath=%r' % api_secret_filepath)
-    _APISecretFilePath = api_secret_filepath
+        print('ws.start() api_secret_filepath=%r' % api_secret_file_path)
+    _APISecretFilePath = api_secret_file_path
     if url:
         _WebSocketURL = url
     _RegisteredCallbacks = callbacks or {}
@@ -79,7 +79,7 @@ def start(callbacks={}, api_secret_filepath=None, url=None):
     for t in _Threads:
         t.start()
     if _Debug:
-        print('web_sock.start() ended threads=%r' % ([t.ident for t in _Threads], ))
+        print('ws.start() ended threads=%r' % ([t.ident for t in _Threads], ))
 
 
 def stop():
@@ -92,7 +92,7 @@ def stop():
     if not is_started():
         raise Exception('has not been started')
     if _Debug:
-        print('web_sock.stop()')
+        print('ws.stop()')
     _APISecretFilePath = None
     _RegisteredCallbacks = {}
     _WebSocketStarted = False
@@ -102,21 +102,21 @@ def stop():
     while True:
         try:
             json_data, _ = ws_queue().get_nowait()
-            print('web_sock.stop() cleaned unfinished call', json_data)
+            print('ws.stop() cleaned unfinished call', json_data)
         except queue.Empty:
             break
     _WebSocketQueue.put_nowait((None, None, ))
     if ws():
         if _Debug:
-            print('web_sock.stop() websocket already closed')
+            print('ws.stop() websocket already closed')
         ws().close()
     for t in _Threads:
         if t is not threading.current_thread():
             t.join(STOP_TIMEOUT)
             if t.is_alive():
-                print('web_sock.stop() WARNING, %s did not finish in %r seconds' % (t.name, STOP_TIMEOUT, ))
+                print('ws.stop() WARNING, %s did not finish in %r seconds' % (t.name, STOP_TIMEOUT, ))
     if _Debug:
-        print('web_sock.stop() finished')
+        print('ws.stop() finished')
 
 #------------------------------------------------------------------------------
 
@@ -212,10 +212,10 @@ def on_message(ws_inst, message):
         return cb(json_data)
     if 'payload' not in json_data:
         if _Debug:
-            print('web_sock.on_message no payload found in the response')
+            print('ws.on_message no payload found in the response')
         return False
     if _DebugMessages:
-        print('web_sock.on_message %d bytes' % len(message))
+        print('ws.on_message %d bytes' % len(message))
     payload_type = json_data.get('type')
     if payload_type == 'event':
         return on_event(json_data)

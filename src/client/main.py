@@ -130,11 +130,11 @@ class WorldsApp(App):
             print(f'building app screen dpi={Metrics.dpi} density={Metrics.density} fontscale={Metrics.fontscale} display={display_width}x{display_height}')
         self.inventory_list = loader.inventory_list()
         self.downloading_list = []
-        for folder, file_name, url_prefix in self.inventory_list:
-            dest_file_path = os.path.join(res.data_path(folder), file_name)
+        for folder_path, file_name, url_prefix in self.inventory_list:
+            dest_file_path = os.path.join(res.data_path(folder_path), file_name)
             if os.path.isfile(dest_file_path):
                 continue
-            self.downloading_list.append((folder, file_name, url_prefix))
+            self.downloading_list.append((folder_path, file_name, url_prefix))
         self.root = scr.RootContainer()
         self.downloading_popup = None
         if not self.downloading_list:
@@ -155,14 +155,14 @@ class WorldsApp(App):
 
     def do_download_next_file(self, dt):
         self.task = None
-        folder, file_name, url_prefix = self.downloading_list.pop(0)
+        folder_path, file_name, url_prefix = self.downloading_list.pop(0)
         if _Debug:
-            print(f'downloading {folder}/{file_name} from {url_prefix}')
+            print(f'downloading {folder_path}/{file_name} from {url_prefix}')
         # the download and its retries take time, the window must not freeze meanwhile
-        loader.start_thread(self.download_in_background, folder, file_name, url_prefix)
+        loader.start_thread(self.download_in_background, folder_path, file_name, url_prefix)
 
-    def download_in_background(self, folder, file_name, url_prefix):
-        dest_file_path = os.path.join(res.data_path(folder), file_name)
+    def download_in_background(self, folder_path, file_name, url_prefix):
+        dest_file_path = os.path.join(res.data_path(folder_path), file_name)
         try:
             loader.download_file(dest_file_path, url_prefix + file_name)
         except loader.StoppedError:
@@ -193,11 +193,12 @@ class WorldsApp(App):
             print(f'starting the app')
         self.root.clear_widgets()
         catalog = dat.CatalogData()
-        catalog.load_figures(figures_file_name=res.catalog_path('figures.json'))
-        catalog.load_animations(animations_file_name=res.catalog_path('animations.json'))
-        catalog.load_armors(armors_file_name=res.catalog_path('armors.json'))
-        catalog.load_weapons(weapons_file_name=res.catalog_path('weapons.json'))
-        catalog.load_materials(materials_file_name=res.catalog_path('materials.json'))
+        catalog.load_land_tiles(land_tiles_file_path=res.catalog_path('land.json'))
+        catalog.load_figures(figures_file_path=res.catalog_path('figures.json'))
+        catalog.load_animations(animations_file_path=res.catalog_path('animations.json'))
+        catalog.load_armors(armors_file_path=res.catalog_path('armors.json'))
+        catalog.load_weapons(weapons_file_path=res.catalog_path('weapons.json'))
+        catalog.load_materials(materials_file_path=res.catalog_path('materials.json'))
         self.catalog = catalog
         self.land = None
         self.scene = None
@@ -262,24 +263,24 @@ class WorldsApp(App):
         self.show_models_popup(title=f'downloading the land... {done}/{total}', maximum=total)
         self.models_progress_bar.value = done
 
-    def on_biome(self, location_id, biome_dir, error):
-        if error or not biome_dir:
+    def on_biome(self, location_id, biome_dir_path, error):
+        if error or not biome_dir_path:
             self.show_models_popup(title=f'failed to receive the land: {error}')
             return
         self.show_models_popup(title='loading the land...')
         # let the popup be drawn before the land is loaded
-        Clock.schedule_once(lambda dt: self.load_land(biome_dir))
+        Clock.schedule_once(lambda dt: self.load_land(biome_dir_path))
 
-    def load_land(self, biome_dir):
-        land = dat.LandData()
-        land.load_heightmap_file(heightmap_file_name=os.path.join(biome_dir, 'heightmap.png'))
-        land.load_tilemap_file(tilemap_file_name=os.path.join(biome_dir, 'encoded.png'), tiles_file_name=os.path.join(biome_dir, 'tiles.json'))
+    def load_land(self, biome_dir_path):
+        land = dat.LandData(catalog=self.catalog)
+        land.load_heightmap_file(heightmap_file_path=os.path.join(biome_dir_path, 'heightmap.png'))
+        land.load_tilemap_file(tilemap_file_path=os.path.join(biome_dir_path, 'encoded.png'))
         land.load_cache_tiles_textures(textures_dir_path=res.data_path('textures/land'))
-        land.load_plants_data(plants_data_file_name=os.path.join(biome_dir, 'plants.json'))
-        land.load_buildings_data(buildings_data_file_name=os.path.join(biome_dir, 'buildings.json'))
+        land.load_plants_data(plants_data_file_path=os.path.join(biome_dir_path, 'plants.json'))
+        land.load_buildings_data(buildings_data_file_path=os.path.join(biome_dir_path, 'buildings.json'))
         self.land = land
         if _Debug:
-            print(f'loaded the land of biome {self.game_client.location_id} from {biome_dir}')
+            print(f'loaded the land of biome {self.game_client.location_id} from {biome_dir_path}')
         self.game_client.biome_loaded()
 
     def show_models_popup(self, title, maximum=1):

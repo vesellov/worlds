@@ -46,12 +46,12 @@ from lib import res
 #------------------------------------------------------------------------------
 
 
-def unpack_mmp(res_file, filetree_dict, names, destination):
+def unpack_mmp(res_file, filetree_dict, names, destination_dir_path):
     """
     Writes every .mmp element from the list of names as a separate file into destination folder.
     Sub folders inside the .res file are kept, existing files are overwritten.
     """
-    dest_root = os.path.abspath(destination)
+    dest_root_path = os.path.abspath(destination_dir_path)
     written = 0
     total_size = 0
     skipped = 0
@@ -59,10 +59,10 @@ def unpack_mmp(res_file, filetree_dict, names, destination):
         if not name.lower().endswith('.mmp'):
             continue
         _, offset, size = filetree_dict[name]
-        mmp_file_path = os.path.abspath(os.path.join(dest_root, name))
+        mmp_file_path = os.path.abspath(os.path.join(dest_root_path, name))
         # element names come from the file, do not let them point outside of destination
-        if not mmp_file_path.startswith(dest_root + os.sep):
-            print(f'WARNING: skipped {name}, path is outside of {destination}')
+        if not mmp_file_path.startswith(dest_root_path + os.sep):
+            print(f'WARNING: skipped {name}, path is outside of {destination_dir_path}')
             skipped += 1
             continue
         os.makedirs(os.path.dirname(mmp_file_path), exist_ok=True)
@@ -77,7 +77,7 @@ def unpack_mmp(res_file, filetree_dict, names, destination):
         os.remove(mmp_file_path)
         written += 1
         total_size += size
-    print(f'unpacked {written} .mmp files into {destination}, total size {total_size / 1e6:.1f} MB')
+    print(f'unpacked {written} .mmp files into {destination_dir_path}, total size {total_size / 1e6:.1f} MB')
     if skipped:
         print(f'{skipped} files skipped')
         return 1
@@ -86,29 +86,29 @@ def unpack_mmp(res_file, filetree_dict, names, destination):
 
 def main():
     parser = argparse.ArgumentParser(description='split textures.res (or redress.res) into one .res file per group of textures')
-    parser.add_argument('source', help='path to textures.res or redress.res')
-    parser.add_argument('destination', help='output folder for <group>.res files')
+    parser.add_argument('source_path', metavar='source', help='path to textures.res or redress.res')
+    parser.add_argument('destination_dir_path', metavar='destination', help='output folder for <group>.res files')
     parser.add_argument('--groups', default='', help='comma separated list of groups, all groups by default')
     parser.add_argument('--list', action='store_true', help='only print the groups and their textures, write nothing')
     parser.add_argument('--unpack', action='store_true', help='do not split, just unpack all .mmp files into the destination folder')
     parser.add_argument('--by-model', action='store_true', help='one group per model, on by default for redress.res')
-    parser.add_argument('--figures', default='', help='path to figures.res with the model names, by default next to the source')
+    parser.add_argument('--figures', dest='figures_res_path', metavar='FIGURES', default='', help='path to figures.res with the model names, by default next to the source')
     args = parser.parse_args()
     selected = set(g.strip().lower() for g in args.groups.split(',') if g.strip())
-    source_name = os.path.splitext(os.path.basename(args.source))[0].lower()
+    source_name = os.path.splitext(os.path.basename(args.source_path))[0].lower()
     by_model = args.by_model or source_name == 'redress'
     templates = None
     if by_model and not (args.unpack and not selected):
-        figures_path = args.figures or os.path.join(os.path.dirname(args.source), 'figures.res')
+        figures_path = args.figures_res_path or os.path.join(os.path.dirname(args.source_path), 'figures.res')
         if not os.path.isfile(figures_path):
             print(f'figures.res is not found at {figures_path}, use --figures')
             return 1
         with open(figures_path, 'rb') as figures_file:
             templates = res.figures_template_names(figures_file)
-    with open(args.source, 'rb') as textures_file:
+    with open(args.source_path, 'rb') as textures_file:
         filetree_dict = res.read_res_filetree(textures_file, return_dict=True)
         if args.unpack and not selected:
-            return unpack_mmp(textures_file, filetree_dict, list(filetree_dict.keys()), args.destination)
+            return unpack_mmp(textures_file, filetree_dict, list(filetree_dict.keys()), args.destination_dir_path)
         if by_model:
             groups = res.textures_models(textures_file, templates, filetree_dict)
         else:
@@ -119,7 +119,7 @@ def main():
                 print(f'unknown groups: {sorted(unknown)}')
                 return 1
             names = [n for g in sorted(selected) for n in groups[g]]
-            return unpack_mmp(textures_file, filetree_dict, names, args.destination)
+            return unpack_mmp(textures_file, filetree_dict, names, args.destination_dir_path)
         if args.list:
             for g in sorted(groups.keys()):
                 size = sum(filetree_dict[n][2] for n in groups[g])
@@ -131,8 +131,8 @@ def main():
             if unknown:
                 print(f'unknown groups: {sorted(unknown)}')
                 return 1
-        if not os.path.isdir(args.destination):
-            os.makedirs(args.destination)
+        if not os.path.isdir(args.destination_dir_path):
+            os.makedirs(args.destination_dir_path)
         written = 0
         total_size = 0
         sizes = []
@@ -140,9 +140,9 @@ def main():
         for g in sorted(groups.keys()):
             if selected and g not in selected:
                 continue
-            dest_file_path = os.path.join(args.destination, g + '.res')
+            dest_file_path = os.path.join(args.destination_dir_path, g + '.res')
             res.extract_textures_group(textures_file, filetree_dict, groups[g], dest_file_path)
-            # read the new file back and compare every element with the source
+            # read the new file back and compare every element with the source_path
             with open(dest_file_path, 'rb') as new_file:
                 new_filetree = res.read_res_filetree(new_file, return_dict=True)
                 if len(new_filetree) != len(groups[g]):
@@ -170,9 +170,9 @@ def main():
         for g, names in groups.items():
             for name in names:
                 index[os.path.splitext(name)[0].lower()] = g
-        with open(os.path.join(args.destination, source_name + '_index.json'), 'w') as f:
+        with open(os.path.join(args.destination_dir_path, source_name + '_index.json'), 'w') as f:
             json.dump(index, f, indent=0, sort_keys=True)
-    print(f'written {written} files into {args.destination}, total size {total_size / 1e6:.1f} MB')
+    print(f'written {written} files into {args.destination_dir_path}, total size {total_size / 1e6:.1f} MB')
     print('largest: ' + ', '.join(f'{g} {s / 1e6:.1f} MB' for s, g in sorted(sizes, reverse=True)[:10]))
     if not by_model and 'objects' in groups:
         print(f'{len(groups["objects"])} textures did not match any group and went to objects.res')

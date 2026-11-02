@@ -52,12 +52,12 @@ class ShareSheet():
             Logger.warning('ShareSheet().share_plain_text()')
             Logger.warning(str(e))
 
-    def share_file(self, shared_file, app = None):
+    def share_file(self, shared_file_path, app = None):
         try:
             self._cleanup_legacy_uri_list()
-            if shared_file == None:
+            if shared_file_path == None:
                 return
-            uri = self._legacy_create_uri(shared_file)
+            uri = self._legacy_create_uri(shared_file_path)
             if uri == None:
                 return
             cr =  mActivity.getContentResolver()
@@ -78,12 +78,12 @@ class ShareSheet():
             Logger.warning('ShareSheet().share_file()')
             Logger.warning(str(e))
 
-    def view_file(self, shared_file):
+    def view_file(self, shared_file_path):
         try:
             self._cleanup_legacy_uri_list()
-            if shared_file == None:
+            if shared_file_path == None:
                 return
-            uri = self._legacy_create_uri(shared_file)
+            uri = self._legacy_create_uri(shared_file_path)
             if uri == None:
                 return
             cr =  mActivity.getContentResolver()
@@ -97,17 +97,17 @@ class ShareSheet():
             Logger.warning('ShareSheet().view_file()')
             Logger.warning(str(e))
 
-    def share_file_list(self, shared_file_list, app = None):
+    def share_file_list(self, shared_file_paths, app = None):
         try:
             self._cleanup_legacy_uri_list()  
-            if shared_file_list == None or len(shared_file_list) == 0:
+            if shared_file_paths == None or len(shared_file_paths) == 0:
                 return
-            if len(shared_file_list) == 1:
-                self.share_file(shared_file_list[0], app)
+            if len(shared_file_paths) == 1:
+                self.share_file(shared_file_paths[0], app)
                 return
             uri_list = []
-            for shared_file in shared_file_list:
-                uri = self._legacy_create_uri(shared_file)
+            for shared_file_path in shared_file_paths:
+                uri = self._legacy_create_uri(shared_file_path)
                 if uri:
                     uri_list.append(uri)
             if len(uri_list) == 0:
@@ -138,18 +138,18 @@ class ShareSheet():
     # Used to create a content uri to enable a Share
     # The uri will be destroyed on return from the Share 
     ######################################################
-    def _legacy_create_uri(self, shared_file):
+    def _legacy_create_uri(self, shared_file_path):
         uri = None
         if api_version > 28:
-            if type(shared_file) != str:
-                uri =  cast('android.net.Uri',shared_file)
-        elif shared_file != None:
-            if type(shared_file) == str:
-                if exists(shared_file):
+            if type(shared_file_path) != str:
+                uri =  cast('android.net.Uri',shared_file_path)
+        elif shared_file_path != None:
+            if type(shared_file_path) == str:
+                if exists(shared_file_path):
                     # If display_name still around, should (!) never happen
-                    self._legacy_destroy_uri(shared_file)
+                    self._legacy_destroy_uri(shared_file_path)
                     # create uri
-                    file_name = basename(shared_file)
+                    file_name = basename(shared_file_path)
                     self.display_name = file_name
                     self.MIME_type =\
                         SharedStorage().get_file_MIME_type(file_name)
@@ -158,14 +158,14 @@ class ShareSheet():
                            self.display_name)
                     cv.put(MediaStoreMediaColumns.MIME_TYPE,
                            self.MIME_type)
-                    cv.put(MediaStoreMediaColumns.DATA, shared_file)
+                    cv.put(MediaStoreMediaColumns.DATA, shared_file_path)
                     root_uri = MediaStoreFiles.getContentUri('external')
                     context = mActivity.getApplicationContext()
                     uri = context.getContentResolver().insert(root_uri, cv)
                     uri = cast('android.net.Uri',uri)
                     self.legacy_uri_list.append(uri)
             else:
-                uri = cast('android.net.Uri',shared_file)
+                uri = cast('android.net.Uri',shared_file_path)
         return uri
 
     # Destroy a previously created uri
@@ -180,8 +180,8 @@ class ShareSheet():
     # This destroys a uri with the same display_name 
     # The referenced file is unchanged,
     # and is still visible in the file system.
-    def _legacy_destroy_uri(self, shared_file):
-        file_name = basename(shared_file)
+    def _legacy_destroy_uri(self, shared_file_path):
+        file_name = basename(shared_file_path)
         root_uri = MediaStoreFiles.getContentUri('external')
         self.selection = MediaStoreMediaColumns.DISPLAY_NAME+"=?" 
         self.args = [file_name]
@@ -194,8 +194,8 @@ class ShareSheet():
             while cursor.moveToNext():
                 dn = MediaStoreMediaColumns.DISPLAY_NAME
                 index = cursor.getColumnIndex(dn)
-                fileName = cursor.getString(index)
-                if file_name == fileName:
+                cursor_file_name = cursor.getString(index)
+                if file_name == cursor_file_name:
                     id_index = cursor.getColumnIndex('_id')
                     id = cursor.getLong(id_index)
                     uri = ContentUris.withAppendedId(root_uri,id)

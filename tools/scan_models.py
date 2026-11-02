@@ -385,9 +385,9 @@ def read_node(info, file):
         file.read(node_len - 8)
 
 
-def read_info(file_name):
+def read_info(file_path):
     info = []
-    with open(file_name, "rb") as file:
+    with open(file_path, "rb") as file:
         if file.read(4) != b'\x00\xA0\x00\x00':
             print("Incorrect magic!")
             return
@@ -397,7 +397,7 @@ def read_info(file_name):
         try:
             read_node(info, file)
         except Exception as e:
-            print(file_name, e)
+            print(file_path, e)
             return None
 
     return info

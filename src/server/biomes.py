@@ -34,7 +34,7 @@ CONFIG_FILE_NAME = 'server.json'
 
 # files of the biome archive, the client loads them in load_land() of src/client/main.py and the server reads some of them,
 # tools/pack_biome.py packs only these files
-REQUIRED_FILES = ('heightmap.png', 'encoded.png', 'tiles.json', 'plants.json', 'buildings.json')
+REQUIRED_FILES = ('heightmap.png', 'encoded.png', 'zonemap.png', 'tiles.png', 'plants.json', 'buildings.json')
 
 #------------------------------------------------------------------------------
 
@@ -80,18 +80,18 @@ class BiomeArchive(object):
 #------------------------------------------------------------------------------
 
 
-def load(biomes_dir):
+def load(biomes_dir_path):
     """
-    Returns (server name, [BiomeArchive]) from <biomes_dir>/server.json, biomes are in the order of the list.
+    Returns (server name, [BiomeArchive]) from <biomes_dir_path>/server.json, biomes are in the order of the list.
     """
-    config_path = os.path.join(biomes_dir, CONFIG_FILE_NAME)
+    config_path = os.path.join(biomes_dir_path, CONFIG_FILE_NAME)
     if not os.path.isfile(config_path):
         raise Exception(f'{config_path} not found, create biomes with tools/pack_biome.py')
     with open(config_path, 'rt') as f:
         config = json.loads(f.read())
     archives = []
     for info in config.get('biomes') or []:
-        archives.append(BiomeArchive(info['id'], info.get('name'), os.path.join(biomes_dir, info['archive'])))
+        archives.append(BiomeArchive(info['id'], info.get('name'), os.path.join(biomes_dir_path, info['archive'])))
     if not archives:
         raise Exception(f'no biomes in {config_path}, add them with tools/pack_biome.py')
     return config.get('name') or 'local', archives

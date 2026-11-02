@@ -23,7 +23,7 @@ from kivy.clock import Clock
 
 from lib import models
 from lib import physics
-from client import web_sock
+from client import ws
 from client import hero
 from client import loader
 
@@ -251,15 +251,15 @@ class GameClient(object):
         self.input_acknowledged = 0
 
     def start(self):
-        web_sock.start(callbacks={
+        ws.start(callbacks={
             'on_open': self.on_open,
             'on_close': self.on_close,
             'on_message': self.on_message_received if _FakeLag or _FakeJitter else self.on_message,
         }, url=self.url)
 
     def stop(self):
-        if web_sock.is_started():
-            web_sock.stop()
+        if ws.is_started():
+            ws.stop()
 
     def attach(self, scene, renderer):
         """
@@ -305,7 +305,7 @@ class GameClient(object):
     def on_open(self, ws_inst):
         if _Debug:
             print(f'connected to game server {self.url}')
-        web_sock.send(models.message(models.MSG_JOIN))
+        ws.send(models.message(models.MSG_JOIN))
 
     def on_close(self, ws_inst):
         if _Debug:
@@ -414,7 +414,7 @@ class GameClient(object):
         self.scene = None
         self.renderer = None
         self.location_id = models.location_id(self.server_name, biome_id)
-        web_sock.send(models.message(models.MSG_ENTER, {
+        ws.send(models.message(models.MSG_ENTER, {
             'biome_id': biome_id,
             'sha256': loader.cached_biome_sha256(self.location_id),
         }))
@@ -464,21 +464,21 @@ class GameClient(object):
 
     def extract_biome(self, archive_data, location_id, sha256):
         try:
-            dest_dir = loader.extract_biome(archive_data, location_id, sha256)
+            dest_dir_path = loader.extract_biome(archive_data, location_id, sha256)
             error = None
         except loader.StoppedError:
             return
         except Exception as exc:
             traceback.print_exc()
-            dest_dir, error = None, str(exc)
-        Clock.schedule_once(lambda dt: self.on_biome_files_ready(dest_dir, error, location_id))
+            dest_dir_path, error = None, str(exc)
+        Clock.schedule_once(lambda dt: self.on_biome_files_ready(dest_dir_path, error, location_id))
 
-    def on_biome_files_ready(self, dest_dir, error, location_id=None):
+    def on_biome_files_ready(self, dest_dir_path, error, location_id=None):
         if location_id is not None and location_id != self.location_id:
             # the client went somewhere else meanwhile
             return
         if self.on_biome:
-            self.on_biome(self.location_id, dest_dir, error)
+            self.on_biome(self.location_id, dest_dir_path, error)
 
     def biome_loaded(self):
         """
@@ -645,7 +645,7 @@ class GameClient(object):
             tick = max(int(math.floor(render_tick)) + 1 + int(math.ceil(self.input_lead)), self.controls_last_tick)
         self.controls_seq += 1
         controls = models.Controls(move=move, turn=turn, target_direction=target_direction, tick=tick, seq=self.controls_seq)
-        if not web_sock.send(models.message(models.MSG_INPUT, controls.to_data())):
+        if not ws.send(models.message(models.MSG_INPUT, controls.to_data())):
             self.controls_seq -= 1
             return
         self.controls_sent = (move, turn, target_direction)

@@ -267,10 +267,10 @@ class ModelData(object):
         if _Debug:
             print(f'      for model {{{template}}} loaded {len(self.links)} links, {len(self.figures)} figures, {len(self.bones)} bones and {anm_count} animations')
 
-    def unpack_figure_data(self, figures_res_file_path, destination_dir, template, selected_parts=[], selected_animations=[], save_json=False):
-        destination_sub_dir = os.path.join(destination_dir, template)
-        if not os.path.isdir(destination_sub_dir):
-            os.makedirs(destination_sub_dir)
+    def unpack_figure_data(self, figures_res_file_path, destination_dir_path, template, selected_parts=[], selected_animations=[], save_json=False):
+        destination_sub_dir_path = os.path.join(destination_dir_path, template)
+        if not os.path.isdir(destination_sub_dir_path):
+            os.makedirs(destination_sub_dir_path)
         lnk_count = 0
         fig_count = 0
         bon_count = 0
@@ -283,8 +283,8 @@ class ModelData(object):
             lnk_element = res_filetree_dict.get(lnk_file_name)
             this_model_links = None
             if lnk_element:
-                res.unpack_res_element(figures_file, lnk_element, dest_file_name=os.path.join(destination_sub_dir, lnk_file_name))
-                lnk_file_path = os.path.join(destination_sub_dir, lnk_file_name)
+                res.unpack_res_element(figures_file, lnk_element, dest_file_path=os.path.join(destination_sub_dir_path, lnk_file_name))
+                lnk_file_path = os.path.join(destination_sub_dir_path, lnk_file_name)
                 lnk_list, lnk_tree, lnk_parents, _ = res.read_lnk_info(lnk_file_path)
                 lnk_count += 1
                 self.links[lnk_file_name[:-4]] = {
@@ -295,14 +295,14 @@ class ModelData(object):
                 this_model_links = res.flat_tree(lnk_list)
             res_mod_element = res_filetree_dict.get(mod_file_name)
             if res_mod_element:
-                mod_file_name = res.unpack_res_element(figures_file, res_mod_element, dest_file_name=os.path.join(destination_sub_dir, mod_file_name))
-                mod_filetree = res.unpack_mod_info(mod_file_name, destination_dir=destination_sub_dir)
+                mod_file_path = res.unpack_res_element(figures_file, res_mod_element, dest_file_path=os.path.join(destination_sub_dir_path, mod_file_name))
+                mod_filetree = res.unpack_mod_info(mod_file_path, destination_dir_path=destination_sub_dir_path)
                 if this_model_links is None:
                     for mod_element in sorted(mod_filetree):
                         el = mod_element[0][:-4]
                         if mod_element[0].lower().endswith('.lnk'):
                             lnk_file_name = mod_element[0].lower()
-                            lnk_file_path = os.path.join(destination_sub_dir, lnk_file_name)
+                            lnk_file_path = os.path.join(destination_sub_dir_path, lnk_file_name)
                             lnk_list, lnk_tree, lnk_parents, _ = res.read_lnk_info(lnk_file_path)
                             lnk_count += 1
                             self.links[lnk_file_name[:-4]] = {
@@ -318,8 +318,8 @@ class ModelData(object):
                         if fig_element not in this_model_links:
                             continue
                         if not selected_parts or fig_element in selected_parts:
-                            fig_file_name = os.path.join(destination_sub_dir, mod_element[0])
-                            fig_info = res.read_fig_info(fig_file_name)
+                            fig_file_path = os.path.join(destination_sub_dir_path, mod_element[0])
+                            fig_info = res.read_fig_info(fig_file_path)
                             self.figures[mod_element[0][:-4]] = fig_info
                             fig_count += 1
             else:
@@ -331,31 +331,31 @@ class ModelData(object):
                         if not selected_parts or part_name in selected_parts:
                             res_fig_element = res_filetree_dict.get(template + fig_element)
                             if res_fig_element:
-                                fig_file_name = res.unpack_res_element(figures_file, res_fig_element, dest_file_name=os.path.join(destination_sub_dir, fig_element))
-                                fig_info = res.read_fig_info(fig_file_name)
+                                fig_file_path = res.unpack_res_element(figures_file, res_fig_element, dest_file_path=os.path.join(destination_sub_dir_path, fig_element))
+                                fig_info = res.read_fig_info(fig_file_path)
                                 self.figures[part_name] = fig_info
                                 fig_count += 1
                             res_bon_element = res_filetree_dict.get(template + bon_element)
                             if res_bon_element:
-                                bon_file_name = res.unpack_res_element(figures_file, res_bon_element, dest_file_name=os.path.join(destination_sub_dir, bon_element))
-                                bon_info = res.read_bon_info(bon_file_name)
+                                bon_file_path = res.unpack_res_element(figures_file, res_bon_element, dest_file_path=os.path.join(destination_sub_dir_path, bon_element))
+                                bon_info = res.read_bon_info(bon_file_path)
                                 self.bones[part_name] = bon_info
                                 bon_count += 1
             res_anm_element = res_filetree_dict.get(anm_file_name)
             if res_anm_element:
-                anm_file_name = res.unpack_res_element(figures_file, res_anm_element, dest_file_name=os.path.join(destination_sub_dir, anm_file_name))
-                with open(anm_file_name, 'rb') as anm_file:
+                anm_file_path = res.unpack_res_element(figures_file, res_anm_element, dest_file_path=os.path.join(destination_sub_dir_path, anm_file_name))
+                with open(anm_file_path, 'rb') as anm_file:
                     anm_filetree = res.read_res_filetree(anm_file)
                     for anm_element in anm_filetree:
-                        if not os.path.isdir(os.path.join(destination_sub_dir, anm_element[0])):
-                            os.makedirs(os.path.join(destination_sub_dir, anm_element[0]))
+                        if not os.path.isdir(os.path.join(destination_sub_dir_path, anm_element[0])):
+                            os.makedirs(os.path.join(destination_sub_dir_path, anm_element[0]))
                         anm_element[0] += '.anm'
-                    res.unpack_res(anm_file, anm_filetree, destination_dir=destination_sub_dir)
+                    res.unpack_res(anm_file, anm_filetree, destination_dir_path=destination_sub_dir_path)
                     for anm_element in anm_filetree:
                         el = anm_element[0][:-4]
                         if not selected_animations or el in selected_animations:
-                            one_anm_file_name = os.path.join(destination_sub_dir, anm_element[0])
-                            with open(one_anm_file_name, 'rb') as one_anm_file:
+                            one_anm_file_path = os.path.join(destination_sub_dir_path, anm_element[0])
+                            with open(one_anm_file_path, 'rb') as one_anm_file:
                                 one_anm_filetree = res.read_res_filetree(one_anm_file)
                                 self.animations[anm_element[0][:-4]] = {}
                                 for one_anm_element in one_anm_filetree:
@@ -363,28 +363,28 @@ class ModelData(object):
                                     if this_model_links and el_part not in this_model_links:
                                         continue
                                     if not selected_parts or el_part in selected_parts:
-                                        one_anm_dest_file_name = os.path.join(destination_sub_dir, anm_element[0][:-4], one_anm_element[0] + '.anm')
-                                        res.unpack_res_element(one_anm_file, one_anm_element, dest_file_name=one_anm_dest_file_name)
-                                        self.animations[anm_element[0][:-4]][one_anm_element[0]] = res.read_anm_info(one_anm_dest_file_name)
+                                        one_anm_dest_file_path = os.path.join(destination_sub_dir_path, anm_element[0][:-4], one_anm_element[0] + '.anm')
+                                        res.unpack_res_element(one_anm_file, one_anm_element, dest_file_path=one_anm_dest_file_path)
+                                        self.animations[anm_element[0][:-4]][one_anm_element[0]] = res.read_anm_info(one_anm_dest_file_path)
                                         anm_count += 1
             res_bon_element = res_filetree_dict.get(template + '.bon')
             if res_bon_element:
-                bon_file_name = res.unpack_res_element(figures_file, res_bon_element, dest_file_name=os.path.join(destination_sub_dir, template + '.bon'))
-                with open(bon_file_name, 'rb') as bon_file:
+                bon_file_path = res.unpack_res_element(figures_file, res_bon_element, dest_file_path=os.path.join(destination_sub_dir_path, template + '.bon'))
+                with open(bon_file_path, 'rb') as bon_file:
                     bon_filetree = res.read_res_filetree(bon_file)
                     for bon_element in bon_filetree:
                         bon_element[0] += '.bon'
-                    res.unpack_res(bon_file, bon_filetree, destination_dir=destination_sub_dir)
+                    res.unpack_res(bon_file, bon_filetree, destination_dir_path=destination_sub_dir_path)
                     for bon_element in bon_filetree:
                         if this_model_links and bon_element[0][:-4] not in this_model_links:
                             continue
-                        one_bon_file_name = os.path.join(destination_sub_dir, bon_element[0])
-                        self.bones[bon_element[0][:-4]] = res.read_bon_info(one_bon_file_name)
+                        one_bon_file_path = os.path.join(destination_sub_dir_path, bon_element[0])
+                        self.bones[bon_element[0][:-4]] = res.read_bon_info(one_bon_file_path)
                         bon_count += 1
         if _Debug:
             print(f'      for model {{{template}}} unpacked {lnk_count} links, {fig_count} figures, {bon_count} bones and {anm_count} animations')
         if save_json:
-            dest_json_file_path = os.path.join(destination_dir, template + '.json')
+            dest_json_file_path = os.path.join(destination_dir_path, template + '.json')
             open(dest_json_file_path, 'wt').write(json.dumps({
                 'template': template,
                 'figures': self.figures,
@@ -406,21 +406,28 @@ class CatalogData(object):
         self.armors = {}
         self.weapons = {}
         self.materials = {}
+        self.land_tiles = {}
 
-    def load_figures(self, figures_file_name):
-        self.figures = json.loads(open(figures_file_name, 'rt').read())
+    def load_land_tiles(self, land_tiles_file_path):
+        land_tiles_list = json.loads(open(land_tiles_file_path, 'rt').read())
+        for tile_info in land_tiles_list:
+            catalog_id, mozaic_id, mozaic_pos = [int(i) for i in tile_info.split(' ')]
+            self.land_tiles[catalog_id] = (mozaic_id, mozaic_pos)
 
-    def load_animations(self, animations_file_name):
-        self.animations = json.loads(open(animations_file_name, 'rt').read())
+    def load_figures(self, figures_file_path):
+        self.figures = json.loads(open(figures_file_path, 'rt').read())
 
-    def load_armors(self, armors_file_name):
-        self.armors = json.loads(open(armors_file_name, 'rt').read())
+    def load_animations(self, animations_file_path):
+        self.animations = json.loads(open(animations_file_path, 'rt').read())
 
-    def load_weapons(self, weapons_file_name):
-        self.weapons = json.loads(open(weapons_file_name, 'rt').read())
+    def load_armors(self, armors_file_path):
+        self.armors = json.loads(open(armors_file_path, 'rt').read())
 
-    def load_materials(self, materials_file_name):
-        self.materials = json.loads(open(materials_file_name, 'rt').read())
+    def load_weapons(self, weapons_file_path):
+        self.weapons = json.loads(open(weapons_file_path, 'rt').read())
+
+    def load_materials(self, materials_file_path):
+        self.materials = json.loads(open(materials_file_path, 'rt').read())
 
     def build_template_data(self, model_name, skin=0, hair=None, wears=[], weapon=None, texture=None):
         animations = []
@@ -700,9 +707,10 @@ class CatalogData(object):
 
 class LandData(object):
 
-    def __init__(self):
+    def __init__(self, catalog):
         self.width = None
         self.height = None
+        self.catalog = catalog
         self.tiles_textures_dir_path = None
         self.elevation_map_data = {}
         self.tiles_map_data = {}
@@ -713,14 +721,8 @@ class LandData(object):
         self.capitals = {}
         self.towers = {}
 
-    def load_tilemap_file(self, tilemap_file_name, tiles_file_name):
-        with open(tiles_file_name, 'rt') as f:
-            tiles_list = json.loads(f.read())
-        tiles_registry = {}
-        for tile_info in tiles_list:
-            catalog_id, mozaic_id, mozaic_pos = [int(i) for i in tile_info.split(' ')]
-            tiles_registry[catalog_id] = (mozaic_id, mozaic_pos)
-        im = Image(tilemap_file_name, keep_data=True)
+    def load_tilemap_file(self, tilemap_file_path, tiles_file_name):
+        im = Image(tilemap_file_path, keep_data=True)
         if self.width is not None and self.width != im.width:
             raise ValueError(f'land width mismatch: expected {self.width}, got {im.width}')
         if self.height is not None and self.height != im.height:
@@ -745,7 +747,7 @@ class LandData(object):
                     color[0], color[2] = color[2], color[0]
                 catalog_id = color[0] + color[1] * 256
                 rotate = color[2] * 90
-                mozaic_id, mozaic_pos = tiles_registry[catalog_id]
+                mozaic_id, mozaic_pos = self.catalog.land_tiles[catalog_id]
                 tex_cell_x = ( mozaic_pos % 8 ) * step
                 tex_cell_y = ( mozaic_pos // 8 ) * step
                 if rotate == 270:
@@ -782,11 +784,11 @@ class LandData(object):
             return -1 * (const.INPUT_WATER_LEVEL - 1) * const.ELEVATION_UNPACK_UNDERWATER_FACTOR
         return (float(h - const.INPUT_WATER_LEVEL) / float(h)) * float(const.ELEVATION_UNPACK_UNDERWATER_FACTOR)
 
-    def load_heightmap_file(self, heightmap_file_name):
+    def load_heightmap_file(self, heightmap_file_path):
         e_min_unpacked = self.elevation_unpack(1)
         e_max_unpacked = self.elevation_unpack(100)
         unpacked_delta = e_max_unpacked - e_min_unpacked
-        im = Image(heightmap_file_name, keep_data=True)
+        im = Image(heightmap_file_path, keep_data=True)
         self.width = im.width
         self.height = im.height
         for w in range(self.width):
@@ -826,8 +828,8 @@ class LandData(object):
         if _Debug:
             print(f'  cached {count} textures at {self.tiles_textures_dir_path} for land tiles')
 
-    def load_plants_data(self, plants_data_file_name):
-        plants_data = json.loads(open(plants_data_file_name, 'rt').read())
+    def load_plants_data(self, plants_data_file_path):
+        plants_data = json.loads(open(plants_data_file_path, 'rt').read())
         for plant_key in plants_data.keys():
             template, texture, parts = plant_key.split('#')
             plants_list = plants_data[plant_key]
@@ -861,8 +863,8 @@ class LandData(object):
                     self.plants_map_data[(int_w, int_h)] = []
                 self.plants_map_data[(int_w, int_h)].append(plant)
 
-    def load_buildings_data(self, buildings_data_file_name):
-        buildings_data = json.loads(open(buildings_data_file_name, 'rt').read())
+    def load_buildings_data(self, buildings_data_file_path):
+        buildings_data = json.loads(open(buildings_data_file_path, 'rt').read())
         for building_info in buildings_data:
             x = int(building_info['x'])
             y = int(building_info['y'])
@@ -874,8 +876,8 @@ class LandData(object):
             elif building_info['k'] == 'tower':
                 self.towers[building_info['i']] = building_info
 
-    def save_elevation_memmap(self, file_name_prefix, destination_dir):
-        file_path = os.path.join(destination_dir, f'{file_name_prefix}.{self.width}.{self.height}.memmap')
+    def save_elevation_memmap(self, file_name_prefix, destination_dir_path):
+        file_path = os.path.join(destination_dir_path, f'{file_name_prefix}.{self.width}.{self.height}.memmap')
         fp = np.memmap(file_path, dtype='float32', mode='w+', shape=(self.width, self.height))
         fp[:] = self.elevation_map_data
         fp.flush()
@@ -938,7 +940,7 @@ def main():
         for m in lst:
             print(f'loading {m}')
             try:
-                md.unpack_figure_data(sys.argv[2], destination_dir='models', template=m)
+                md.unpack_figure_data(sys.argv[2], destination_dir_path='models', template=m)
             except Exception as exc:
                 print(m, traceback.format_exc())
             

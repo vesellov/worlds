@@ -171,9 +171,9 @@ def main():
     parser = argparse.ArgumentParser(description='worlds game server')
     parser.add_argument('--host', default='127.0.0.1', help='network interface to listen on, use 0.0.0.0 to accept connections from other devices')
     parser.add_argument('--port', type=int, default=models.DEFAULT_PORT)
-    parser.add_argument('--biomes', default=os.path.join(ROOT_PATH, 'biomes'), help='folder with server.json and archives of the biomes, see tools/pack_biome.py')
+    parser.add_argument('--biomes', dest='biomes_dir_path', metavar='BIOMES', default=os.path.join(ROOT_PATH, 'biomes'), help='folder with server.json and archives of the biomes, see tools/pack_biome.py')
     args = parser.parse_args()
-    name, archives = biomes.load(args.biomes)
+    name, archives = biomes.load(args.biomes_dir_path)
     worlds = {}
     for archive in archives:
         world = simulation.Simulation(biome=archive, catalog_path=os.path.join(ROOT_PATH, 'catalog'))

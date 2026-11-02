@@ -100,10 +100,10 @@ def get_app_data_path():
 def get_downloads_dir():
     if is_android():
         from android.storage import app_storage_path  # @UnresolvedImport
-        downloads_dir = os.path.join(app_storage_path(), 'downloads')
-        if not os.path.exists(downloads_dir):
-            os.makedirs(downloads_dir)
-        return downloads_dir
+        downloads_dir_path = os.path.join(app_storage_path(), 'downloads')
+        if not os.path.exists(downloads_dir_path):
+            os.makedirs(downloads_dir_path)
+        return downloads_dir_path
     if is_ios():
         return os.path.join(os.path.expanduser('~'), 'Documents')
     return platformdirs.user_downloads_dir()
@@ -112,10 +112,10 @@ def get_downloads_dir():
 def get_documents_dir():
     if is_android():
         from android.storage import app_storage_path  # @UnresolvedImport
-        documents_dir = os.path.join(app_storage_path(), 'documents')
-        if not os.path.exists(documents_dir):
-            os.makedirs(documents_dir)
-        return documents_dir
+        documents_dir_path = os.path.join(app_storage_path(), 'documents')
+        if not os.path.exists(documents_dir_path):
+            os.makedirs(documents_dir_path)
+        return documents_dir_path
     if is_ios():
         return os.path.join(os.path.expanduser('~'), 'Documents')
     return platformdirs.user_documents_dir()
@@ -218,23 +218,23 @@ def set_android_system_ui_visibility():
 
 #------------------------------------------------------------------------------
 
-def WriteTextFile(filepath, data):
+def WriteTextFile(file_path, data):
     """
     A smart way to write data into text file. Return True if success.
     This should be atomic operation - data is written to another temporary file and than renamed.
     """
-    temp_path = filepath + '.tmp'
+    temp_path = file_path + '.tmp'
     if os.path.exists(temp_path):
         if not os.access(temp_path, os.W_OK):
             return False
-    if os.path.exists(filepath):
-        if not os.access(filepath, os.W_OK):
+    if os.path.exists(file_path):
+        if not os.access(file_path, os.W_OK):
             return False
         try:
-            os.remove(filepath)
+            os.remove(file_path)
         except Exception as e:
             if _Debug:
-                print('file %r write failed: %r' % (filepath, e, ))
+                print('file %r write failed: %r' % (file_path, e, ))
             return False
     fout = open(temp_path, 'wt', encoding='utf-8')
     text_data = strng.to_text(data)
@@ -243,40 +243,40 @@ def WriteTextFile(filepath, data):
     os.fsync(fout)
     fout.close()
     try:
-        os.rename(temp_path, filepath)
+        os.rename(temp_path, file_path)
     except Exception as e:
         if _Debug:
-            print('file %r write failed: %r' % (filepath, e, ))
+            print('file %r write failed: %r' % (file_path, e, ))
         return False
     return True
 
 
-def ReadTextFile(filename):
+def ReadTextFile(file_path):
     """
     Read text file and return its content.
     """
-    if not os.path.isfile(filename):
+    if not os.path.isfile(file_path):
         return u''
-    if not os.access(filename, os.R_OK):
+    if not os.access(file_path, os.R_OK):
         return u''
     try:
-        infile = open(filename, 'rt', encoding="utf-8")
+        infile = open(file_path, 'rt', encoding="utf-8")
         data = infile.read()
         infile.close()
         return data
     except Exception as e:
         if _Debug:
-            print('file %r read failed: %r' % (filename, e, ))
+            print('file %r read failed: %r' % (file_path, e, ))
     return u''
 
 #------------------------------------------------------------------------------
 
-def WriteBinaryFile(filename, data):
+def WriteBinaryFile(file_path, data):
     """
     A smart way to write data to binary file. Return True if success.
     """
     try:
-        f = open(filename, 'wb')
+        f = open(file_path, 'wb')
         f.write(data)
         f.flush()
         # from http://docs.python.org/library/os.html on os.fsync
@@ -284,7 +284,7 @@ def WriteBinaryFile(filename, data):
         f.close()
     except Exception as e:
         if _Debug:
-            print('file %r write failed: %r' % (filename, e, ))
+            print('file %r write failed: %r' % (file_path, e, ))
         try:
             # make sure file gets closed
             f.close()
@@ -294,7 +294,7 @@ def WriteBinaryFile(filename, data):
     return True
 
 
-def ReadBinaryFile(filename, decode_encoding=None):
+def ReadBinaryFile(file_path, decode_encoding=None):
     """
     A smart way to read binary file. Return empty string in case of:
 
@@ -303,14 +303,14 @@ def ReadBinaryFile(filename, decode_encoding=None):
     - some read error happens
     - file is really empty
     """
-    if not filename:
+    if not file_path:
         return b''
-    if not os.path.isfile(filename):
+    if not os.path.isfile(file_path):
         return b''
-    if not os.access(filename, os.R_OK):
+    if not os.access(file_path, os.R_OK):
         return b''
     try:
-        infile = open(filename, mode='rb')
+        infile = open(file_path, mode='rb')
         data = infile.read()
         if decode_encoding is not None:
             data = data.decode(decode_encoding)
@@ -318,12 +318,12 @@ def ReadBinaryFile(filename, decode_encoding=None):
         return data
     except Exception as e:
         if _Debug:
-            print('file %r read failed: %r' % (filename, e, ))
+            print('file %r read failed: %r' % (file_path, e, ))
     return b''
 
 #------------------------------------------------------------------------------
 
-def rmdir_recursive(dirpath, ignore_errors=False, pre_callback=None):
+def rmdir_recursive(dir_path, ignore_errors=False, pre_callback=None):
     """
     Remove a directory, and all its contents if it is not already empty.
 
@@ -333,41 +333,41 @@ def rmdir_recursive(dirpath, ignore_errors=False, pre_callback=None):
     can be used to decide before remove the file.
     """
     counter = 0
-    for name in os.listdir(dirpath):
-        full_name = os.path.join(dirpath, name)
+    for name in os.listdir(dir_path):
+        full_path = os.path.join(dir_path, name)
         # on Windows, if we don't have write permission we can't remove
         # the file/directory either, so turn that on
-        if not os.access(full_name, os.W_OK):
+        if not os.access(full_path, os.W_OK):
             try:
-                os.chmod(full_name, 0o600)
+                os.chmod(full_path, 0o600)
             except:
                 continue
-        if os.path.isdir(full_name):
-            counter += rmdir_recursive(full_name, ignore_errors, pre_callback)
+        if os.path.isdir(full_path):
+            counter += rmdir_recursive(full_path, ignore_errors, pre_callback)
         else:
             if pre_callback:
-                if not pre_callback(full_name):
+                if not pre_callback(full_path):
                     continue
-            if os.path.isfile(full_name):
+            if os.path.isfile(full_path):
                 if not ignore_errors:
-                    os.remove(full_name)
+                    os.remove(full_path)
                     counter += 1
                 else:
                     try:
-                        os.remove(full_name)
+                        os.remove(full_path)
                         counter += 1
                     except Exception as exc:
                         if _Debug:
                             print('rmdir_recursive', exc)
                         continue
     if pre_callback:
-        if not pre_callback(dirpath):
+        if not pre_callback(dir_path):
             return counter
     if not ignore_errors:
-        os.rmdir(dirpath)
+        os.rmdir(dir_path)
     else:
         try:
-            os.rmdir(dirpath)
+            os.rmdir(dir_path)
         except Exception as exc:
             if _Debug:
                 print('rmdir_recursive', exc)
@@ -544,31 +544,31 @@ def open_url(url):
     return True
 
 
-def open_path_in_os(filepath):
+def open_path_in_os(file_path):
     """
     A portable way to open location or file on local disk with a default OS method.
     """
     if _Debug:
-        print('system.open_path_in_os', filepath)
+        print('system.open_path_in_os', file_path)
     try:
         if is_windows():
-            if os.path.isfile(filepath):
-                subprocess.Popen(['explorer', '/select,', '%s' % (filepath.replace('/', '\\'))])
+            if os.path.isfile(file_path):
+                subprocess.Popen(['explorer', '/select,', '%s' % (file_path.replace('/', '\\'))])
                 return True
-            subprocess.Popen(['explorer', '%s' % (filepath.replace('/', '\\'))])
+            subprocess.Popen(['explorer', '%s' % (file_path.replace('/', '\\'))])
             return True
 
         elif is_linux():
-            subprocess.Popen(['xdg-open', filepath])
+            subprocess.Popen(['xdg-open', file_path])
             return True
 
         elif is_osx():
-            subprocess.Popen(['open', '-R', filepath])
+            subprocess.Popen(['open', '-R', file_path])
             return True
 
         elif is_android():
             from client.sharesheet import ShareSheet
-            ShareSheet().view_file(filepath)
+            ShareSheet().view_file(file_path)
             return True
 
         elif is_ios():
@@ -579,24 +579,24 @@ def open_path_in_os(filepath):
             NSURL = autoclass("NSURL")
             NSDictionary = autoclass("NSDictionary")
             app = UIApplication.sharedApplication()
-            ns_url = NSURL.URLWithString_(objc_str('shareddocuments://'+filepath))
+            ns_url = NSURL.URLWithString_(objc_str('shareddocuments://'+file_path))
             options = NSDictionary.dictionary()  # Proper empty NSDictionary
             if ns_url and app:
                 app.openURL_options_completionHandler_(ns_url, options, None)
             else:
                 if _Debug:
-                    print("system.open_path_in_os Invalid URL or UIApplication instance: %r" % filepath)
+                    print("system.open_path_in_os Invalid URL or UIApplication instance: %r" % file_path)
 
     except Exception as exc:
         if _Debug:
-            print('system.open_path_in_os %r : %r' % (filepath, exc, ))
+            print('system.open_path_in_os %r : %r' % (file_path, exc, ))
         return False
     try:
         import webbrowser
-        webbrowser.open(filepath)
+        webbrowser.open(file_path)
         return True
     except Exception as e:
-        print('file %r failed to open with default OS method: %r' % (filepath, e, ))
+        print('file %r failed to open with default OS method: %r' % (file_path, e, ))
     return False
 
 
