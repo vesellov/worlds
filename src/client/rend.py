@@ -919,12 +919,13 @@ class Renderer(Widget):
 
     def on_setup_gl_context(self, *args):
         glEnable(GL_DEPTH_TEST)
-        if _Debug and not self.depth_bits_reported:
+        if not self.depth_bits_reported:
             self.depth_bits_reported = True
-            try:
-                print(f'depth buffer bits: {glGetIntegerv(GL_DEPTH_BITS)}')
-            except Exception as exc:
-                print(f'failed to read depth buffer bits: {exc}')
+            if _Debug:
+                try:
+                    print(f'depth buffer bits: {glGetIntegerv(GL_DEPTH_BITS)}')
+                except Exception as exc:
+                    print(f'failed to read depth buffer bits: {exc}')
         # glDepthFunc(GL_LEQUAL)
         # glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         # glEnable(GL_BLEND)
