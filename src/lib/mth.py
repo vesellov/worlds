@@ -29,6 +29,10 @@ def vec3sum(v1, v2):
     return [v1[0] + v2[0], v1[1] + v2[1], v1[2] + v2[2]]
 
 
+def vec3len(v):
+    return math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2])
+
+
 def ei2xyz(x, y, z, c=1.0):
     global EI_SCALE_FACTOR
     return -x * EI_SCALE_FACTOR, z * EI_SCALE_FACTOR * c, y * EI_SCALE_FACTOR

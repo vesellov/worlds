@@ -613,6 +613,11 @@ class Scene(object):
             if exclude in selected_parts:
                 selected_parts.remove(exclude)
         o.root_part_name = ordered_parts_list[0]
+        # positions of all parts except the root follow from the bones, which already fit the coefs,
+        # but the shift of the root part in the animations was recorded for one body variant and must be fitted too
+        root_scale = 1.0
+        if o.animations_loaded:
+            root_scale = m.animations_root_scale(template, selected_parts, coefs)
         # if _Debug:
         #     print(f'about to prepare unit ({ao.name}) with {len(selected_parts)} parts and {len(ao.animations_loaded)} animations from model {{{template}}}')
         # t1 = time.time()
@@ -620,13 +625,15 @@ class Scene(object):
             if part_name == 'mainobj':
                 part_name = 'main obj'
             o.parts.append(part_name)
+            # a helmet on the head which does not depend on the coefs is built with the coefs the head was made for
+            part_coefs = mth.quantize_coefs(m.part_coefs(template, part_name, coefs))
             part_info = m.bones[part_name]
             o.bones[part_name] = mth.ei2xyz_list([
-                mth.trilinear([part_info[i][0] for i in range(8)], coefs) * scale[0],
-                mth.trilinear([part_info[i][1] for i in range(8)], coefs) * scale[1],
-                mth.trilinear([part_info[i][2] for i in range(8)], coefs) * scale[2],
+                mth.trilinear([part_info[i][0] for i in range(8)], part_coefs) * scale[0],
+                mth.trilinear([part_info[i][1] for i in range(8)], part_coefs) * scale[1],
+                mth.trilinear([part_info[i][2] for i in range(8)], part_coefs) * scale[2],
             ])
-            mesh_key = self.mesh_key(model_key, part_name, coefs)
+            mesh_key = self.mesh_key(model_key, part_name, part_coefs)
             texture = o.textures[part_name] if part_name in o.textures else o.textures['*']
             material = materials[part_name] if part_name in materials else None
             if single_texture and not material:
@@ -648,7 +655,7 @@ class Scene(object):
                         prefix=o.template + '_' + part_name,
                         texture=texture,
                         material=material,
-                        coefs=coefs,
+                        coefs=part_coefs,
                         scale=scale,
                         store_id=store_id,
                     )
@@ -667,7 +674,14 @@ class Scene(object):
                     o.animations[anim_name] = dat.ObjectAnimationData(template, anim_name)
                 a = dat.ObjectPartAnimationData()
                 a.rotation_frames_input = [mth.ei2quad_list(quad) for quad in animation_info[1]]
-                a.translation_frames_input = [mth.ei2xyz_list(coord) for coord in animation_info[3]]
+                if part_name == o.root_part_name:
+                    a.translation_frames_input = [mth.ei2xyz_list([
+                        coord[0] * root_scale * scale[0],
+                        coord[1] * root_scale * scale[1],
+                        coord[2] * root_scale * scale[2],
+                    ]) for coord in animation_info[3]]
+                else:
+                    a.translation_frames_input = [mth.ei2xyz_list(coord) for coord in animation_info[3]]
                 morphing_frames = []
                 if animation_info[4] != 0 and animation_info[5] != 0:
                     for value in animation_info[6]:
