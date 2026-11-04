@@ -76,8 +76,28 @@ UNIT_RADIUS = 0.82
 # free space between the figure of a unit and a trunk, about half of the hero size, in the units of the models
 TRUNK_GAP = 0.5
 
-# distance from the center of a cell to its corner, in segments
-CELL_HALF_DIAGONAL = math.sqrt(0.5)
+# how many times in one tick a unit which ran into obstacles is pushed out of them before it stops, see slide()
+SLIDE_PUSHES = 8
+
+# a unit pushed out of an obstacle stays that far from its border, in segments
+SLIDE_GAP = 0.0001
+
+# the closed value of the zone is the same around the position when its gradient is smaller, see push_out_of_zone()
+ZONE_FLAT_GRADIENT = 0.000001
+
+# a unit is pushed out of the closed area not further than that in one push, in segments
+ZONE_MAX_PUSH = 0.25
+
+# offsets in segments of the points around a position where the direction of the zone border is measured,
+# see Simulation.zone_border_normal(), about one cell around: waves of a staircase of cells are smoothed out
+ZONE_BORDER_SAMPLES = (-0.5, 0.0, 0.5)
+
+# a unit pushed out of obstacles still moves when the angle between its movement and the direction it looks to
+# has a cosine larger than that, a bit backwards too: sliding along a wavy border goes back and forth a little
+SLIDE_MIN_COSINE = -0.5
+
+# radius in segments around a unit where other units can not walk
+UNIT_KEEP_DISTANCE = 0.2
 
 # radius in segments of the area around a building where units can not walk
 BUILDING_RADIUS = {
@@ -124,6 +144,46 @@ def trilinear(val, coefs):
 def quantize_coefs(coefs, quant_size=0.5):
     # same as mth.quantize_coefs() on the client, plants are rendered with these coefficients
     return [0.0 if c == 0.0 else c for c in (round(round(c / quant_size, 0) * quant_size, 1) for c in coefs)]
+
+
+def push_out_of_circle(dx, dy, radius2, heading=None):
+    """
+    (dx, dy) goes from the center of a round obstacle to the position. Returns the shortest movement
+    which takes the position out of the circle, or None when it is outside already.
+    """
+    distance2 = dx * dx + dy * dy
+    if distance2 >= radius2:
+        return None
+    distance = math.sqrt(distance2)
+    if distance == 0.0:
+        if not heading:
+            return math.sqrt(radius2) + SLIDE_GAP, 0.0
+        # right in the center, back to where the unit came from
+        dx, dy, distance = -heading[0], -heading[1], 1.0
+    k = (math.sqrt(radius2) - distance + SLIDE_GAP) / distance
+    return dx * k, dy * k
+
+
+def push_out_of_zone(closed, gradient_x, gradient_y, normal_x, normal_y, x, y, from_x=None, from_y=None):
+    """
+    Position (x, y) is in the closed area, see Simulation.zone_closed(). Returns the movement which takes it
+    out of there along (normal_x, normal_y), see Simulation.zone_border_normal(). When the closed value does not
+    go down that way, the position goes across the border where the value goes down the fastest.
+    When the value does not change around the position the way out is not known and it goes back to (from_x, from_y).
+    """
+    # how fast the closed value goes down along the normal
+    rate = -(gradient_x * normal_x + gradient_y * normal_y)
+    if rate < ZONE_FLAT_GRADIENT:
+        rate = math.sqrt(gradient_x * gradient_x + gradient_y * gradient_y)
+        if rate < ZONE_FLAT_GRADIENT:
+            if from_x is None or from_y is None:
+                return 0.0, 0.0
+            return from_x - x, from_y - y
+        normal_x = -gradient_x / rate
+        normal_y = -gradient_y / rate
+    # the value is not linear, a longer push may be needed, then the position is pushed again, see Simulation.slide()
+    distance = min((closed - 0.5) / rate + SLIDE_GAP, ZONE_MAX_PUSH)
+    return normal_x * distance, normal_y * distance
 
 #------------------------------------------------------------------------------
 
@@ -210,6 +270,62 @@ class Simulation(object):
         """
         return self.zonemap_data[(h % self.height) * self.width + (w % self.width)] >= ZONE_OPEN_THRESHOLD
 
+    def zone_closed(self, x, y):
+        """
+        Returns (closed, gradient_x, gradient_y): how much the position is closed, from 0.0 to 1.0, and how fast that grows.
+        Cells of zonemap.png are not squares for the units: values of the 4 cells around the position are interpolated
+        between their centers, like the heights of the land, and the position is closed from 0.5. So a straight wall
+        stays at the side of its cells, but a slanted wall drawn as a staircase of cells is smooth and units slide along it
+        instead of getting stuck in every step.
+        """
+        sx = x - 0.5
+        sy = y - 0.5
+        w = int(math.floor(sx))
+        h = int(math.floor(sy))
+        u = sx - w
+        v = sy - h
+        c00 = 0.0 if self.is_open(w, h) else 1.0
+        c10 = 0.0 if self.is_open(w + 1, h) else 1.0
+        c01 = 0.0 if self.is_open(w, h + 1) else 1.0
+        c11 = 0.0 if self.is_open(w + 1, h + 1) else 1.0
+        if c00 == c11 and c10 == c01 and c00 != c10:
+            # two closed cells touch only by the corners: they are connected, otherwise a unit would walk between them.
+            # Inside of the square between the 4 centers the closed value goes down from the line which connects the two
+            # closed centers, on the sides of the square this is the same value as interpolated in the squares around
+            if c00:
+                closed = 1.0 - abs(u - v)
+                gradient_x = -1.0 if u > v else 1.0
+                gradient_y = -gradient_x
+            else:
+                closed = 1.0 - abs(u + v - 1.0)
+                gradient_x = gradient_y = -1.0 if u + v > 1.0 else 1.0
+            return closed, gradient_x, gradient_y
+        closed = (c00 * (1.0 - u) + c10 * u) * (1.0 - v) + (c01 * (1.0 - u) + c11 * u) * v
+        gradient_x = (c10 - c00) * (1.0 - v) + (c11 - c01) * v
+        gradient_y = (c01 - c00) * (1.0 - u) + (c11 - c10) * u
+        return closed, gradient_x, gradient_y
+
+    def zone_border_normal(self, x, y):
+        """
+        Direction out of the closed area near the position, the gradient of the closed value averaged around it.
+        Border of the zone has small waves where it goes along a staircase of cells, a unit which slides along it
+        is pushed out by the direction of the whole wall, then it does not get stuck in the waves.
+        Only the gradients which look the same way as at the position are taken: a thin line of closed cells
+        has the other side close, which looks the opposite way. Returns (0.0, 0.0) when the direction is not known.
+        """
+        _, own_x, own_y = self.zone_closed(x, y)
+        normal_x = normal_y = 0.0
+        for dx in ZONE_BORDER_SAMPLES:
+            for dy in ZONE_BORDER_SAMPLES:
+                _, gradient_x, gradient_y = self.zone_closed(x + dx, y + dy)
+                if gradient_x * own_x + gradient_y * own_y > 0.0:
+                    normal_x -= gradient_x
+                    normal_y -= gradient_y
+        length = math.sqrt(normal_x * normal_x + normal_y * normal_y)
+        if length < ZONE_FLAT_GRADIENT:
+            return 0.0, 0.0
+        return normal_x / length, normal_y / length
+
     def load_buildings(self, buildings_data):
         for building_info in buildings_data:
             radius = BUILDING_RADIUS.get(building_info['k'], 0.3)
@@ -266,31 +382,48 @@ class Simulation(object):
             return get_z_in_triangle(shift_w, shift_h, p00, p01, p10)
         return get_z_in_triangle(shift_w, shift_h, p01, p10, p11)
 
-    def is_blocked(self, w, h, shift_w, shift_h, ignore=None, heading=None):
+    def is_blocked(self, w, h, shift_w, shift_h, ignore=None):
         """
-        Returns what does not let a unit stand at the position, or None. heading is (cos, sin) of the direction
-        the unit moves to, trunks behind the unit are not checked then, without it all trunks around are checked.
+        Returns what does not let a unit stand at the position, or None.
         """
-        if not self.is_open(w, h):
-            return 'zone'
+        obstacle = self.find_obstacle(w, h, shift_w, shift_h, ignore=ignore)
+        return obstacle[0] if obstacle else None
+
+    def find_obstacle(self, w, h, shift_w, shift_h, ignore=None, heading=None, from_x=None, from_y=None):
+        """
+        Returns (what, push_x, push_y) for the first obstacle the position is inside of, or None.
+        The push moves the position out of the obstacle the shortest way, (from_x, from_y) is the position
+        the unit came from, it goes back there when there is no shorter way. heading is (cos, sin) of the direction
+        the unit moves to, a unit right in the center of a round obstacle is pushed back against it.
+        """
         x = w + shift_w
         y = h + shift_h
+        closed, gradient_x, gradient_y = self.zone_closed(x, y)
+        if closed >= 0.5:
+            normal_x, normal_y = self.zone_border_normal(x, y)
+            push_x, push_y = push_out_of_zone(closed, gradient_x, gradient_y, normal_x, normal_y, x, y, from_x, from_y)
+            return 'zone', push_x, push_y
         for bx, by, radius in self.buildings:
-            if (x - bx) ** 2 + (y - by) ** 2 < radius ** 2:
-                return 'building'
-        if self.is_near_trunk(w, h, shift_w, shift_h, heading):
-            return 'trunk'
+            push = push_out_of_circle(x - bx, y - by, radius * radius, heading)
+            if push:
+                return 'building', push[0], push[1]
+        trunk = self.find_trunk(w, h, shift_w, shift_h)
+        if trunk:
+            push = push_out_of_circle(trunk[0], trunk[1], trunk[2], heading)
+            if push:
+                return 'trunk', push[0], push[1]
         for o in self.objects.values():
             if o is ignore or not isinstance(o, models.Unit):
                 continue
-            if (x - o.w - o.shift_w) ** 2 + (y - o.h - o.shift_h) ** 2 < 0.2 ** 2:
-                return 'unit'
+            push = push_out_of_circle(x - o.w - o.shift_w, y - o.h - o.shift_h, UNIT_KEEP_DISTANCE ** 2, heading)
+            if push:
+                return 'unit', push[0], push[1]
         return None
 
-    def is_near_trunk(self, w, h, shift_w, shift_h, heading=None):
+    def find_trunk(self, w, h, shift_w, shift_h):
         """
-        A unit moves not further than to the next cell in one tick, so only the cell of the unit
-        and 8 cells around it are checked, and of those only trunks in front of the unit when heading is known.
+        Returns (dx, dy, squared distance to keep) of a trunk which is too close, dx and dy go from the trunk to the position.
+        A unit moves not further than to the next cell in one tick, so only the cell of the unit and 8 cells around it are checked.
         """
         x = w + shift_w
         y = h + shift_h
@@ -299,18 +432,37 @@ class Simulation(object):
                 cell = self.land_store.get(((w + dw) % self.width, (h + dh) % self.height))
                 if not cell:
                     continue
-                if heading and (dw + 0.5 - shift_w) * heading[0] + (dh + 0.5 - shift_h) * heading[1] < -CELL_HALF_DIAGONAL:
-                    # the whole cell is behind the unit
-                    continue
                 for tx, ty, distance2 in cell.get('t', ()):
                     # the map wraps around, a trunk near the other edge is close too
-                    dx = (tx - x + self.width / 2.0) % self.width - self.width / 2.0
-                    dy = (ty - y + self.height / 2.0) % self.height - self.height / 2.0
-                    if heading and dx * heading[0] + dy * heading[1] < 0:
-                        continue
+                    dx = (x - tx + self.width / 2.0) % self.width - self.width / 2.0
+                    dy = (y - ty + self.height / 2.0) % self.height - self.height / 2.0
                     if dx * dx + dy * dy < distance2:
-                        return True
-        return False
+                        return dx, dy, distance2
+        return None
+
+    def slide(self, u, w, h, shift_w, shift_h, heading):
+        """
+        Unit wants to move from its position to the given one. When an obstacle is on the way the unit is pushed
+        out of it along its border, so it keeps running along a wall or around a tree, slower because only
+        the part of the movement along the obstacle is left. Returns the new position or None when the unit can not move.
+        """
+        from_x = u.w + u.shift_w
+        from_y = u.h + u.shift_h
+        for _ in range(SLIDE_PUSHES):
+            obstacle = self.find_obstacle(w, h, shift_w, shift_h, ignore=u, heading=heading, from_x=from_x, from_y=from_y)
+            if not obstacle:
+                move_x = w + shift_w - from_x
+                move_y = h + shift_h - from_y
+                length = math.sqrt(move_x * move_x + move_y * move_y)
+                if length < SLIDE_GAP:
+                    return None
+                # obstacles may push the unit back, but it does not run backwards
+                if (move_x * heading[0] + move_y * heading[1]) / length < SLIDE_MIN_COSINE:
+                    return None
+                return w, h, shift_w, shift_h
+            _, push_x, push_y = obstacle
+            w, h, shift_w, shift_h = physics.normalize_position(w, h, shift_w + push_x, shift_h + push_y)
+        return None
 
     #--- OBJECTS ---
 
@@ -421,11 +573,14 @@ class Simulation(object):
         if speed:
             sign = 1.0 if speed > 0 else -1.0
             heading = (sign * math.cos(math.radians(direction)), sign * math.sin(math.radians(direction)))
+        position = (w, h, shift_w, shift_h)
         # a unit which somehow is already inside of a blocked area must be able to walk out of it
-        if speed and self.is_blocked(w, h, shift_w, shift_h, ignore=u, heading=heading) and not self.is_blocked(u.w, u.h, u.shift_w, u.shift_h, ignore=u, heading=heading):
-            u.speed = 0.0
-        else:
-            u.w, u.h, u.shift_w, u.shift_h = w, h, shift_w, shift_h
+        if speed and not self.is_blocked(u.w, u.h, u.shift_w, u.shift_h, ignore=u):
+            position = self.slide(u, w, h, shift_w, shift_h, heading)
+        if position:
+            u.w, u.h, u.shift_w, u.shift_h = position
             u.speed = speed
+        else:
+            u.speed = 0.0
         u.action = 'run' if u.move else 'idle'
         u.animation = self.animation_for(u)
