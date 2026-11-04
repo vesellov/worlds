@@ -534,7 +534,7 @@ class GameClient(object):
 
     def create_view(self, o, view, tick):
         t = o.template
-        view.create_unit(o.w, o.h, elevation_correction=t.elevation_correction, coefs=list(t.coefs), shift_w=o.shift_w, shift_h=o.shift_h, direction=o.direction)
+        view.create_unit(o.w, o.h, elevation_correction=t.elevation_correction, coefs=list(t.coefs), scale=list(t.scale), shift_w=o.shift_w, shift_h=o.shift_h, direction=o.direction)
         prediction = Prediction(o, tick, time.perf_counter())
         self.objects[o.id] = (o, view, prediction)
         self.apply(o, view)
