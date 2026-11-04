@@ -299,13 +299,15 @@ class ModelData(object):
         key = (template, tuple(part_names), tuple(coefs))
         if key in self.root_heights:
             return self.root_heights[key]
-        lowest = 0.0
 
-        def _visit(tree, position):
-            nonlocal lowest
+        def _lowest(tree, position):
+            """
+            Returns the lowest vertex of the part and of all parts attached to it.
+            """
+            lowest = 0.0
             part_name = tree[0]
             if part_name not in part_names:
-                return
+                return lowest
             if position is None:
                 # the root part is placed by the animation, its own shift is not part of the height
                 position = [0.0, 0.0, 0.0]
@@ -319,9 +321,10 @@ class ModelData(object):
                     for j in range(4):
                         lowest = min(lowest, position[2] + mth.trilinear([block[2][k][j] for k in range(8)], coefs))
             for branch in tree[1]:
-                _visit(branch, position)
+                lowest = min(lowest, _lowest(branch, position))
+            return lowest
 
-        _visit(self.links[template]['ordered'], None)
+        lowest = _lowest(self.links[template]['ordered'], None)
         self.root_heights[key] = -lowest
         return -lowest
 
