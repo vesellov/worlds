@@ -43,6 +43,10 @@ class Unit(object):
         self.rotate_axis_x = None
         self.rotate_axis_z = None
         self.rotate_vertical = None
+        # coefs and scale the unit was built with, see scen.Scene.place_animated_unit_on_land()
+        self.coefs = None
+        self.scale = None
+        self.scale_body = None
         self.translate_shift = None
         self.context_state = None
         self.animations_list = []

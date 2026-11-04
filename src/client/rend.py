@@ -822,7 +822,7 @@ class Renderer(Widget):
             self.scene.remove_unit_from_stage(container=self.scene.container_animated_objects, unit_name=u.name)
             self.scene.meshes_index.clear()
             self.scene.models.clear()
-            self.scene.hero.create_unit(u.w, u.h, coefs=coefs)
+            self.scene.hero.create_unit(u.w, u.h, coefs=coefs, scale=u.scale)
         elif keycode[1] == 'i':
             self.camera_unit_lock = None
             u = self.scene.hero.get_unit()
@@ -831,7 +831,7 @@ class Renderer(Widget):
             self.scene.remove_unit_from_stage(container=self.scene.container_animated_objects, unit_name=u.name)
             self.scene.meshes_index.clear()
             self.scene.models.clear()
-            self.scene.hero.create_unit(u.w, u.h, coefs=coefs)
+            self.scene.hero.create_unit(u.w, u.h, coefs=coefs, scale=u.scale)
         return True
 
     @ignore_undertouch

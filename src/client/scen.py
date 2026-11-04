@@ -26,7 +26,7 @@ from kivy.graphics import (
     RenderContext, Callback, BindTexture,
     ChangeState, PushState, PopState,
     PushMatrix, PopMatrix,
-    Color, Translate, Rotate, Mesh,
+    Color, Translate, Rotate, Scale, Mesh,
 )
 from kivy.graphics.instructions import InstructionGroup  # @UnresolvedImport
 from kivy.graphics.context_instructions import Transform  # @UnresolvedImport
@@ -274,9 +274,13 @@ class Scene(object):
             print(f'visible area created at {w} {h} with {added} segments, elevation at center is {elevation_at_center} with planet shift {planet_shift_y}, queue is {len(self.segments_waiting)} / {len(self.segments_cleanup_queue)}')
         self.update_segments()
 
-    def mesh_key(self, template, part_name, coefs):
+    def mesh_key(self, template, part_name, coefs, scale=(1.0, 1.0, 1.0)):
         c = mth.quantize_coefs(coefs)
-        return f'{template}_{part_name}_{c[0]}_{c[1]}_{c[2]}'
+        key = f'{template}_{part_name}_{c[0]}_{c[1]}_{c[2]}'
+        if tuple(scale) != (1.0, 1.0, 1.0):
+            # vertices of the mesh are scaled, see create_mesh_from_fig_data()
+            key += f'_{scale[0]}_{scale[1]}_{scale[2]}'
+        return key
 
     def get_segment_elevation(self, map_w, map_h):
         e00 = const.PLANET_RADIUS + self.land.get_elevation(map_w, map_h) * const.ELEVATION_FACTOR
@@ -633,7 +637,7 @@ class Scene(object):
                 mth.trilinear([part_info[i][1] for i in range(8)], part_coefs) * scale[1],
                 mth.trilinear([part_info[i][2] for i in range(8)], part_coefs) * scale[2],
             ])
-            mesh_key = self.mesh_key(model_key, part_name, part_coefs)
+            mesh_key = self.mesh_key(model_key, part_name, part_coefs, scale)
             texture = o.textures[part_name] if part_name in o.textures else o.textures['*']
             material = materials[part_name] if part_name in materials else None
             if single_texture and not material:
@@ -717,7 +721,12 @@ class Scene(object):
         shift_h=0,
         area_w=0,
         area_h=0,
+        scale=None,
     ):
+        """
+        scale is (x, y, z) in the axes of the model, z goes up: the whole posed unit is scaled around its point
+        on the land, so the parts stay in their places and the animations move them proportionally.
+        """
         global _NextUnitID
         _source_dict = self.static_objects if static else self.animated_objects
         if object_name not in _source_dict:
@@ -778,6 +787,9 @@ class Scene(object):
         unit.rotate_axis_x = Rotate(angle_coords[0], 1, 0, 0, group=unit.name)
         unit.rotate_axis_z = Rotate(angle_coords[1], 0, 0, 1, group=unit.name)
         unit.rotate_vertical = Rotate(direction + 90, 0, 1, 0, group=unit.name)
+        unit.scale = list(scale) if scale else [1.0, 1.0, 1.0]
+        # same axes as mth.ei2xyz(): x of the model goes to x, y of the model to z, z of the model goes up to y
+        unit.scale_body = Scale(unit.scale[0], unit.scale[2], unit.scale[1], group=unit.name)
         unit.translate_shift = Translate(shift_vector[0], shift_vector[1], shift_vector[2], group=unit.name)
         unit.context_state = ChangeState(material_density=0.0, group=unit.name)
         # open unit context and push transforms and state
@@ -788,6 +800,7 @@ class Scene(object):
         unit.container_unit.add(unit.translate_shift)
         unit.container_unit.add(PushMatrix(group=unit.name))  # unit rotate
         unit.container_unit.add(unit.rotate_vertical)
+        unit.container_unit.add(unit.scale_body)
         unit.container_unit.add(unit.context_state)
         # push unit meshes recursively
         ordered_tree = None
@@ -796,7 +809,7 @@ class Scene(object):
         source_object.walk_parts_ordered(_visitor, ordered_tree=ordered_tree)
         # close unit context
         unit.container_unit.add(ChangeState(material_density=0.0, group=unit.name))
-        unit.container_unit.add(PopMatrix(group=unit.name))  # unit rotate
+        unit.container_unit.add(PopMatrix(group=unit.name))  # unit rotate and scale
         unit.container_unit.add(PopMatrix(group=unit.name))  # unit shift
         unit.container_unit.add(PopMatrix(group=unit.name))  # unit
         # save unit
@@ -1275,10 +1288,14 @@ class Scene(object):
         selected_animations=None,
         store_id=models.DEFAULT_STORE_ID,
     ):
+        """
+        coefs change the constitution of the figure. scale (x, y, z) is not applied to the parts, but to the whole
+        posed unit, see construct_unit_from_object_data(): when the parts were scaled one by one, a part turned by the
+        animation would be stretched along its own axes instead of the axes of the unit.
+        """
         ao = self.create_object_data_from_model_data(
             template=template,
             coefs=coefs,
-            scale=scale,
             selected_parts=selected_parts,
             excluded_parts=excluded_parts,
             hidden_parts=hidden_parts,
@@ -1315,11 +1332,12 @@ class Scene(object):
             shift_h=shift_h,
             area_w=area_w,
             area_h=area_h,
+            scale=scale,
         )
         # if unit.animations_list:
         #     unit.animation_playing = unit.animations_list[0]
         if _Debug:
-            print(f'  new animated unit {unit.name} from template {template} at {map_w},{map_h} shift:{shift_w},{shift_h} direction:{direction} coefs:{coefs}')
+            print(f'  new animated unit {unit.name} from template {template} at {map_w},{map_h} shift:{shift_w},{shift_h} direction:{direction} coefs:{coefs} scale:{scale}')
         return unit
 
     def on_camera_rotate(self, camera_angle_y, camera_angle_z):

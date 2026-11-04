@@ -58,13 +58,14 @@ class Hero(object):
             textures=[(t, self.store_id) for t in textures],
         )
 
-    def create_unit(self, map_w, map_h, elevation_correction=None, coefs=[0.5, 0.5, 0.75], shift_w=0.5, shift_h=0.5, direction=0):
+    def create_unit(self, map_w, map_h, elevation_correction=None, coefs=[0.5, 0.5, 0.75], scale=[1.0, 1.0, 1.0], shift_w=0.5, shift_h=0.5, direction=0):
         template = self.build_template()
         selected_parts = [p.replace('.hidden', '') for p in template['parts']]
         hidden_parts = [p.replace('.hidden', '') for p in template['parts'] if p.endswith('.hidden')]
         unit = self.scene.place_animated_unit_on_land(
             template=template['model_name'],
             coefs=coefs,
+            scale=scale,
             map_w=map_w,
             map_h=map_h,
             shift_w=shift_w,
@@ -84,6 +85,7 @@ class Hero(object):
         unit.animation_next = None
         unit.elevation_correction = elevation_correction
         unit.coefs = coefs
+        unit.scale = scale
         self.unit_name = unit.name
         if _Debug:
             print(f'created hero unit {self.unit_name} from generated template for model {self.model_name}')

@@ -37,6 +37,7 @@ DEFAULT_HERO_TEMPLATE = dict(
     ],
     weapon='cheat dagger.bronze',
     coefs=[0.5, 0.5, 0.75],
+    scale=[1.0, 1.0, 1.0],
     store_id=2,
 )
 
@@ -70,11 +71,17 @@ TRUNK_RADIUS = {
 # used for a solid plant which model is not in TRUNK_RADIUS, in the units of the models
 DEFAULT_TRUNK_RADIUS = 0.5
 
-# half of the width of the hero figure, in the units of the models
+# half of the width of the hero figure, in the units of the models. A unit with Template.scale is bigger
+# or smaller as wide as its scale along x and y of the model, see unit_size(), so are all distances it keeps from obstacles
 UNIT_RADIUS = 0.82
 
 # free space between the figure of a unit and a trunk, about half of the hero size, in the units of the models
 TRUNK_GAP = 0.5
+
+# the closed value of the zone a unit can not walk into, see Simulation.zone_threshold(), is never smaller,
+# however big the unit is: it still can walk along a narrow passage. It is never larger than the border itself,
+# 0.5, so a unit smaller than usual does not walk into a wall either
+ZONE_THRESHOLD_MIN = 0.05
 
 # how many times in one tick a unit which ran into obstacles is pushed out of them before it stops, see slide()
 SLIDE_PUSHES = 8
@@ -96,10 +103,10 @@ ZONE_BORDER_SAMPLES = (-0.5, 0.0, 0.5)
 # has a cosine larger than that, a bit backwards too: sliding along a wavy border goes back and forth a little
 SLIDE_MIN_COSINE = -0.5
 
-# radius in segments around a unit where other units can not walk
+# distance in segments between the centers of two units of the usual size, they do not walk closer
 UNIT_KEEP_DISTANCE = 0.2
 
-# radius in segments of the area around a building where units can not walk
+# radius in segments of the area around a building where units of the usual size can not walk
 BUILDING_RADIUS = {
     'capital': 0.6,
     'tower': 0.4,
@@ -164,9 +171,10 @@ def push_out_of_circle(dx, dy, radius2, heading=None):
     return dx * k, dy * k
 
 
-def push_out_of_zone(closed, gradient_x, gradient_y, normal_x, normal_y, x, y, from_x=None, from_y=None):
+def push_out_of_zone(closed, threshold, gradient_x, gradient_y, normal_x, normal_y, x, y, from_x=None, from_y=None):
     """
-    Position (x, y) is in the closed area, see Simulation.zone_closed(). Returns the movement which takes it
+    Position (x, y) is in the closed area: the closed value is not smaller than threshold, see Simulation.zone_closed()
+    and Simulation.zone_threshold(). Returns the movement which takes it
     out of there along (normal_x, normal_y), see Simulation.zone_border_normal(). When the closed value does not
     go down that way, the position goes across the border where the value goes down the fastest.
     When the value does not change around the position the way out is not known and it goes back to (from_x, from_y).
@@ -182,8 +190,18 @@ def push_out_of_zone(closed, gradient_x, gradient_y, normal_x, normal_y, x, y, f
         normal_x = -gradient_x / rate
         normal_y = -gradient_y / rate
     # the value is not linear, a longer push may be needed, then the position is pushed again, see Simulation.slide()
-    distance = min((closed - 0.5) / rate + SLIDE_GAP, ZONE_MAX_PUSH)
+    distance = min((closed - threshold) / rate + SLIDE_GAP, ZONE_MAX_PUSH)
     return normal_x * distance, normal_y * distance
+
+
+def unit_size(u):
+    """
+    How many times the unit is wider than a unit of the usual size: the larger scale of its template along x and y of the model.
+    """
+    if u is None:
+        return 1.0
+    scale = u.template.scale
+    return max(float(scale[0]), float(scale[1]))
 
 #------------------------------------------------------------------------------
 
@@ -204,9 +222,11 @@ class Simulation(object):
         # one byte per cell of zonemap.png, row by row, see is_open()
         self.zonemap_data = b''
         self.buildings = []
-        # registry of the cells of the map: (w, h) -> {'t': [(x, y, squared distance in segments the units keep from the trunk)]},
+        # registry of the cells of the map: (w, h) -> {'t': [(x, y, radius of the trunk in segments)]},
         # only cells with something in them are here, see load_land_store()
         self.land_store = {}
+        # radius in segments of the thickest trunk, see find_trunk()
+        self.max_trunk_radius = 0.0
         # [template, store_id] of all models used in the world, clients download them before rendering the scene
         self.templates = []
         self.animations_catalog = {}
@@ -305,6 +325,16 @@ class Simulation(object):
         gradient_y = (c01 - c00) * (1.0 - u) + (c11 - c10) * u
         return closed, gradient_x, gradient_y
 
+    def zone_threshold(self, size):
+        """
+        A unit stands in the closed area from this closed value, see zone_closed(). A unit of the usual size is a point
+        and the border is at 0.5, near the border the value changes by 1.0 over one cell, so a bigger unit
+        keeps away from the border by the part of its radius which is larger than the usual one.
+        A smaller unit stays at the border, as a unit of the usual size.
+        """
+        threshold = 0.5 - (size - 1.0) * UNIT_RADIUS / const.SEGMENT_SIZE
+        return min(max(threshold, ZONE_THRESHOLD_MIN), 0.5)
+
     def zone_border_normal(self, x, y):
         """
         Direction out of the closed area near the position, the gradient of the closed value averaged around it.
@@ -348,11 +378,12 @@ class Simulation(object):
                     trunk_radius = DEFAULT_TRUNK_RADIUS
                 x = float(x)
                 y = float(y)
-                distance = (trunk_radius + UNIT_RADIUS + TRUNK_GAP) / const.SEGMENT_SIZE
+                radius = trunk_radius / const.SEGMENT_SIZE
+                self.max_trunk_radius = max(self.max_trunk_radius, radius)
                 cell = (int(x) % self.width, int(y) % self.height)
                 if cell not in self.land_store:
                     self.land_store[cell] = {'t': []}
-                self.land_store[cell]['t'].append((x, y, distance * distance))
+                self.land_store[cell]['t'].append((x, y, radius))
         if unknown:
             if _Debug:
                 print(f'biome {self.biome.id}: WARNING, trunks of {sorted(unknown)} were not measured, see TRUNK_RADIUS, {DEFAULT_TRUNK_RADIUS} is used')
@@ -382,16 +413,18 @@ class Simulation(object):
             return get_z_in_triangle(shift_w, shift_h, p00, p01, p10)
         return get_z_in_triangle(shift_w, shift_h, p01, p10, p11)
 
-    def is_blocked(self, w, h, shift_w, shift_h, ignore=None):
+    def is_blocked(self, w, h, shift_w, shift_h, ignore=None, size=1.0):
         """
-        Returns what does not let a unit stand at the position, or None.
+        Returns what does not let a unit stand at the position, or None. size is the result of unit_size(),
+        ignore is the unit itself.
         """
-        obstacle = self.find_obstacle(w, h, shift_w, shift_h, ignore=ignore)
+        obstacle = self.find_obstacle(w, h, shift_w, shift_h, ignore=ignore, size=size)
         return obstacle[0] if obstacle else None
 
-    def find_obstacle(self, w, h, shift_w, shift_h, ignore=None, heading=None, from_x=None, from_y=None):
+    def find_obstacle(self, w, h, shift_w, shift_h, ignore=None, size=1.0, heading=None, from_x=None, from_y=None):
         """
-        Returns (what, push_x, push_y) for the first obstacle the position is inside of, or None.
+        Returns (what, push_x, push_y) for the first obstacle a unit at the position is inside of, or None.
+        size is the result of unit_size() of the unit, all distances it keeps from obstacles grow with it.
         The push moves the position out of the obstacle the shortest way, (from_x, from_y) is the position
         the unit came from, it goes back there when there is no shorter way. heading is (cos, sin) of the direction
         the unit moves to, a unit right in the center of a round obstacle is pushed back against it.
@@ -399,15 +432,19 @@ class Simulation(object):
         x = w + shift_w
         y = h + shift_h
         closed, gradient_x, gradient_y = self.zone_closed(x, y)
-        if closed >= 0.5:
+        threshold = self.zone_threshold(size)
+        if closed >= threshold:
             normal_x, normal_y = self.zone_border_normal(x, y)
-            push_x, push_y = push_out_of_zone(closed, gradient_x, gradient_y, normal_x, normal_y, x, y, from_x, from_y)
+            push_x, push_y = push_out_of_zone(closed, threshold, gradient_x, gradient_y, normal_x, normal_y, x, y, from_x, from_y)
             return 'zone', push_x, push_y
+        # radius of the area around a building is for a unit of the usual size
+        building_extra = (size - 1.0) * UNIT_RADIUS / const.SEGMENT_SIZE
         for bx, by, radius in self.buildings:
+            radius = max(0.0, radius + building_extra)
             push = push_out_of_circle(x - bx, y - by, radius * radius, heading)
             if push:
                 return 'building', push[0], push[1]
-        trunk = self.find_trunk(w, h, shift_w, shift_h)
+        trunk = self.find_trunk(w, h, shift_w, shift_h, size)
         if trunk:
             push = push_out_of_circle(trunk[0], trunk[1], trunk[2], heading)
             if push:
@@ -415,27 +452,32 @@ class Simulation(object):
         for o in self.objects.values():
             if o is ignore or not isinstance(o, models.Unit):
                 continue
-            push = push_out_of_circle(x - o.w - o.shift_w, y - o.h - o.shift_h, UNIT_KEEP_DISTANCE ** 2, heading)
+            # each of the two units keeps half of the distance
+            keep = UNIT_KEEP_DISTANCE * (size + unit_size(o)) / 2.0
+            push = push_out_of_circle(x - o.w - o.shift_w, y - o.h - o.shift_h, keep * keep, heading)
             if push:
                 return 'unit', push[0], push[1]
         return None
 
-    def find_trunk(self, w, h, shift_w, shift_h):
+    def find_trunk(self, w, h, shift_w, shift_h, size=1.0):
         """
-        Returns (dx, dy, squared distance to keep) of a trunk which is too close, dx and dy go from the trunk to the position.
-        A unit moves not further than to the next cell in one tick, so only the cell of the unit and 8 cells around it are checked.
+        Returns (dx, dy, squared distance to keep) of a trunk which is too close to a unit of that size, see unit_size(),
+        dx and dy go from the trunk to the position. Only the cells as far as the thickest trunk may reach the unit are checked.
         """
         x = w + shift_w
         y = h + shift_h
-        for dw in (-1, 0, 1):
-            for dh in (-1, 0, 1):
+        unit_keep = (UNIT_RADIUS + TRUNK_GAP) * size / const.SEGMENT_SIZE
+        cells_around = int(math.ceil(self.max_trunk_radius + unit_keep))
+        for dw in range(-cells_around, cells_around + 1):
+            for dh in range(-cells_around, cells_around + 1):
                 cell = self.land_store.get(((w + dw) % self.width, (h + dh) % self.height))
                 if not cell:
                     continue
-                for tx, ty, distance2 in cell.get('t', ()):
+                for tx, ty, radius in cell.get('t', ()):
                     # the map wraps around, a trunk near the other edge is close too
                     dx = (x - tx + self.width / 2.0) % self.width - self.width / 2.0
                     dy = (y - ty + self.height / 2.0) % self.height - self.height / 2.0
+                    distance2 = (radius + unit_keep) ** 2
                     if dx * dx + dy * dy < distance2:
                         return dx, dy, distance2
         return None
@@ -448,8 +490,9 @@ class Simulation(object):
         """
         from_x = u.w + u.shift_w
         from_y = u.h + u.shift_h
+        size = unit_size(u)
         for _ in range(SLIDE_PUSHES):
-            obstacle = self.find_obstacle(w, h, shift_w, shift_h, ignore=u, heading=heading, from_x=from_x, from_y=from_y)
+            obstacle = self.find_obstacle(w, h, shift_w, shift_h, ignore=u, size=size, heading=heading, from_x=from_x, from_y=from_y)
             if not obstacle:
                 move_x = w + shift_w - from_x
                 move_y = h + shift_h - from_y
@@ -482,34 +525,34 @@ class Simulation(object):
         names = self.action_types(unit.template.model_name).get(unit.action)
         return names[0] if names else None
 
-    def find_free_position(self, w, h):
-        # the nearest open cell, the whole map is searched when the cells around are closed
+    def find_free_position(self, w, h, size=1.0):
+        # the nearest open cell for a unit of that size, see unit_size(), the whole map is searched when the cells around are closed
         for distance in range(0, max(self.width, self.height) // 2 + 1):
             for dw in range(-distance, distance + 1):
                 for dh in range(-distance, distance + 1):
                     if max(abs(dw), abs(dh)) != distance:
                         continue
-                    if not self.is_blocked(w + dw, h + dh, 0.5, 0.5):
+                    if not self.is_blocked(w + dw, h + dh, 0.5, 0.5, size=size):
                         return w + dw, h + dh
         return w, h
 
     def spawn_hero(self, owner, template=None):
         self.next_id += 1
-        w, h = self.find_free_position(*DEFAULT_HERO_POSITION)
         hero = models.Hero(
             id=self.next_id,
             name=f'hero{self.next_id}',
             owner=owner,
             template=models.Template(**(template or DEFAULT_HERO_TEMPLATE)),
-            w=w,
-            h=h,
+            w=0,
+            h=0,
         )
+        hero.w, hero.h = self.find_free_position(*DEFAULT_HERO_POSITION, size=unit_size(hero))
         hero.animation = self.animation_for(hero)
         hero.input_tick = self.tick_number
         self.objects[hero.id] = hero
         self.pending_controls[hero.id] = []
         if _Debug:
-            print(f'spawned {hero.name} for {owner} at {w},{h}')
+            print(f'spawned {hero.name} for {owner} at {hero.w},{hero.h}')
         return hero
 
     def remove_object(self, object_id):
@@ -575,7 +618,7 @@ class Simulation(object):
             heading = (sign * math.cos(math.radians(direction)), sign * math.sin(math.radians(direction)))
         position = (w, h, shift_w, shift_h)
         # a unit which somehow is already inside of a blocked area must be able to walk out of it
-        if speed and not self.is_blocked(u.w, u.h, u.shift_w, u.shift_h, ignore=u):
+        if speed and not self.is_blocked(u.w, u.h, u.shift_w, u.shift_h, ignore=u, size=unit_size(u)):
             position = self.slide(u, w, h, shift_w, shift_h, heading)
         if position:
             u.w, u.h, u.shift_w, u.shift_h = position

@@ -153,7 +153,9 @@ class Template(Model):
     # info about the 3d model and what is required to build and render the 3d model on the client device
     # figure name, coefs, textures, skin, hair, wears, weapon, etc.
     # store_id: which store the model and its textures are downloaded from, see DEFAULT_STORE_ID
-    data_fields = ('model_name', 'skin', 'hair', 'wears', 'weapon', 'texture', 'coefs', 'elevation_correction', 'store_id')
+    # coefs change the constitution of the figure, scale makes the whole posed figure bigger or smaller
+    # along the x, y and z axes of the model (z goes up), the animations move it proportionally
+    data_fields = ('model_name', 'skin', 'hair', 'wears', 'weapon', 'texture', 'coefs', 'scale', 'elevation_correction', 'store_id')
 
     def __init__(
         self,
@@ -164,6 +166,7 @@ class Template(Model):
         weapon: Optional[str] = None,
         texture: Optional[str] = None,
         coefs: Optional[List[float]] = None,
+        scale: Optional[List[float]] = None,
         elevation_correction: Optional[float] = None,
         store_id: int = DEFAULT_STORE_ID,
     ):
@@ -174,6 +177,7 @@ class Template(Model):
         self.weapon = weapon
         self.texture = texture
         self.coefs = coefs if coefs is not None else [0.5, 0.5, 0.75]
+        self.scale = scale if scale is not None else [1.0, 1.0, 1.0]
         self.elevation_correction = elevation_correction
         self.store_id = store_id
 
