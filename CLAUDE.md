@@ -28,6 +28,29 @@ Every Python file written or edited (modules, tools, one-off scripts) is laid ou
   and modules are imported the classic way: `from lib import jsn`, `from client import loader`.
   Entry points are run with the source folder on the path, for example `PYTHONPATH=src python3 -m server.main`.
 
+## Debug output
+
+- Every `print()` added to the code is guarded by the module's `_Debug` flag:
+
+  ```python
+  if _Debug:
+      print('loaded %d trees' % count)
+  ```
+
+- The `_Debug` check always stands alone in its own `if`, right before the `print()`,
+  and is never combined with other conditions:
+
+  ```python
+  # wrong
+  if _Debug and unknown:
+      print('unknown trunks: %r' % unknown)
+
+  # right
+  if unknown:
+      if _Debug:
+          print('unknown trunks: %r' % unknown)
+  ```
+
 Sections are split with this separator line (`#` and 78 `-`):
 
 ```python

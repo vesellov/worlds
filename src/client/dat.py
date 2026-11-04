@@ -219,6 +219,127 @@ class ModelData(object):
         self.figures = {}
         self.bones = {}
         self.animations = {}
+        # template -> coefs of the body variant the animations were recorded for
+        self.animations_coefs = {}
+        # (template, part names, coefs) -> height of the root part above the lowest point of the body
+        self.root_heights = {}
+        # template -> {part name: parent part name}
+        self.parents = {}
+        # part name -> True when the figure is the same in all 8 body variants
+        self.constant_figures = {}
+
+    def part_parents(self, template):
+        if template not in self.parents:
+            parents = {}
+            res.walk_tree(self.links[template]['ordered'], None, lambda parent, name: parents.__setitem__(name, parent))
+            self.parents[template] = parents
+        return self.parents[template]
+
+    def is_figure_constant(self, part_name):
+        """
+        Some parts, for example the head of a human, do not depend on the coefs: all 8 variants of the figure are the same.
+        """
+        if part_name not in self.constant_figures:
+            constant = False
+            fig_data = self.figures.get(part_name)
+            if fig_data:
+                constant = all(block[a][v] == block[a][0] for block in fig_data[13] for a in range(3) for v in range(8))
+            self.constant_figures[part_name] = constant
+        return self.constant_figures[part_name]
+
+    def part_coefs(self, template, part_name, coefs):
+        """
+        Returns coefs to build the given part with. Parts put on a part which does not depend on the coefs
+        (a helmet on the head) are built with the coefs of the body variant the constant part was made for,
+        otherwise a helmet of a small body becomes smaller than the head.
+        """
+        parent_part_name = self.part_parents(template).get(part_name)
+        if not parent_part_name or not self.is_figure_constant(parent_part_name):
+            return coefs
+        animations_coefs = self.find_animations_coefs(template)
+        if animations_coefs is None:
+            return coefs
+        return animations_coefs
+
+    def find_animations_coefs(self, template):
+        """
+        Animations keep shifts of the parts made for one of the 8 body variants mixed by the coefs.
+        Finds that variant comparing lengths of the shifts with lengths of the bones of every variant.
+        Returns coefs of the variant or None when the model has no animations.
+        """
+        if template in self.animations_coefs:
+            return self.animations_coefs[template]
+        parents = self.part_parents(template)
+        votes = [0] * 8
+        for animation in self.animations.values():
+            errors = [0.0] * 8
+            found = False
+            for part_name, anm_info in animation.items():
+                bone = self.bones.get(part_name)
+                if not parents.get(part_name) or not bone or len(bone) != 8 or not anm_info[3]:
+                    continue
+                shift_len = mth.vec3len(anm_info[3][0])
+                for v in range(8):
+                    errors[v] += abs(shift_len - mth.vec3len(bone[v]))
+                found = True
+            if found:
+                votes[errors.index(min(errors))] += 1
+        coefs = None
+        if max(votes) > 0:
+            v = votes.index(max(votes))
+            # same order of the variants as in mth.trilinear(): index = 4 * coefs[2] + 2 * coefs[0] + coefs[1]
+            coefs = [float((v >> 1) & 1), float(v & 1), float(v >> 2)]
+        self.animations_coefs[template] = coefs
+        return coefs
+
+    def root_height(self, template, part_names, coefs):
+        """
+        Height of the root part above the lowest vertex of the body in the bind pose, in the coordinates of the model.
+        """
+        key = (template, tuple(part_names), tuple(coefs))
+        if key in self.root_heights:
+            return self.root_heights[key]
+
+        def _lowest(tree, position):
+            """
+            Returns the lowest vertex of the part and of all parts attached to it.
+            """
+            lowest = 0.0
+            part_name = tree[0]
+            if part_name not in part_names:
+                return lowest
+            if position is None:
+                # the root part is placed by the animation, its own shift is not part of the height
+                position = [0.0, 0.0, 0.0]
+            else:
+                bone = self.bones.get(part_name)
+                if bone and len(bone) == 8:
+                    position = [position[i] + mth.trilinear([bone[v][i] for v in range(8)], coefs) for i in range(3)]
+            fig_data = self.figures.get(part_name)
+            if fig_data:
+                for block in fig_data[13]:
+                    for j in range(4):
+                        lowest = min(lowest, position[2] + mth.trilinear([block[2][k][j] for k in range(8)], coefs))
+            for branch in tree[1]:
+                lowest = min(lowest, _lowest(branch, position))
+            return lowest
+
+        lowest = _lowest(self.links[template]['ordered'], None)
+        self.root_heights[key] = -lowest
+        return -lowest
+
+    def animations_root_scale(self, template, part_names, coefs):
+        """
+        Shifts of the root part in the animations (height of the hips, swinging of the body) are recorded for one body variant.
+        Returns the ratio which fits them to the body built with the given coefs, so the legs stay on the ground.
+        """
+        animations_coefs = self.find_animations_coefs(template)
+        if animations_coefs is None:
+            return 1.0
+        recorded_height = self.root_height(template, part_names, animations_coefs)
+        if recorded_height <= 0.0:
+            return 1.0
+        return self.root_height(template, part_names, coefs) / recorded_height
 
     def load_figure_data(self, figure_dir_path, template):
         lnk_file_path = os.path.join(figure_dir_path, template + '.lnk')

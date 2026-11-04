@@ -676,5 +676,6 @@ class GameClient(object):
             self.input_lead = min(INPUT_LEAD_MAX, lead_needed)
         else:
             self.input_lead = max(INPUT_LEAD_MIN, self.input_lead * 0.9 + lead_needed * 0.1)
-        if _Debug and o.input_slack < 0:
-            print(f'controls {o.input_seq} came {-o.input_slack} ticks late, input lead is {self.input_lead:.1f} ticks now')
+        if o.input_slack < 0:
+            if _Debug:
+                print(f'controls {o.input_seq} came {-o.input_slack} ticks late, input lead is {self.input_lead:.1f} ticks now')
