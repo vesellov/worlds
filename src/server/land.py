@@ -19,10 +19,13 @@ import math
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 from shapely.geometry import Point, Polygon
 import numpy as np
+import cv2
 
 #------------------------------------------------------------------------------
 
+from lib import const
 from lib import mth
+from lib import zone
 
 #------------------------------------------------------------------------------
 
@@ -37,6 +40,49 @@ RIVERS_MAX_ELEVATION_LEVEL = 3
 LAKES_MAX_ELEVATION_LEVEL = 2
 ROUTES_MIN_ELEVATION_LEVEL = 23
 BUILDINGS_MIN_ELEVATION_LEVEL = 24
+
+# units can not walk up or down the land steeper than that, degrees. The slope is averaged
+# over ZONE_SLOPE_RADIUS around every point, so a short steep step on a gentle hill does not stop them
+ZONE_MAX_SLOPE = 35.0
+ZONE_SLOPE_RADIUS = 0.5
+
+# units can not walk into water deeper than that, in the units of the models: about half of the hero
+ZONE_MAX_DEPTH = 0.9
+
+# closed spots and open holes of the land smaller than that are removed from zonemap.png, in segments
+ZONE_MIN_SPOT = 0.5
+
+# plants with such names are solid, units can not walk through them: trees and stumps,
+# other plants (grass, reed, bushes, mushrooms ...) units walk through
+SOLID_PLANT_NAME_SUFFIXES = ('_tree', '_stump')
+
+# radius of the trunk near the ground (up to 2.0 above it, a bit higher than the hero), in the units of the models.
+# Measured on the "trunk" part for the 8 basic variants of the model: coefficients 0.0 and 1.0 in the order of
+# mth.trilinear(), the first one is the model with all coefficients 0.0. The radius of a plant is interpolated
+# from them by the coefficients of the plant, the same way the client builds the model of the plant
+TRUNK_RADIUS = {
+    'nafltr21': (1.35, 2.71, 1.35, 1.35, 2.71, 5.41, 2.71, 2.71),
+    'nafltr22': (0.58, 1.15, 0.58, 0.58, 0.86, 1.73, 0.86, 0.86),
+    'nafltr56': (0.29, 1.11, 0.43, 0.43, 0.44, 1.61, 0.65, 0.65),
+    'nafltr57': (0.25, 0.76, 0.62, 0.62, 0.38, 1.16, 0.94, 0.94),
+    'nafltr68': (0.29, 1.11, 0.43, 0.43, 0.44, 1.61, 0.65, 0.65),
+    'nafltr69': (0.25, 0.76, 0.62, 0.62, 0.38, 1.16, 0.94, 0.94),
+    'nafltr75': (0.49, 1.97, 0.98, 0.98, 0.98, 3.94, 1.97, 1.97),
+}
+
+# used for a solid plant which model is not in TRUNK_RADIUS, in the units of the models
+DEFAULT_TRUNK_RADIUS = 0.5
+
+# free space between the figure of a unit and a trunk, about half of the hero size, in the units of the models
+TRUNK_GAP = 0.5
+
+# radius in segments of the area of a building where units can not walk, they also keep their own radius from it
+BUILDING_RADIUS = {
+    'capital': 0.44,
+    'tower': 0.24,
+    'flag': 0.05,
+}
+DEFAULT_BUILDING_RADIUS = 0.15
 
 #------------------------------------------------------------------------------
 
@@ -589,7 +635,7 @@ def build_tiles(data, tiles_draw, tiles_colors):
     return count
 
 
-def build_routes(data, tiles_draw, routes_draw=None, zonemap_draw=None, highlight_routes=False, show_trails=False):
+def build_routes(data, tiles_draw, routes_draw=None, highlight_routes=False, show_trails=False):
     cells = data['pack']['cells']
     count = 0
     for route in data['pack']['routes']:
@@ -617,8 +663,6 @@ def build_routes(data, tiles_draw, routes_draw=None, zonemap_draw=None, highligh
                 if highlight_routes:
                     color = (0, (count % 4) * 64, 255 - ((count - 2) % 4) * 64) if is_trail else (255 - (count % 4) * 64, 0, ((count + 2) % 4)* 64)
                 tiles_draw.line([(p1[0], p1[1]), (p2[0], p2[1])], fill=color, width=1 if highlight_routes else 3)
-            if zonemap_draw:
-                zonemap_draw.line([(p1[0], p1[1]), (p2[0], p2[1])], fill=(255, 255, 255), width=3)
             if routes_draw:
                 routes_draw.line([(p1[0], p1[1]), (p2[0], p2[1])], fill=(255, 0, 0) if route['group'] == 'roads' else (0, 0, 255), width=2)
         count += 1
@@ -683,7 +727,7 @@ def update_routes_elevation(heightmap_image, routes_map, min_route_elevation, ro
     return changes
 
 
-def build_rivers(data, draw, rivers_draw, zonemap_draw, max_rivers=25, min_length=100):
+def build_rivers(data, draw, rivers_draw, max_rivers=25, min_length=100):
     river_shallow_tile = 'dirt6'
     river_deep_tile = 'water5'
     cells = data['pack']['cells']
@@ -692,7 +736,6 @@ def build_rivers(data, draw, rivers_draw, zonemap_draw, max_rivers=25, min_lengt
     def _d(points, fill, width):
         draw.line(points, fill=fill, width=width)
         rivers_draw.line(points, fill=fill, width=width)
-        zonemap_draw.line(points, fill=(0, 0, 0), width=width)
 
     rivers = sorted(data['pack']['rivers'], key=lambda r: r['length'], reverse=True)
     for river in rivers:
@@ -754,14 +797,13 @@ def update_rivers_elevation(heightmap_image, rivers_map, max_river_elevation):
     return changes
 
 
-def build_heightmap(data, draw, packed_draw, zonemap_draw):
+def build_heightmap(data, draw, packed_draw):
     biomes_names = data['biomesData']['name']
     cells = data['pack']['cells']
     vertices = data['pack']['vertices']
     bellow_water_count = 0
     above_cliffs_count = 0
     for cell in cells:
-        zst = True
         points = []
         for v_i in cell['v']:
             v = vertices[v_i]
@@ -770,14 +812,12 @@ def build_heightmap(data, draw, packed_draw, zonemap_draw):
         h = cell['h']
         cell_feature = data['pack']['features'][cell['f']]
         if cell_feature['type'] == 'lake':
-            zst = False
             # h = round(cell_feature['height']) - 2
             if round(cell_feature['height']) > LAKES_MAX_ELEVATION_LEVEL:
                 h = LAKES_MAX_ELEVATION_LEVEL
         else:
             biome = biomes_names[cell['biome']]
             if biome == 'Marine':
-                zst = False
                 if h < INPUT_WATER_LEVEL:
                     h = 1
         packed_draw.polygon(points, fill=(h, h, h))
@@ -792,17 +832,10 @@ def build_heightmap(data, draw, packed_draw, zonemap_draw):
                 h = INPUT_WATER_LEVEL + 1
         if h < INPUT_WATER_LEVEL:
             bellow_water_count += 1
-        if h < INPUT_WATER_LEVEL - 1:
-            zst = False
         if h > CLIFFS_HEIGHT_MARGIN:
-            # zst = False
             above_cliffs_count += 1
         # e = elevation_to_scale_255(elevation_unpack(h))
         draw.polygon(points, fill=(h, h, h))
-        if zst:
-            zonemap_draw.polygon(points, fill=(255, 255, 255))
-        else:
-            zonemap_draw.polygon(points, fill=(0, 0, 0))
     return bellow_water_count, above_cliffs_count
 
 
@@ -1128,7 +1161,7 @@ def update_buildings_elevation(heightmap_image, buildings, min_building_elevatio
     return changes
 
 
-def build_plants(data, buildings, tiles_image, tiles_map, cell_index_map, catalog_plants, heightmap_image, zonemap_draw):
+def build_plants(data, buildings, tiles_image, tiles_map, cell_index_map, catalog_plants, heightmap_image):
     cells = data['pack']['cells']
     biomes_names = data['biomesData']['name']
     result = {}
@@ -1694,69 +1727,139 @@ def encode_tiles(encoded_image, tiles, water_catalog_id):
     return catalog_stats
 
 
-def build_zonemap(zonemap_image, tiles_map, heightmap_image):
-    h_cliff_min = None
-    h_cliff_max = None
-    for x in range(1, zonemap_image.width-1):
-        for y in range(1, zonemap_image.height-1):
-            tile = tiles_map[(x, y)]
-            if tile in ['cliff1', 'cliff2']:
-                zonemap_image.putpixel((x, y), (0, 0, 0))
-                zonemap_image.putpixel((x+1, y), (0, 0, 0))
-                zonemap_image.putpixel((x, y+1), (0, 0, 0))
-                zonemap_image.putpixel((x-1, y), (0, 0, 0))
-                zonemap_image.putpixel((x, y-1), (0, 0, 0))
-                h = heightmap_image.getpixel((x, y))[0]
-                if h_cliff_min is None or h < h_cliff_min:
-                    h_cliff_min = h
-                if h_cliff_max is None or h > h_cliff_max:
-                    h_cliff_max = h
-    above_cliffs = set()
-    for x in range(1, zonemap_image.width-1):
-        for y in range(1, zonemap_image.height-1):
-            h = heightmap_image.getpixel((x, y))[0]
-            if h_cliff_max and h > h_cliff_max:
-                above_cliffs.add((x, y))
-    expanded = set()
-    for x, y in above_cliffs:
-        for xn, yn in [
-            (x-1, y-1),
-            (x-1, y),
-            (x-1, y+1),
-            (x,   y-1),
-            (x,   y+1),
-            (x+1, y-1),
-            (x+1, y),
-            (x+1, y+1),
-        ]:
-            neighbor_zonemap = zonemap_image.getpixel((xn, yn))[0]
-            if neighbor_zonemap > 0:
-                expanded.add((xn, yn))
-    progress = 1
-    while progress:
-        progress = 0
-        more = set()
-        for x, y in expanded:
-            for xn, yn in [
-                (x-1, y-1),
-                (x-1, y),
-                (x-1, y+1),
-                (x,   y-1),
-                (x,   y+1),
-                (x+1, y-1),
-                (x+1, y),
-                (x+1, y+1),
-            ]:
-                if (xn, yn) not in expanded:
-                    neighbor_zonemap = zonemap_image.getpixel((xn, yn))[0]
-                    if neighbor_zonemap > 0:
-                        more.add((xn, yn))
-        if more:
-            progress = 1
-        expanded.update(more)
-    for x, y in expanded:
-        zonemap_image.putpixel((x, y), (0, 0, 0))
-    return len(expanded)
+def unpack_elevation(heightmap_values):
+    """
+    Elevations of the land from 0.0 to 1.0, the same as dat.LandData.load_heightmap_file() on the client,
+    heightmap_values is a numpy array of the red channel of heightmap.png.
+    """
+    h = heightmap_values.astype(np.float64)
+    above = np.power(np.maximum(h - 18.0, 0.0), const.ELEVATION_UNPACK_EXPONENT)
+    under = (h - const.INPUT_WATER_LEVEL) / np.maximum(h, 1.0) * const.ELEVATION_UNPACK_UNDERWATER_FACTOR
+    bottom = -1.0 * (const.INPUT_WATER_LEVEL - 1) * const.ELEVATION_UNPACK_UNDERWATER_FACTOR
+    unpacked = np.where(h > const.INPUT_WATER_LEVEL, above, np.where(h <= 0, bottom, under))
+    e_min = (1.0 - const.INPUT_WATER_LEVEL) * const.ELEVATION_UNPACK_UNDERWATER_FACTOR
+    e_max = math.pow(100.0 - 18.0, const.ELEVATION_UNPACK_EXPONENT)
+    return (unpacked - e_min) / (e_max - e_min)
+
+
+def wrapped_filter(image, margin, filter_function):
+    """
+    The map wraps around at its edges: the image is extended by its own opposite edges before filter_function is applied.
+    """
+    padded = np.pad(image, margin, mode='wrap')
+    return filter_function(padded)[margin:-margin, margin:-margin]
+
+
+def build_zone_land(heightmap_image, scale):
+    """
+    Closed areas of the land, scale pixels along a segment: 1 where units can not walk.
+    The land between the corners of the segments is made of two triangles, the same way the client renders it,
+    see scen.Scene.calculate_elevation(), every pixel gets the slope and the depth of water at its center.
+    """
+    e = unpack_elevation(np.array(heightmap_image.convert('RGB'))[:, :, 0]).astype(np.float32) * const.ELEVATION_FACTOR
+    height, width = e.shape
+    water = const.WATER_LEVEL / 100.0 * const.ELEVATION_FACTOR
+    # value of heightmap.png at (w, h) is the elevation of the corner (w, h) of the segment
+    e10 = np.roll(e, -1, axis=1)
+    e01 = np.roll(e, -1, axis=0)
+    e11 = np.roll(e01, -1, axis=1)
+    slope_lower = np.degrees(np.arctan(np.hypot(e10 - e, e01 - e) / const.SEGMENT_SIZE))
+    slope_upper = np.degrees(np.arctan(np.hypot(e11 - e01, e11 - e10) / const.SEGMENT_SIZE))
+    # pixels inside of a segment: rows go along h (v), columns along w (u), the lower triangle has u + v < 1
+    t = ((np.arange(scale) + 0.5) / scale).astype(np.float32)
+    u = t[None, None, None, :]
+    v = t[None, :, None, None]
+    lower = (u + v) < 1.0
+    shape = (height * scale, width * scale)
+    slope = np.where(lower, slope_lower[:, None, :, None], slope_upper[:, None, :, None]).reshape(shape)
+    ground = np.where(
+        lower,
+        e[:, None, :, None] + (e10 - e)[:, None, :, None] * u + (e01 - e)[:, None, :, None] * v,
+        e11[:, None, :, None] + (e01 - e11)[:, None, :, None] * (1.0 - u) + (e10 - e11)[:, None, :, None] * (1.0 - v),
+    ).reshape(shape)
+    deep = (water - ground) > ZONE_MAX_DEPTH
+    del ground
+    slope_size = 2 * int(round(ZONE_SLOPE_RADIUS * scale)) + 1
+    slope = wrapped_filter(slope.astype(np.float32), slope_size, lambda im: cv2.blur(im, (slope_size, slope_size)))
+    steep = slope > ZONE_MAX_SLOPE
+    closed = (steep | deep).astype(np.uint8)
+    spot_size = 2 * int(round(ZONE_MIN_SPOT * scale / 2.0)) + 1
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (spot_size, spot_size))
+    closed = wrapped_filter(closed, spot_size, lambda im: cv2.morphologyEx(im, cv2.MORPH_OPEN, kernel))
+    closed = wrapped_filter(closed, spot_size, lambda im: cv2.morphologyEx(im, cv2.MORPH_CLOSE, kernel))
+    return closed, int(steep.sum()), int(deep.sum())
+
+
+def zone_distances(closed, scale):
+    """
+    Signed distance in segments from the center of every pixel to the border of the closed area, negative inside of it.
+    """
+    margin = int(math.ceil(zone.DISTANCE_BORDER * zone.DISTANCE_STEP * scale)) + 2
+    padded = np.pad(closed, margin, mode='wrap')
+    outside = cv2.distanceTransform((1 - padded).astype(np.uint8), cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+    inside = cv2.distanceTransform(padded, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
+    # distance transforms measure from center to center, the border is half of a pixel from the centers next to it
+    distances = np.where(padded > 0, 0.5 - inside, outside - 0.5) / float(scale)
+    return distances[margin:-margin, margin:-margin].astype(np.float32)
+
+
+def add_zone_circle(distances, x, y, radius, scale):
+    """
+    Round obstacle at (x, y) with that radius in segments: the distance to it is exact, not made of pixels.
+    """
+    rows_count, columns_count = distances.shape
+    reach = radius + zone.DISTANCE_BORDER * zone.DISTANCE_STEP
+    columns = np.arange(int(math.floor((x - reach) * scale)), int(math.ceil((x + reach) * scale)) + 1)
+    rows = np.arange(int(math.floor((y - reach) * scale)), int(math.ceil((y + reach) * scale)) + 1)
+    dx = (columns + 0.5) / scale - x
+    dy = (rows + 0.5) / scale - y
+    circle = (np.sqrt(dy[:, None] * dy[:, None] + dx[None, :] * dx[None, :]) - radius).astype(np.float32)
+    # the map wraps around at its edges
+    window = np.ix_(rows % rows_count, columns % columns_count)
+    distances[window] = np.minimum(distances[window], circle)
+
+
+def build_zonemap(heightmap_image, buildings, plants, scale=zone.SCALE):
+    """
+    zonemap.png says where units can walk, see lib.zone: steep mountains, deep water, trees and buildings are closed.
+    Every pixel keeps the distance to the closed area, scale pixels along a segment of the map.
+    Built from the final heightmap, the one the client renders, so the closed area matches the land the player sees.
+    Returns the image and counts of the closed pixels.
+    """
+    closed, steep_count, deep_count = build_zone_land(heightmap_image, scale)
+    distances = zone_distances(closed, scale)
+    stats = {
+        'steep': steep_count,
+        'deep': deep_count,
+        'land': int(closed.sum()),
+        'trees': 0,
+        'buildings': 0,
+    }
+    del closed
+    unknown = set()
+    # keys of plants are "template#texture#parts", every plant is "c1:c2:c3 x y direction plant_name template_key"
+    for plant_key, plants_list in plants.items():
+        template = plant_key.split('#')[0].lower()
+        for plant_coded in plants_list:
+            coefs, x, y, _, plant_name, _ = plant_coded.split(' ')
+            if not plant_name.endswith(SOLID_PLANT_NAME_SUFFIXES):
+                continue
+            if template in TRUNK_RADIUS:
+                trunk_radius = mth.trilinear(TRUNK_RADIUS[template], mth.quantize_coefs([float(c) for c in coefs.split(':')]))
+            else:
+                unknown.add(template)
+                trunk_radius = DEFAULT_TRUNK_RADIUS
+            add_zone_circle(distances, float(x), float(y), (trunk_radius + TRUNK_GAP) / const.SEGMENT_SIZE, scale)
+            stats['trees'] += 1
+    if unknown:
+        print(f"WARNING, trunks of {sorted(unknown)} were not measured, see TRUNK_RADIUS, {DEFAULT_TRUNK_RADIUS} is used")
+    for building in buildings:
+        # buildings are placed at the corner of the segment, see scen.Scene.add_land_segment()
+        radius = BUILDING_RADIUS.get(building['k'], DEFAULT_BUILDING_RADIUS)
+        add_zone_circle(distances, float(building['x']), float(building['y']), radius, scale)
+        stats['buildings'] += 1
+    values = np.clip(np.round(zone.DISTANCE_BORDER + distances / zone.DISTANCE_STEP), 0, 255).astype(np.uint8)
+    return Image.fromarray(values), stats
 
 
 def build_minimap(data, buildings, minimap_image):
@@ -1822,9 +1925,6 @@ def main():
     water_color = biomes_colors_data[0].lstrip('#')
     print(f'Found {len(biomes_colors_data)} biomes colors, water color is #{water_color}')
 
-    zonemap_image = Image.new("RGB", (width, height), (0, 0, 0))
-    zonemap_draw = ImageDraw.Draw(zonemap_image)
-
     tiles_stats = enrich_data_with_tiles_mapping(data)
     different_tiles = list(tiles_stats.keys())
     different_tiles.sort(key=lambda i: tiles_stats[i], reverse=True)
@@ -1843,7 +1943,7 @@ def main():
     heightmap_draw = ImageDraw.Draw(heightmap_image)
     heightmap_packed_image = Image.new("RGB", (width, height), (0, 0, 0))
     heightmap_packed_draw = ImageDraw.Draw(heightmap_packed_image)
-    bellow_water_count, above_cliffs_count = build_heightmap(data, heightmap_draw, heightmap_packed_draw, zonemap_draw)
+    bellow_water_count, above_cliffs_count = build_heightmap(data, heightmap_draw, heightmap_packed_draw)
     heightmap_packed_image.save('assets/heightmap_packed.png')
     # heightmap_image = heightmap_image.filter(ImageFilter.GaussianBlur(radius=1.0))
     # elevation_data = capture_elevation_data(heightmap_image)
@@ -1875,13 +1975,13 @@ def main():
 
         rivers_image = Image.new("RGB", (width, height), 'black')
         rivers_draw = ImageDraw.Draw(rivers_image)
-        rivers_count = build_rivers(data, tiles_draw, rivers_draw, zonemap_draw)
+        rivers_count = build_rivers(data, tiles_draw, rivers_draw)
         rivers_image.save('assets/rivers.png')
         print(f'Rendered {rivers_count} rivers')
 
         routes_image = Image.new("RGB", (width, height), "black")
         routes_draw = ImageDraw.Draw(routes_image)
-        routes_count = build_routes(data, tiles_draw, routes_draw=routes_draw, zonemap_draw=zonemap_draw)
+        routes_count = build_routes(data, tiles_draw, routes_draw=routes_draw)
         print(f'Rendered {routes_count} routes at {len(routes_map)} tiles')
 
         routes_image.save('assets/routes.png')
@@ -1971,7 +2071,6 @@ def main():
         print(f"Found missing catalog items between different tile types:")
         print('  ' + ('\n  '.join([f'{pair[0]} - {pair[1]} at {coord[0]}:{coord[1]}' for pair, coord in missing_links.items()])))
         heightmap_image.save('assets/heightmap_raw.png')
-        zonemap_image.save('assets/zonemap.png')
         raise Exception("Missing links detected")
 
     for x in range(0, tiles_image.width-1):
@@ -2027,13 +2126,13 @@ def main():
     encoded_image.save('assets/encoded.png')
     print(f"Generated encoded tiles image")
 
-    plants = build_plants(data, buildings, tiles_image, tiles_map, cell_index_map, catalog_plants, heightmap_image, zonemap_draw)
+    plants = build_plants(data, buildings, tiles_image, tiles_map, cell_index_map, catalog_plants, heightmap_image)
     open('assets/plants.json', 'w').write(json.dumps(plants, indent=2))
     print(f"Generated plants data with {len(plants)} plants")
 
-    changed = build_zonemap(zonemap_image, tiles_map, heightmap_image)
-    zonemap_image.save('assets/zonemap.png')
-    print(f"Updated zonemap with {changed} changes")
+    zonemap_image, zonemap_stats = build_zonemap(heightmap_image, buildings, plants)
+    zonemap_image.save('assets/zonemap.png', optimize=True)
+    print(f"Generated zonemap {zonemap_image.width}x{zonemap_image.height}, closed: {zonemap_stats}")
 
     minimap_image = tiles_image_output.copy()
     build_minimap(data, buildings, minimap_image)

@@ -23,6 +23,7 @@ from kivy.clock import Clock
 
 from lib import models
 from lib import physics
+from lib import zone
 from client import ws
 from client import hero
 from client import loader
@@ -76,17 +77,20 @@ class Prediction(object):
     """
     Position of one object at any moment, calculated with the same rules as the server uses, see lib.physics.
     Movement starts from the last state received from the server (the base) and the server ticks after it
-    are repeated on the client with the controls of the unit: controls of the own hero are known in advance,
+    are repeated on the client with the controls of the unit and the same zonemap, see lib.zone,
+    so the unit stops or slides along a wall right when the server does it: controls of the own hero are known in advance,
     because the client asks the server to apply them at the given tick, other units are expected to keep
     the controls they had in the last state. Between the ticks the position is interpolated.
     So the drawn unit is always where the server has it, including slowing down after the move button was released.
-    When the server did something the client could not know (the unit was blocked, another player pressed a button)
+    When the server did something the client could not know (the unit was blocked by another unit, another player pressed a button)
     the new state does not match: the difference is removed smoothly in CORRECTION_TIME, or right away if it is large.
     Positions are continuous map coordinates: x = w + shift_w, y = h + shift_h.
     """
 
-    def __init__(self, o, tick, now):
+    def __init__(self, o, tick, now, zonemap=None):
         self.o = o
+        # lib.zone.ZoneMap of the biome, units are not checked for obstacles without it
+        self.zonemap = zonemap
         # (tick, models.Controls) sent by this client and not applied by the server yet, only for the own hero
         self.scheduled = []
         self.error_x = 0.0
@@ -127,9 +131,11 @@ class Prediction(object):
         while len(self.states) <= i:
             w, h, shift_w, shift_h, direction, speed = self.states[-1]
             move, turn, target_direction = self.controls_at(self.base_tick + len(self.states))
-            self.states.append(physics.step(
-                w, h, shift_w, shift_h, direction, speed, move, turn, target_direction,
+            # other units are not known here, only the server checks them, see server.simulation.Simulation.run_unit()
+            self.states.append(physics.move(
+                self.zonemap, w, h, shift_w, shift_h, direction, speed, move, turn, target_direction,
                 o.max_speed, o.acceleration_value, o.deceleration_value, o.turn_speed,
+                zone.unit_radius(zone.unit_size(o)),
             ))
         return self.states[i]
 
@@ -226,6 +232,8 @@ class GameClient(object):
         self.biome_id = None
         self.location_id = None
         self.biome_ready = scene is not None
+        # lib.zone.ZoneMap of the current biome, see biome_loaded()
+        self.zonemap = None
         # archive of the biome being received: {sha256, size, chunks, parts}
         self.biome_receiving = None
         self.url = url or f'ws://127.0.0.1:{models.DEFAULT_PORT}/'
@@ -480,11 +488,12 @@ class GameClient(object):
         if self.on_biome:
             self.on_biome(self.location_id, dest_dir_path, error)
 
-    def biome_loaded(self):
+    def biome_loaded(self, zonemap=None):
         """
         The land of the biome was loaded by the application, messages received meanwhile are processed:
-        the welcome message comes first, see on_welcome.
+        the welcome message comes first, see on_welcome. zonemap is lib.zone.ZoneMap of the biome.
         """
+        self.zonemap = zonemap
         self.biome_ready = True
         pending = self.pending_messages
         self.pending_messages = []
@@ -534,8 +543,8 @@ class GameClient(object):
 
     def create_view(self, o, view, tick):
         t = o.template
-        view.create_unit(o.w, o.h, elevation_correction=t.elevation_correction, coefs=list(t.coefs), shift_w=o.shift_w, shift_h=o.shift_h, direction=o.direction)
-        prediction = Prediction(o, tick, time.perf_counter())
+        view.create_unit(o.w, o.h, elevation_correction=t.elevation_correction, coefs=list(t.coefs), scale=list(t.scale), shift_w=o.shift_w, shift_h=o.shift_h, direction=o.direction)
+        prediction = Prediction(o, tick, time.perf_counter(), zonemap=self.zonemap)
         self.objects[o.id] = (o, view, prediction)
         self.apply(o, view)
         if o.id == self.hero_id:

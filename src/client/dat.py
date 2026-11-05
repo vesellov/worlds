@@ -25,6 +25,54 @@ from kivy.resources import resource_find
 from lib import const
 from lib import res
 from lib import mth
+from lib import zone
+
+#------------------------------------------------------------------------------
+
+# armor type -> code of the armor in the names of its textures: <model><code>_<texture_type_1>.<material code>.<texture_type_2>
+ARMOR_TYPE_CODES = {
+    'plate': 'pl',
+    'gloves': 'gl',
+    'leggings': 'lg',
+    'boots': 'bt',
+    'shirt': 'sh',
+    'helm': 'hl',
+    'pants': 'pt',
+}
+
+# armor type -> parts of the figure it covers, ".a" is replaced with ".armor<texture_type_1>" when the armor has its own parts
+ARMOR_BODY_PARTS = {
+    'plate': ('bd.a', 'rh1.a', 'rh2.a', 'lh1.a', 'lh2.a'),
+    'gloves': ('lh3', 'rh3'),
+    'leggings': ('hp.a', 'rl1.a', 'rl2.a', 'rl3.a', 'll1.a', 'll2.a', 'll3.a'),
+    'boots': ('ll3', 'rl3'),
+    'shirt': ('bd', 'rh1', 'rh2', 'rh3', 'lh1', 'lh2', 'lh3'),
+    'helm': ('hd.a', ),
+    'pants': ('hp', 'rl1', 'rl2', 'll1', 'll2'),
+}
+
+# pants of these texture_type_1 also have the shells on the hips
+ARMOR_PANTS_WITH_SHELLS = (1, 2, 3, 6)
+
+#------------------------------------------------------------------------------
+
+
+def armor_body_parts(armor_type, armor_id):
+    """
+    Parts of the figure which the armor covers, see ARMOR_BODY_PARTS.
+    """
+    body_parts = list(ARMOR_BODY_PARTS[armor_type])
+    if armor_type == 'pants' and armor_id in ARMOR_PANTS_WITH_SHELLS:
+        body_parts.append('l_shell.a')
+        body_parts.append('r_shell.a')
+    return [body_part.replace('.a', f'.armor{armor_id:02}' if armor_id else '') for body_part in body_parts]
+
+
+def armor_texture_name(model_name, armor_type, armor, material):
+    """
+    Name of the texture of the armor made of the material for that model, without the layer number.
+    """
+    return f"{model_name}{ARMOR_TYPE_CODES[armor_type]}_{armor['texture_type_1']:02}.{material['code']}.{armor['texture_type_2']}"
 
 #------------------------------------------------------------------------------
 
@@ -599,35 +647,11 @@ class CatalogData(object):
             #     has_shirt = True
             # elif armor_type == 'boots':
             #     has_boots = True
-            armor_code = dict(
-                plate='pl', 
-                gloves='gl',
-                leggings='lg',
-                boots='bt',
-                shirt='sh',
-                helm='hl',
-                pants='pt',
-            ).get(armor_type)
-            texture_type_1 = armor['texture_type_1']
-            texture_type_2 = armor['texture_type_2']
-            armor_id = int(texture_type_1)
+            armor_id = int(armor['texture_type_1'])
             material = self.materials[material_name]
-            material_code = material['code']
-            body_parts = dict(
-                plate='bd.a,rh1.a,rh2.a,lh1.a,lh2.a',
-                gloves='lh3,rh3',
-                leggings='hp.a,rl1.a,rl2.a,rl3.a,ll1.a,ll2.a,ll3.a',
-                boots='ll3,rl3',
-                shirt='bd,rh1,rh2,rh3,lh1,lh2,lh3',
-                helm='hd.a',
-                pants='hp,rl1,rl2,ll1,ll2',
-            ).get(armor_type).split(',')
-            if armor_type == 'pants' and armor_id in [1, 2, 3, 6]:
-                body_parts.append('l_shell.a')
-                body_parts.append('r_shell.a')
+            body_parts = armor_body_parts(armor_type, armor_id)
             for body_part in body_parts:
-                body_part = body_part.replace('.a', f'.armor{armor_id:02}' if armor_id else '')
-                body_part_texture = f"{model_name}{armor_code}_{texture_type_1:02}.{material_code}.{texture_type_2}"
+                body_part_texture = armor_texture_name(model_name, armor_type, armor, material)
                 if body_part.count('.armor'):
                     if armor_type in ['helm', ]:
                         body_part_texture = f'{body_part_texture}:1'
@@ -643,8 +667,6 @@ class CatalogData(object):
                     body_part_texture = f'{body_part_texture}:0'
                 textures[body_part] = body_part_texture
             for body_part in body_parts:
-                armor_id = texture_type_1
-                body_part = body_part.replace('.a', f'.armor{armor_id:02}' if armor_id else '')
                 if body_part not in parts:
                     parts.append(body_part)
         if is_human:
@@ -841,6 +863,13 @@ class LandData(object):
         self.buildings_map_data = {}
         self.capitals = {}
         self.towers = {}
+        # lib.zone.ZoneMap: where units can walk, the movement is predicted with it the same way the server moves them
+        self.zonemap = None
+
+    def load_zonemap_file(self, zonemap_file_path):
+        # the heightmap is loaded before, it gives the size of the map
+        with open(zonemap_file_path, 'rb') as f:
+            self.zonemap = zone.ZoneMap.from_png(f.read(), self.width, self.height)
 
     def load_tilemap_file(self, tilemap_file_path):
         im = Image(tilemap_file_path, keep_data=True)
