@@ -210,8 +210,6 @@ class Renderer(Widget):
         self.joystick_latest_state = None
         # hero is moved by the server, renderer only collects what the user wants and passes it to the game client
         self.game_client = None
-        # unit which shows the figures of all types near the hero, see showcase.Showcase
-        self.showcase = None
         self.input_move = 0
         self.input_turn = 0
         self.depth_bits_reported = False
@@ -331,7 +329,6 @@ class Renderer(Widget):
             self.keyboard_handler.release()
             self.keyboard_handler = None
         self.game_client = None
-        self.showcase = None
 
     def _show_unit(self, template_data, scale=[1.0, 1.0, 1.0], coefs_index=None):
         if coefs_index is None:
@@ -953,8 +950,6 @@ class Renderer(Widget):
         # in the same frame, otherwise hero and land move at different moments and the hero shakes
         if self.game_client:
             self.game_client.interpolate(time.perf_counter())
-        if self.showcase:
-            self.showcase.update(delta)
         if self.camera_unit_lock:
             u = self.scene.units.get(self.camera_unit_lock)
             if u:

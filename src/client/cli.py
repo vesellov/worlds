@@ -666,6 +666,14 @@ class GameClient(object):
         if prediction and tick:
             prediction.schedule(controls)
 
+    def add_unit(self):
+        """
+        Asks the server to add a neutral unit in front of the hero, it comes back as "spawn" like any other unit.
+        """
+        if self.hero_id is None:
+            return
+        ws.send(models.message(models.MSG_ADD_UNIT))
+
     def on_controls_acknowledged(self, o, prediction):
         """
         Server reported the last applied controls of the own hero and how early they arrived, the lead is corrected.

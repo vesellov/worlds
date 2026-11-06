@@ -24,7 +24,7 @@ import cv2
 #------------------------------------------------------------------------------
 
 from lib import const
-from lib import mth
+from lib import flora
 from lib import zone
 
 #------------------------------------------------------------------------------
@@ -51,38 +51,6 @@ ZONE_MAX_DEPTH = 0.9
 
 # closed spots and open holes of the land smaller than that are removed from zonemap.png, in segments
 ZONE_MIN_SPOT = 0.5
-
-# plants with such names are solid, units can not walk through them: trees and stumps,
-# other plants (grass, reed, bushes, mushrooms ...) units walk through
-SOLID_PLANT_NAME_SUFFIXES = ('_tree', '_stump')
-
-# radius of the trunk near the ground (up to 2.0 above it, a bit higher than the hero), in the units of the models.
-# Measured on the "trunk" part for the 8 basic variants of the model: coefficients 0.0 and 1.0 in the order of
-# mth.trilinear(), the first one is the model with all coefficients 0.0. The radius of a plant is interpolated
-# from them by the coefficients of the plant, the same way the client builds the model of the plant
-TRUNK_RADIUS = {
-    'nafltr21': (1.35, 2.71, 1.35, 1.35, 2.71, 5.41, 2.71, 2.71),
-    'nafltr22': (0.58, 1.15, 0.58, 0.58, 0.86, 1.73, 0.86, 0.86),
-    'nafltr56': (0.29, 1.11, 0.43, 0.43, 0.44, 1.61, 0.65, 0.65),
-    'nafltr57': (0.25, 0.76, 0.62, 0.62, 0.38, 1.16, 0.94, 0.94),
-    'nafltr68': (0.29, 1.11, 0.43, 0.43, 0.44, 1.61, 0.65, 0.65),
-    'nafltr69': (0.25, 0.76, 0.62, 0.62, 0.38, 1.16, 0.94, 0.94),
-    'nafltr75': (0.49, 1.97, 0.98, 0.98, 0.98, 3.94, 1.97, 1.97),
-}
-
-# used for a solid plant which model is not in TRUNK_RADIUS, in the units of the models
-DEFAULT_TRUNK_RADIUS = 0.5
-
-# free space between the figure of a unit and a trunk, about half of the hero size, in the units of the models
-TRUNK_GAP = 0.5
-
-# radius in segments of the area of a building where units can not walk, they also keep their own radius from it
-BUILDING_RADIUS = {
-    'capital': 0.44,
-    'tower': 0.24,
-    'flag': 0.05,
-}
-DEFAULT_BUILDING_RADIUS = 0.15
 
 #------------------------------------------------------------------------------
 
@@ -1790,76 +1758,21 @@ def build_zone_land(heightmap_image, scale):
     return closed, int(steep.sum()), int(deep.sum())
 
 
-def zone_distances(closed, scale):
+def build_zonemap(heightmap_image, scale=zone.SCALE):
     """
-    Signed distance in segments from the center of every pixel to the border of the closed area, negative inside of it.
-    """
-    margin = int(math.ceil(zone.DISTANCE_BORDER * zone.DISTANCE_STEP * scale)) + 2
-    padded = np.pad(closed, margin, mode='wrap')
-    outside = cv2.distanceTransform((1 - padded).astype(np.uint8), cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
-    inside = cv2.distanceTransform(padded, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
-    # distance transforms measure from center to center, the border is half of a pixel from the centers next to it
-    distances = np.where(padded > 0, 0.5 - inside, outside - 0.5) / float(scale)
-    return distances[margin:-margin, margin:-margin].astype(np.float32)
-
-
-def add_zone_circle(distances, x, y, radius, scale):
-    """
-    Round obstacle at (x, y) with that radius in segments: the distance to it is exact, not made of pixels.
-    """
-    rows_count, columns_count = distances.shape
-    reach = radius + zone.DISTANCE_BORDER * zone.DISTANCE_STEP
-    columns = np.arange(int(math.floor((x - reach) * scale)), int(math.ceil((x + reach) * scale)) + 1)
-    rows = np.arange(int(math.floor((y - reach) * scale)), int(math.ceil((y + reach) * scale)) + 1)
-    dx = (columns + 0.5) / scale - x
-    dy = (rows + 0.5) / scale - y
-    circle = (np.sqrt(dy[:, None] * dy[:, None] + dx[None, :] * dx[None, :]) - radius).astype(np.float32)
-    # the map wraps around at its edges
-    window = np.ix_(rows % rows_count, columns % columns_count)
-    distances[window] = np.minimum(distances[window], circle)
-
-
-def build_zonemap(heightmap_image, buildings, plants, scale=zone.SCALE):
-    """
-    zonemap.png says where units can walk, see lib.zone: steep mountains, deep water, trees and buildings are closed.
-    Every pixel keeps the distance to the closed area, scale pixels along a segment of the map.
-    Built from the final heightmap, the one the client renders, so the closed area matches the land the player sees.
-    Returns the image and counts of the closed pixels.
+    zonemap.png says where units can walk, see lib.zone: black pixels are steep mountains and deep water,
+    scale pixels along a segment of the map. Built from the final heightmap, the one the client renders,
+    so the closed area matches the land the player sees. Trees and buildings are not drawn here: the server
+    and the client add them when the biome is loaded, see zone.ZoneMap.build().
+    Returns the black and white image and counts of the closed pixels.
     """
     closed, steep_count, deep_count = build_zone_land(heightmap_image, scale)
-    distances = zone_distances(closed, scale)
     stats = {
         'steep': steep_count,
         'deep': deep_count,
         'land': int(closed.sum()),
-        'trees': 0,
-        'buildings': 0,
     }
-    del closed
-    unknown = set()
-    # keys of plants are "template#texture#parts", every plant is "c1:c2:c3 x y direction plant_name template_key"
-    for plant_key, plants_list in plants.items():
-        template = plant_key.split('#')[0].lower()
-        for plant_coded in plants_list:
-            coefs, x, y, _, plant_name, _ = plant_coded.split(' ')
-            if not plant_name.endswith(SOLID_PLANT_NAME_SUFFIXES):
-                continue
-            if template in TRUNK_RADIUS:
-                trunk_radius = mth.trilinear(TRUNK_RADIUS[template], mth.quantize_coefs([float(c) for c in coefs.split(':')]))
-            else:
-                unknown.add(template)
-                trunk_radius = DEFAULT_TRUNK_RADIUS
-            add_zone_circle(distances, float(x), float(y), (trunk_radius + TRUNK_GAP) / const.SEGMENT_SIZE, scale)
-            stats['trees'] += 1
-    if unknown:
-        print(f"WARNING, trunks of {sorted(unknown)} were not measured, see TRUNK_RADIUS, {DEFAULT_TRUNK_RADIUS} is used")
-    for building in buildings:
-        # buildings are placed at the corner of the segment, see scen.Scene.add_land_segment()
-        radius = BUILDING_RADIUS.get(building['k'], DEFAULT_BUILDING_RADIUS)
-        add_zone_circle(distances, float(building['x']), float(building['y']), radius, scale)
-        stats['buildings'] += 1
-    values = np.clip(np.round(zone.DISTANCE_BORDER + distances / zone.DISTANCE_STEP), 0, 255).astype(np.uint8)
-    return Image.fromarray(values), stats
+    return Image.fromarray(closed == 0).convert('1'), stats
 
 
 def build_minimap(data, buildings, minimap_image):
@@ -2114,7 +2027,8 @@ def main():
     changes = update_buildings_elevation(heightmap_image, buildings, min_building_elevation=BUILDINGS_MIN_ELEVATION_LEVEL)
     print(f"Updated buildings elevation second time with {changes} changes")
 
-    heightmap_image.save('assets/heightmap.png')
+    # all channels of the heightmap are the same, only one is kept
+    heightmap_image.convert('L').save('assets/heightmap.png', optimize=True)
     print(f"Generated heightmap image, elevations are from {min_elevation} to {max_elevation}")
 
     tiles = build_tiles_puzzle(tiles_image, tiles_map, catalog)
@@ -2127,10 +2041,10 @@ def main():
     print(f"Generated encoded tiles image")
 
     plants = build_plants(data, buildings, tiles_image, tiles_map, cell_index_map, catalog_plants, heightmap_image)
-    open('assets/plants.json', 'w').write(json.dumps(plants, indent=2))
+    open('assets/plants.bin', 'wb').write(flora.encode(plants))
     print(f"Generated plants data with {len(plants)} plants")
 
-    zonemap_image, zonemap_stats = build_zonemap(heightmap_image, buildings, plants)
+    zonemap_image, zonemap_stats = build_zonemap(heightmap_image)
     zonemap_image.save('assets/zonemap.png', optimize=True)
     print(f"Generated zonemap {zonemap_image.width}x{zonemap_image.height}, closed: {zonemap_stats}")
 

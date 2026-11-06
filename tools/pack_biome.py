@@ -21,9 +21,7 @@ _Debug = False
 import os
 import re
 import sys
-import gzip
 import json
-import tarfile
 import argparse
 
 #------------------------------------------------------------------------------
@@ -63,20 +61,6 @@ def skipped_files(source_dir_path):
             if rel_path not in biomes.REQUIRED_FILES:
                 skipped.append(rel_path)
     return sorted(skipped)
-
-
-def pack(source_dir_path, archive_path):
-    """
-    Writes the files of the biome (biomes.REQUIRED_FILES) into the .tar.gz archive, files are at the root of the archive.
-    """
-    names = sorted(biomes.REQUIRED_FILES)
-    part_path = archive_path + '.part'
-    # no time in the gzip header: the same files give the same archive and the clients do not download it again
-    with open(part_path, 'wb') as raw, gzip.GzipFile(filename='', fileobj=raw, mode='wb', mtime=0) as gz, tarfile.open(fileobj=gz, mode='w') as tar:
-        for name in names:
-            tar.add(os.path.join(source_dir_path, name), arcname=name, recursive=False)
-    os.replace(part_path, archive_path)
-    return names
 
 
 def main():
@@ -127,7 +111,7 @@ def main():
     if missing:
         print(f'{args.source_dir_path} has no {missing}, those files are needed by the server and the client')
         return 1
-    names = pack(args.source_dir_path, archive_path)
+    names = biomes.pack(args.source_dir_path, archive_path)
     skipped = skipped_files(args.source_dir_path)
     if skipped:
         print(f'skipped {len(skipped)} files not needed by the client: {", ".join(skipped)}')

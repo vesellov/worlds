@@ -87,6 +87,8 @@ class GameServer(object):
             biome_id, hero_id = self.clients.get(key, (None, None))
             if hero_id is not None:
                 self.worlds[biome_id].set_controls(hero_id, models.Controls.from_data(payload))
+        elif msg_type == models.MSG_ADD_UNIT:
+            self.on_add_unit(key)
         elif _Debug:
             print(f'unknown message from {key}: {json_data}')
 
@@ -149,6 +151,22 @@ class GameServer(object):
         ws_listener.send_many(self.keys_in_biome(biome.id, exclude=key), models.message(models.MSG_SPAWN, {
             'tick': world.tick_number,
             'objects': [hero.to_data(), ],
+        }))
+
+    def on_add_unit(self, key):
+        """
+        Adds a neutral unit in front of the hero of that client, all clients of the biome see it.
+        """
+        biome_id, hero_id = self.clients.get(key, (None, None))
+        if hero_id is None:
+            return
+        world = self.worlds[biome_id]
+        unit = world.add_neutral_unit(hero_id)
+        if not unit:
+            return
+        ws_listener.send_many(self.keys_in_biome(biome_id), models.message(models.MSG_SPAWN, {
+            'tick': world.tick_number,
+            'objects': [unit.to_data(), ],
         }))
 
     def on_tick(self):

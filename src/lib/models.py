@@ -17,7 +17,7 @@ from typing import List, Optional
 
 #------------------------------------------------------------------------------
 
-PROTOCOL_VERSION = 4
+PROTOCOL_VERSION = 5
 
 # game data (models and textures) is published in several stores: http://p2p-alice.ai/store/<store_id>/
 # 1 is made of the eng2001 files, 2 of the astral2006 files. Every template says which store its data comes from,
@@ -33,6 +33,9 @@ MSG_JOIN = 'join'
 # {biome_id, sha256}: client wants to enter the biome, sha256 of the biome archive it already has or None
 MSG_ENTER = 'enter'
 MSG_INPUT = 'input'
+# {}: client asks to add a neutral unit of a random figure in front of its hero, it runs in a circle,
+# the server sends "spawn" of the new unit to all clients of the biome
+MSG_ADD_UNIT = 'add_unit'
 
 # server -> client
 # {name, protocol, biomes: [Biome]}: sent after "join", the client enters the first biome of the list

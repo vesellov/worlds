@@ -12,15 +12,18 @@ import os
 import io
 import json
 import math
+import random
 
 from PIL import Image
 
 #------------------------------------------------------------------------------
 
 from lib import const
+from lib import flora
 from lib import models
 from lib import physics
 from lib import zone
+from server import showcase
 
 #------------------------------------------------------------------------------
 
@@ -37,7 +40,7 @@ DEFAULT_HERO_TEMPLATE = dict(
         'hadagan brigand plate.thick',
     ],
     weapon='cheat dagger.bronze',
-    coefs=[0.0, 0.0, 0.0],
+    coefs=[1.0, 1.0, 1.0],
     scale=[1.0, 1.0, 1.0],
     store_id=2,
 )
@@ -49,6 +52,18 @@ MAX_INPUT_LEAD = 40
 
 # distance in segments between the centers of two units of the usual size, they do not walk closer
 UNIT_KEEP_DISTANCE = 0.2
+
+# animations played for the action of the unit, the first one its figure has: not every figure can run
+ACTION_ANIMATIONS = {
+    'run': ('run', 'walk', 'idle'),
+}
+
+# neutral units added by the clients: not more than that in one biome, they appear that many segments
+# in front of the hero of the client, up to NEUTRAL_UNIT_ANGLE degrees to the left or to the right of its direction,
+# so the next one does not appear right on the previous one, see Simulation.add_neutral_unit()
+MAX_NEUTRAL_UNITS = 100
+NEUTRAL_UNIT_DISTANCE = 2.0
+NEUTRAL_UNIT_ANGLE = 60.0
 
 #------------------------------------------------------------------------------
 
@@ -108,12 +123,16 @@ class Simulation(object):
         self.map = None
         self.info = None
         self.elevation_map_data = {}
-        # lib.zone.ZoneMap from zonemap.png: mountains, deep water, trees and buildings where units can not walk
+        # lib.zone.ZoneMap: mountains and deep water of zonemap.png, trees and buildings where units can not walk
         self.zonemap = None
         # [template, store_id] of all models used in the world, clients download them before rendering the scene
         self.templates = []
         self.animations_catalog = {}
+        self.weapons_catalog = {}
         self.action_types_cache = {}
+        # showcase.Looks, random looks of the neutral units, loaded when the first one is added
+        self.looks = None
+        self.neutral_units_count = 0
         self.objects = {}
         # holds various info about particular land segment, key is cell coordinates tuple [(w,h)]
         self.land_store = {}
@@ -124,13 +143,16 @@ class Simulation(object):
 
     def load(self):
         buildings_data = self.biome.read_json('buildings.json')
-        plants_data = self.biome.read_json('plants.json')
+        plants_data = flora.decode(self.biome.read('plants.bin'))
         self.load_heightmap(self.biome.read('heightmap.png'))
-        # trees and buildings are drawn on zonemap.png, units walk around them as around any closed area
-        self.zonemap = zone.ZoneMap.from_png(self.biome.read('zonemap.png'), self.width, self.height)
+        # trees and buildings are added to the closed land of zonemap.png, units walk around them as around any closed area,
+        # the client builds the same map, see dat.LandData.load_zonemap_file()
+        self.zonemap = zone.ZoneMap.build(self.biome.read('zonemap.png'), self.width, self.height, plants_data, buildings_data)
         self.load_templates(buildings_data, plants_data)
         with open(os.path.join(self.catalog_path, 'animations.json'), 'rt') as f:
             self.animations_catalog = json.loads(f.read())
+        with open(os.path.join(self.catalog_path, 'weapons.json'), 'rt') as f:
+            self.weapons_catalog = json.loads(f.read())
         self.map = models.Map(width=self.width, height=self.height, water_level=const.WATER_LEVEL / 100.0)
         self.info = models.World(name=self.biome.id, width=self.width, height=self.height)
         if _Debug:
@@ -162,7 +184,7 @@ class Simulation(object):
         templates = set()
         for building_info in buildings_data:
             templates.add(building_info['m'])
-        # keys of plants.json are "template#texture#parts", see dat.LandData.load_plants_data() on the client
+        # keys of the plants are "template#texture#parts", see dat.LandData.load_plants_data() on the client
         for plant_key in plants_data.keys():
             templates.add(plant_key.split('#')[0])
         # buildings and plants are taken from the default store, every hero says where its model is
@@ -212,21 +234,36 @@ class Simulation(object):
 
     #--- OBJECTS ---
 
-    def action_types(self, model_name):
-        # same as action_types in dat.CatalogData.build_template_data() on the client
-        if model_name not in self.action_types_cache:
+    def weapon_type(self, weapon):
+        # weapon of the template is "<weapon name>.<material name>"
+        if not weapon:
+            return None
+        return self.weapons_catalog[weapon.split('.')[0]]['type']
+
+    def action_types(self, model_name, weapon_type=None):
+        # same as action_types in dat.CatalogData.build_template_data() on the client, but only the animations
+        # which the client loads for a figure with that weapon
+        key = (model_name, weapon_type)
+        if key not in self.action_types_cache:
             action_types = {}
             for action in self.animations_catalog[model_name]['actions']:
                 if action['animation_stage'] != 'cycle':
                     continue
+                weapons = action['weapons'].split(',')
+                if action['weapons'] and weapons != ['all', ] and weapon_type not in weapons:
+                    continue
                 action_type = action['action_type'].split(':')[0]
                 action_types.setdefault(action_type, []).append(action['action_name'])
-            self.action_types_cache[model_name] = action_types
-        return self.action_types_cache[model_name]
+            self.action_types_cache[key] = action_types
+        return self.action_types_cache[key]
 
     def animation_for(self, unit):
-        names = self.action_types(unit.template.model_name).get(unit.action)
-        return names[0] if names else None
+        action_types = self.action_types(unit.template.model_name, self.weapon_type(unit.template.weapon))
+        for action_type in ACTION_ANIMATIONS.get(unit.action, (unit.action, )):
+            names = action_types.get(action_type)
+            if names:
+                return names[0]
+        return None
 
     def find_free_position(self, w, h, size=1.0):
         # the nearest open cell for a unit of that size, see zone.unit_size(), the whole map is searched when the cells around are closed
@@ -257,6 +294,40 @@ class Simulation(object):
         if _Debug:
             print(f'spawned {hero.name} for {owner} at {hero.w},{hero.h}')
         return hero
+
+    def add_neutral_unit(self, near_id):
+        """
+        Adds a unit of a random figure with a random look in front of the object near_id, the unit runs in a circle:
+        it always moves forward and turns, the clients calculate its movement with the same rules, see lib.physics.
+        Returns the unit or None.
+        """
+        near = self.objects.get(near_id)
+        if not near or self.neutral_units_count >= MAX_NEUTRAL_UNITS:
+            return None
+        if self.looks is None:
+            self.looks = showcase.Looks(self.catalog_path)
+        self.next_id += 1
+        unit = models.Unit(
+            id=self.next_id,
+            name=f'unit{self.next_id}',
+            template=models.Template(**self.looks.random_template()),
+            w=0,
+            h=0,
+            direction=float(random.randint(0, 359)),
+            move=1,
+            turn=1,
+        )
+        angle = math.radians(near.direction + random.uniform(-NEUTRAL_UNIT_ANGLE, NEUTRAL_UNIT_ANGLE))
+        x = near.w + near.shift_w + NEUTRAL_UNIT_DISTANCE * math.cos(angle)
+        y = near.h + near.shift_h + NEUTRAL_UNIT_DISTANCE * math.sin(angle)
+        unit.w, unit.h = self.find_free_position(int(math.floor(x)) % self.width, int(math.floor(y)) % self.height, size=zone.unit_size(unit))
+        unit.action = 'run'
+        unit.animation = self.animation_for(unit)
+        self.objects[unit.id] = unit
+        self.neutral_units_count += 1
+        if _Debug:
+            print(f'added neutral {unit.name} {unit.template.model_name} at {unit.w},{unit.h}, {self.neutral_units_count} in biome {self.biome.id}')
+        return unit
 
     def remove_object(self, object_id):
         self.pending_controls.pop(object_id, None)

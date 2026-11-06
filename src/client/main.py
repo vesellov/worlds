@@ -103,7 +103,6 @@ from client import scen
 from client import scr
 from client import cli
 from client import loader
-from client import showcase
 
 #------------------------------------------------------------------------------
 
@@ -275,11 +274,12 @@ class WorldsApp(App):
     def load_land(self, biome_dir_path):
         land = dat.LandData(catalog=self.catalog)
         land.load_heightmap_file(heightmap_file_path=os.path.join(biome_dir_path, 'heightmap.png'))
-        land.load_zonemap_file(zonemap_file_path=os.path.join(biome_dir_path, 'zonemap.png'))
         land.load_tilemap_file(tilemap_file_path=os.path.join(biome_dir_path, 'encoded.png'))
         land.load_cache_tiles_textures(textures_dir_path=res.data_path('textures/land'))
-        land.load_plants_data(plants_data_file_path=os.path.join(biome_dir_path, 'plants.json'))
+        land.load_plants_data(plants_data_file_path=os.path.join(biome_dir_path, 'plants.bin'))
         land.load_buildings_data(buildings_data_file_path=os.path.join(biome_dir_path, 'buildings.json'))
+        # trees and buildings are added to the zonemap, so it is loaded after them
+        land.load_zonemap_file(zonemap_file_path=os.path.join(biome_dir_path, 'zonemap.png'))
         self.land = land
         if _Debug:
             print(f'loaded the land of biome {self.game_client.location_id} from {biome_dir_path}')
@@ -390,17 +390,16 @@ class WorldsApp(App):
         self.renderer.joystick_button.x = fixed_offset
         self.renderer.joystick_button.y = fixed_offset
         self.root.add_widget(self.renderer.joystick_button)
-        # shows the figures of all types one by one near the hero, see showcase.Showcase
-        self.renderer.showcase = showcase.Showcase(scene=scene, catalog=catalog, samples=self.known_templates)
-        showcase_button = Button(
-            text='next figure',
+        # the server adds a neutral unit of a random figure in front of the hero, it runs in a circle, see server.showcase
+        add_unit_button = Button(
+            text='add unit',
             size_hint=(None, None),
             size=(dp(120), dp(44)),
             # top right corner of the screen
             pos_hint={'right': 0.99, 'top': 0.99},
         )
-        showcase_button.bind(on_release=lambda *args: self.renderer.showcase.next())
-        self.root.add_widget(showcase_button)
+        add_unit_button.bind(on_release=lambda *args: self.game_client.add_unit())
+        self.root.add_widget(add_unit_button)
         # the loaded catalog, map and models are millions of long-living Python objects, a full garbage
         # collection has to walk all of them and it freezes the app for hundreds of milliseconds on a phone,
         # move them out of the garbage collector reach so periodic collections only check new objects

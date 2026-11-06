@@ -20,6 +20,7 @@ _Debug = False
 import os
 import io
 import json
+import gzip
 import base64
 import hashlib
 import tarfile
@@ -33,8 +34,9 @@ from lib import models
 CONFIG_FILE_NAME = 'server.json'
 
 # files of the biome archive, the client loads them in load_land() of src/client/main.py and the server reads some of them,
-# tools/pack_biome.py packs only these files
-REQUIRED_FILES = ('heightmap.png', 'encoded.png', 'zonemap.png', 'tiles.png', 'plants.json', 'buildings.json')
+# tools/pack_biome.py packs only these files. zonemap.png is the mask of the closed land, see lib.zone,
+# plants.bin keeps the plants, see lib.flora
+REQUIRED_FILES = ('heightmap.png', 'encoded.png', 'zonemap.png', 'plants.bin', 'buildings.json')
 
 #------------------------------------------------------------------------------
 
@@ -56,8 +58,7 @@ class BiomeArchive(object):
                     self.files[os.path.normpath(member.name)] = tar.extractfile(member).read()
         missing = [f for f in REQUIRED_FILES if f not in self.files]
         if missing:
-            if _Debug:
-                print(f'WARNING! biome {biome_id} archive {archive_path} has no {missing}')
+            raise Exception(f'biome {biome_id} archive {archive_path} has no {missing}, pack it again with tools/pack_biome.py or tools/upgrade_biome.py')
 
     def read(self, file_name):
         return self.files[file_name]
@@ -79,6 +80,20 @@ class BiomeArchive(object):
         return (self.size + models.BIOME_CHUNK_SIZE - 1) // models.BIOME_CHUNK_SIZE
 
 #------------------------------------------------------------------------------
+
+
+def pack(source_dir_path, archive_path):
+    """
+    Writes the files of the biome (REQUIRED_FILES) from the folder into the .tar.gz archive, files are at the root of the archive.
+    """
+    names = sorted(REQUIRED_FILES)
+    part_path = archive_path + '.part'
+    # no time in the gzip header: the same files give the same archive and the clients do not download it again
+    with open(part_path, 'wb') as raw, gzip.GzipFile(filename='', fileobj=raw, mode='wb', compresslevel=9, mtime=0) as gz, tarfile.open(fileobj=gz, mode='w') as tar:
+        for name in names:
+            tar.add(os.path.join(source_dir_path, name), arcname=name, recursive=False)
+    os.replace(part_path, archive_path)
+    return names
 
 
 def load(biomes_dir_path):
