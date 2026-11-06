@@ -60,16 +60,15 @@ def normalize_position(w, h, shift_w, shift_h):
 
 def turn(direction, turn_speed, controls_turn, target_direction):
     """
-    New direction of the unit after one tick.
+    New direction of the unit after one tick: it turns to target_direction the shorter way, not faster
+    than turn_speed degrees, or keeps turning while controls_turn is pressed.
     """
     if target_direction is not None:
-        direction_diff = target_direction - direction
+        direction_diff = (target_direction - direction) % 360.0
         if direction_diff > 180.0:
             direction_diff -= 360.0
-        if direction_diff < -180.0:
-            direction_diff += 360.0
         step = min(turn_speed, abs(direction_diff))
-        return normalize_angle(direction + (-step if direction_diff > 0.0 else step))
+        return normalize_angle(direction + (step if direction_diff > 0.0 else -step))
     if controls_turn:
         return normalize_angle(direction + (turn_speed if controls_turn > 0 else -turn_speed))
     return direction
@@ -154,10 +153,12 @@ def slide(zone, from_x, from_y, w, h, shift_w, shift_h, heading, radius, obstacl
 
 
 def move(zone, w, h, shift_w, shift_h, direction, speed, move, controls_turn, target_direction,
-         max_speed, acceleration_value, deceleration_value, turn_speed, radius, obstacle=None):
+         max_speed, acceleration_value, deceleration_value, turn_speed, radius, obstacle=None, steer=None):
     """
     One tick of the unit movement with the obstacles, returns (w, h, shift_w, shift_h, direction, speed) as step() does.
     A unit which can not move stops: its speed becomes 0.0. See is_blocked() about zone, radius and obstacle.
+    steer is (dx, dy) in segments added to the movement of this tick: the server turns the units aside
+    to avoid other moving units, the client does not know it and finds out from the next state.
     """
     new_w, new_h, new_shift_w, new_shift_h, direction, new_speed = step(
         w, h, shift_w, shift_h, direction, speed, move, controls_turn, target_direction,
@@ -165,6 +166,8 @@ def move(zone, w, h, shift_w, shift_h, direction, speed, move, controls_turn, ta
     )
     if not new_speed:
         return w, h, shift_w, shift_h, direction, new_speed
+    if steer:
+        new_w, new_h, new_shift_w, new_shift_h = normalize_position(new_w, new_h, new_shift_w + steer[0], new_shift_h + steer[1])
     position = (new_w, new_h, new_shift_w, new_shift_h)
     from_x = w + shift_w
     from_y = h + shift_h

@@ -228,7 +228,8 @@ class Renderer(Widget):
             self.keyboard_handler.bind(on_key_down=self.on_keyboard_down)
             self.keyboard_handler.bind(on_key_up=self.on_keyboard_up)
         Clock.schedule_interval(self.on_update_glsl, 1 / 60)
-        Clock.schedule_interval(self.on_update_animations, 1 / 20 )  # 1 / 24)
+        # animations of the fast running units are played faster than 20 frames per second, see unt.Unit.animation_rate
+        Clock.schedule_interval(self.on_update_animations, 1 / 40)
         Clock.schedule_interval(self.on_run_units, 1 / 20)
 
     def create_sky_background(self):
@@ -986,12 +987,10 @@ class Renderer(Widget):
             return
         if self.joystick_latest_state and (self.joystick_latest_state[0] or self.joystick_latest_state[1]):
             rel_x, rel_y = self.joystick_latest_state
-            # joystick is relative to the camera, server needs to know the direction on the map
-            joystick_direction = math.degrees(math.atan2(rel_y, rel_x)) + self.camera_angle_z
-            if joystick_direction > 180.0:
-                joystick_direction -= 360.0
-            if joystick_direction < -180.0:
-                joystick_direction += 360.0
+            # joystick is relative to the camera, server needs to know the direction on the map,
+            # the camera looks along the opposite direction of the map
+            joystick_direction = math.degrees(math.atan2(rel_y, rel_x)) + self.camera_angle_z + 180.0
+            joystick_direction = (joystick_direction + 180.0) % 360.0 - 180.0
             self.game_client.send_controls(move=1, turn=0, target_direction=joystick_direction)
             return
         self.game_client.send_controls(move=self.input_move, turn=self.input_turn)

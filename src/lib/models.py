@@ -17,7 +17,7 @@ from typing import List, Optional
 
 #------------------------------------------------------------------------------
 
-PROTOCOL_VERSION = 5
+PROTOCOL_VERSION = 6
 
 # game data (models and textures) is published in several stores: http://p2p-alice.ai/store/<store_id>/
 # 1 is made of the eng2001 files, 2 of the astral2006 files. Every template says which store its data comes from,
@@ -33,8 +33,8 @@ MSG_JOIN = 'join'
 # {biome_id, sha256}: client wants to enter the biome, sha256 of the biome archive it already has or None
 MSG_ENTER = 'enter'
 MSG_INPUT = 'input'
-# {}: client asks to add a neutral unit of a random figure in front of its hero, it runs in a circle,
-# the server sends "spawn" of the new unit to all clients of the biome
+# {}: client asks to add a neutral unit of a random figure in front of its hero, it walks around in a circle,
+# see server.behavior, the server sends "spawn" of the new unit to all clients of the biome
 MSG_ADD_UNIT = 'add_unit'
 
 # server -> client
@@ -52,6 +52,12 @@ MSG_DESPAWN = 'despawn'
 
 # size of one piece of the biome archive before base64 encoding, bytes
 BIOME_CHUNK_SIZE = 256 * 1024
+
+# movement of the units by default: segments per tick, segments per tick added or removed every tick, degrees per tick
+MAX_SPEED = 0.12
+ACCELERATION = 0.008
+DECELERATION = 0.04
+TURN_SPEED = 10.0
 
 #------------------------------------------------------------------------------
 
@@ -226,13 +232,14 @@ class Unit(Object):
     # between the ticks with the same rules as the server, see lib.physics
     # input_seq, input_tick: the last Controls applied by the server and the tick it was applied at,
     # input_slack: how many ticks before that tick the Controls arrived, negative if it was late
+    # max_speed changes when a neutral unit starts walking or running, see server.behavior
     kind = 'unit'
     data_fields = Object.data_fields + (
         'speed', 'max_speed', 'acceleration_value', 'turn_speed', 'deceleration_value', 'action', 'animation',
         'move', 'turn', 'target_direction', 'input_seq', 'input_tick', 'input_slack',
     )
     state_fields = Object.state_fields + (
-        'speed', 'action', 'animation', 'move', 'turn', 'target_direction', 'input_seq', 'input_tick', 'input_slack',
+        'speed', 'max_speed', 'action', 'animation', 'move', 'turn', 'target_direction', 'input_seq', 'input_tick', 'input_slack',
     )
 
     def __init__(
@@ -247,10 +254,10 @@ class Unit(Object):
         shift_h: float = 0.5,
         direction: float = 0.0,
         speed: float = 0.0,
-        max_speed: float = 0.06,
-        acceleration_value: float = 0.004,
-        turn_speed: float = 5.0,
-        deceleration_value: float = 0.02,
+        max_speed: float = MAX_SPEED,
+        acceleration_value: float = ACCELERATION,
+        turn_speed: float = TURN_SPEED,
+        deceleration_value: float = DECELERATION,
         action: str = 'idle',
         animation: Optional[str] = None,
         move: int = 0,
@@ -295,10 +302,10 @@ class Hero(Unit):
         shift_h: float = 0.5,
         direction: float = 0.0,
         speed: float = 0.0,
-        max_speed: float = 0.06,
-        acceleration_value: float = 0.004,
-        turn_speed: float = 5.0,
-        deceleration_value: float = 0.02,
+        max_speed: float = MAX_SPEED,
+        acceleration_value: float = ACCELERATION,
+        turn_speed: float = TURN_SPEED,
+        deceleration_value: float = DECELERATION,
         action: str = 'idle',
         animation: Optional[str] = None,
         move: int = 0,
@@ -336,7 +343,7 @@ class Controls(Model):
     # what the player currently wants his hero to do, client sends it every time the user input changes
     # move: 1 forward, -1 backward, 0 stop
     # turn: 1 left, -1 right, 0 no turn
-    # target_direction: direction (in degrees) the hero must turn to, set by the joystick, None if not used
+    # target_direction: direction on the map (in degrees) the hero must turn to and move along, set by the joystick, None if not used
     # tick: server tick the controls must be applied at, so the client knows in advance how the hero will move
     # seq: number of the controls sent by the client, server reports the last applied one in Unit.input_seq
     data_fields = ('move', 'turn', 'target_direction', 'tick', 'seq')

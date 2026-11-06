@@ -53,6 +53,16 @@ INPUT_LEAD_MAX = 20.0
 # spare ticks kept for uneven network
 INPUT_LEAD_MARGIN = 1.0
 
+# speed in segments per tick of a unit of the usual size which moves its legs exactly as fast as the animation of
+# that action goes at the usual pace, see unt.ANIMATION_FPS. A faster unit plays the animation faster, so its feet
+# do not slide along the ground, a bigger unit makes longer steps
+ANIMATION_NATURAL_SPEED = {
+    'run': 0.06,
+    'walk': 0.025,
+}
+# the pace of the animation is not changed more than that
+ANIMATION_RATE_RANGE = (0.3, 3.0)
+
 #------------------------------------------------------------------------------
 
 # simulate slow network on localhost to check the smooth movement, milliseconds
@@ -138,6 +148,11 @@ class Prediction(object):
                 zone.unit_radius(zone.unit_size(o)),
             ))
         return self.states[i]
+
+    def speed_at(self, render_tick):
+        if render_tick is None:
+            return self.states[0][5]
+        return self.state_at(int(math.floor(render_tick)))[5]
 
     def predicted(self, render_tick):
         """
@@ -617,15 +632,24 @@ class GameClient(object):
         """
         render_tick = self.render_tick(now)
         for o, view, prediction in self.objects.values():
-            if not prediction.advance(now, render_tick):
-                continue
+            changed = prediction.advance(now, render_tick)
             u = view.get_unit()
             if not u:
+                continue
+            u.animation_rate = self.animation_rate(o, prediction.speed_at(render_tick))
+            if not changed:
                 continue
             x, y, direction = prediction.drawn
             w = math.floor(x)
             h = math.floor(y)
             u.set_position(self.scene, w, h, x - w, y - h, direction)
+
+    def animation_rate(self, o, speed):
+        natural_speed = ANIMATION_NATURAL_SPEED.get(getattr(o, 'action', None))
+        if not natural_speed or not speed:
+            return 1.0
+        rate = abs(speed) / (natural_speed * zone.unit_size(o))
+        return min(max(rate, ANIMATION_RATE_RANGE[0]), ANIMATION_RATE_RANGE[1])
 
     def minimap_units(self):
         """

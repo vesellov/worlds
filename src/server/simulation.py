@@ -24,6 +24,7 @@ from lib import models
 from lib import physics
 from lib import plants
 from lib import zone
+from server import behavior
 
 #------------------------------------------------------------------------------
 
@@ -51,20 +52,31 @@ HERO_START_SHIFT = (0, 3)
 # controls requested for a tick further than that in the future are applied earlier, at that many ticks from now
 MAX_INPUT_LEAD = 40
 
-# distance in segments between the centers of two units of the usual size, they do not walk closer
-UNIT_KEEP_DISTANCE = 0.2
-
 # animations played for the action of the unit, the first one its figure has: not every figure can run
 ACTION_ANIMATIONS = {
     'run': ('run', 'walk', 'idle'),
+    'walk': ('walk', 'run', 'idle'),
 }
 
 # neutral units added by the clients: not more than that in one biome, they appear that many segments
 # in front of the hero of the client, up to NEUTRAL_UNIT_ANGLE degrees to the left or to the right of its direction,
-# so the next one does not appear right on the previous one, see Simulation.add_neutral_unit()
+# so the next one does not appear right on the previous one, see Simulation.add_neutral_unit().
+# They walk around in a circle of NEUTRAL_CIRCLE_RADIUS segments, see behavior.UnitWalkInCircle
 MAX_NEUTRAL_UNITS = 100
 NEUTRAL_UNIT_DISTANCE = 2.0
 NEUTRAL_UNIT_ANGLE = 60.0
+NEUTRAL_CIRCLE_RADIUS = 1.5
+
+# two moving units which are going to touch each other in less than that many ticks turn aside and slow down,
+# see Simulation.avoidance()
+AVOID_HORIZON = 12.0
+
+# units turn aside a bit earlier than they touch: the space between them, in segments
+AVOID_MARGIN = 0.03
+
+# the part of the speed towards another unit which a unit keeps going aside, the rest is lost:
+# the units slow down while they go around each other
+AVOID_SIDE = 0.8
 
 #------------------------------------------------------------------------------
 
@@ -108,6 +120,26 @@ def push_out_of_circle(dx, dy, radius2, heading=None):
     k = (math.sqrt(radius2) - distance + physics.SLIDE_GAP) / distance
     return dx * k, dy * k
 
+
+def collision_time(px, py, vx, vy, reach):
+    """
+    (px, py) goes from one unit to another one, (vx, vy) is how the second unit moves relatively to the first one
+    every tick. Returns in how many ticks the distance between them becomes reach, 0.0 if they are closer already
+    and still come closer, None when they do not come that close.
+    """
+    b = px * vx + py * vy
+    if b >= 0.0:
+        # they go apart
+        return None
+    c = px * px + py * py - reach * reach
+    if c <= 0.0:
+        return 0.0
+    a = vx * vx + vy * vy
+    discriminant = b * b - a * c
+    if discriminant < 0.0:
+        return None
+    return (-b - math.sqrt(discriminant)) / a
+
 #------------------------------------------------------------------------------
 
 
@@ -134,6 +166,10 @@ class Simulation(object):
         # dress.Looks, random looks of the neutral units, loaded when the first one is added
         self.looks = None
         self.neutral_units_count = 0
+        # unit id -> behavior.UnitBehavior of the neutral units, units which are controlled by nobody
+        self.behaviors = {}
+        # (x, y) of the capitals of the biome, see nearest_capital()
+        self.capitals = []
         self.objects = {}
         # holds various info about particular land segment, key is cell coordinates tuple [(w,h)]
         self.land_store = {}
@@ -153,6 +189,7 @@ class Simulation(object):
         self.zonemap = zone.ZoneMap.build(self.biome.read('zonemap.png'), self.width, self.height, plants_data, buildings_data)
         self.load_templates(buildings_data, plants_data)
         self.start_position = self.find_start_position(buildings_data)
+        self.capitals = [(float(b['x']), float(b['y'])) for b in buildings_data if b['k'] == 'capital']
         with open(os.path.join(self.catalog_path, 'animations.json'), 'rt') as f:
             self.animations_catalog = json.loads(f.read())
         with open(os.path.join(self.catalog_path, 'weapons.json'), 'rt') as f:
@@ -202,6 +239,17 @@ class Simulation(object):
             return self.width // 2, self.height // 2
         return (int(capitals[0]['x']) + HERO_START_SHIFT[0]) % self.width, (int(capitals[0]['y']) + HERO_START_SHIFT[1]) % self.height
 
+    def nearest_capital(self, x, y):
+        best = None
+        best_distance2 = None
+        for cx, cy in self.capitals:
+            dx = behavior.nearest_shift(x, cx, self.width)
+            dy = behavior.nearest_shift(y, cy, self.height)
+            distance2 = dx * dx + dy * dy
+            if best is None or distance2 < best_distance2:
+                best, best_distance2 = (cx, cy), distance2
+        return best
+
     def get_elevation(self, w, h):
         return self.elevation_map_data[(w % self.width, h % self.height)]
 
@@ -233,8 +281,8 @@ class Simulation(object):
             for o in self.objects.values():
                 if o is u or not isinstance(o, models.Unit):
                     continue
-                # each of the two units keeps half of the distance
-                keep = UNIT_KEEP_DISTANCE * (size + zone.unit_size(o)) / 2.0
+                # units do not overlap: the distance between their centers is not smaller than their two radiuses
+                keep = zone.unit_radius(size) + zone.unit_radius(zone.unit_size(o))
                 push = push_out_of_circle(x - o.w - o.shift_w, y - o.h - o.shift_h, keep * keep, heading)
                 if push:
                     return push
@@ -307,9 +355,8 @@ class Simulation(object):
 
     def add_neutral_unit(self, near_id):
         """
-        Adds a unit of a random figure with a random look in front of the object near_id, the unit runs in a circle:
-        it always moves forward and turns, the clients calculate its movement with the same rules, see lib.physics.
-        Returns the unit or None.
+        Adds a unit of a random figure with a random look in front of the object near_id, the unit walks around
+        in a circle, see behavior.UnitWalkInCircle. Returns the unit or None.
         """
         near = self.objects.get(near_id)
         if not near or self.neutral_units_count >= MAX_NEUTRAL_UNITS:
@@ -324,14 +371,20 @@ class Simulation(object):
             w=0,
             h=0,
             direction=float(random.randint(0, 359)),
-            move=1,
-            turn=1,
         )
         angle = math.radians(near.direction + random.uniform(-NEUTRAL_UNIT_ANGLE, NEUTRAL_UNIT_ANGLE))
         x = near.w + near.shift_w + NEUTRAL_UNIT_DISTANCE * math.cos(angle)
         y = near.h + near.shift_h + NEUTRAL_UNIT_DISTANCE * math.sin(angle)
         unit.w, unit.h = self.find_free_position(int(math.floor(x)) % self.width, int(math.floor(y)) % self.height, size=zone.unit_size(unit))
-        unit.action = 'run'
+        # the unit stands on the circle, the point it follows goes around from there
+        angle = random.uniform(0.0, 2.0 * math.pi)
+        self.behaviors[unit.id] = behavior.UnitWalkInCircle(
+            unit.w + unit.shift_w - NEUTRAL_CIRCLE_RADIUS * math.cos(angle),
+            unit.h + unit.shift_h - NEUTRAL_CIRCLE_RADIUS * math.sin(angle),
+            NEUTRAL_CIRCLE_RADIUS,
+            angle=angle,
+            clockwise=random.choice((True, False)),
+        )
         unit.animation = self.animation_for(unit)
         self.objects[unit.id] = unit
         self.neutral_units_count += 1
@@ -341,6 +394,7 @@ class Simulation(object):
 
     def remove_object(self, object_id):
         self.pending_controls.pop(object_id, None)
+        self.behaviors.pop(object_id, None)
         return self.objects.pop(object_id, None)
 
     def set_controls(self, unit_id, controls):
@@ -378,24 +432,120 @@ class Simulation(object):
         Process all requests of all clients, returns list of objects which were changed.
         """
         self.tick_number += 1
+        units = [o for o in self.objects.values() if isinstance(o, models.Unit)]
+        states = {}
+        for u in units:
+            states[u.id] = u.to_state()
+            # heroes are controlled by their clients, other units by their behavior
+            self.apply_controls(u)
+            self.run_behavior(u)
+        steers = self.avoidance(units)
         changed = []
-        for o in list(self.objects.values()):
-            if isinstance(o, models.Unit):
-                before = o.to_state()
-                self.apply_controls(o)
-                self.run_unit(o)
-                if o.to_state() != before:
-                    changed.append(o)
+        for u in units:
+            self.run_unit(u, steers.get(u.id))
+            if u.to_state() != states[u.id]:
+                changed.append(u)
         return changed
 
-    def run_unit(self, u):
+    def run_behavior(self, u):
+        b = self.behaviors.get(u.id)
+        if b is None:
+            return
+        next_b = b.think(self, u)
+        if next_b is not b:
+            if _Debug:
+                print(f'{u.name} {b!r} -> {next_b!r}')
+            self.behaviors[u.id] = next_b
+
+    def intended_movement(self, u):
+        # (dx, dy) the unit is going to move in this tick without obstacles, see physics.step()
+        w, h, shift_w, shift_h, _, _ = physics.step(
+            u.w, u.h, u.shift_w, u.shift_h, u.direction, u.speed, u.move, u.turn, u.target_direction,
+            u.max_speed, u.acceleration_value, u.deceleration_value, u.turn_speed,
+        )
+        return (w + shift_w) - (u.w + u.shift_w), (h + shift_h) - (u.h + u.shift_h)
+
+    def avoidance(self, units):
+        """
+        Moving units which are going to run into each other soon turn aside and slow down, both of them, heroes too.
+        Each one loses the part of its movement towards the other one, the closer the touch is the more it loses,
+        and goes aside instead, the same way as a unit slides along a wall, see physics.slide():
+        two units on crossing courses go around each other and keep going. Units which come right at each other
+        both go aside to their own side of the line between them, so they pass instead of stopping.
+        Returns {unit id: (dx, dy)}, see the steer of physics.move().
+        """
+        entries = []
+        for u in units:
+            dx, dy = self.intended_movement(u)
+            entries.append((u, u.w + u.shift_w, u.h + u.shift_h, dx, dy, zone.unit_radius(zone.unit_size(u))))
+        steers = {}
+        for i in range(len(entries)):
+            ui, xi, yi, vxi, vyi, ri = entries[i]
+            for j in range(i + 1, len(entries)):
+                uj, xj, yj, vxj, vyj, rj = entries[j]
+                rvx = vxj - vxi
+                rvy = vyj - vyi
+                if not rvx and not rvy:
+                    continue
+                px = behavior.nearest_shift(xi, xj, self.width)
+                py = behavior.nearest_shift(yi, yj, self.height)
+                reach = ri + rj + AVOID_MARGIN
+                limit = reach + AVOID_HORIZON * math.sqrt(rvx * rvx + rvy * rvy)
+                if px * px + py * py > limit * limit:
+                    continue
+                t = collision_time(px, py, rvx, rvy, reach)
+                if t is None or t > AVOID_HORIZON:
+                    continue
+                # direction from the first unit to the second one at the moment they touch
+                nx = px + rvx * t
+                ny = py + rvy * t
+                length = math.sqrt(nx * nx + ny * ny)
+                if length == 0.0:
+                    continue
+                nx /= length
+                ny /= length
+                # each one goes aside to its own side of that line: where it already passes the other one
+                tx, ty = -ny, nx
+                side = rvx * tx + rvy * ty
+                side_i = -1.0 if side > 0.0 else 1.0
+                urgency = 1.0 - t / AVOID_HORIZON
+                approach_i = (vxi * nx + vyi * ny) * urgency
+                if approach_i > 0.0:
+                    self.add_steer(steers, ui.id, -nx * approach_i + side_i * tx * approach_i * AVOID_SIDE, -ny * approach_i + side_i * ty * approach_i * AVOID_SIDE)
+                approach_j = -(vxj * nx + vyj * ny) * urgency
+                if approach_j > 0.0:
+                    self.add_steer(steers, uj.id, nx * approach_j - side_i * tx * approach_j * AVOID_SIDE, ny * approach_j - side_i * ty * approach_j * AVOID_SIDE)
+        # a unit does not go faster than it wanted, even when several units turn it aside
+        for u, _, _, vx, vy, _ in entries:
+            steer = steers.get(u.id)
+            if not steer:
+                continue
+            new_vx = vx + steer[0]
+            new_vy = vy + steer[1]
+            speed = math.sqrt(vx * vx + vy * vy)
+            new_speed = math.sqrt(new_vx * new_vx + new_vy * new_vy)
+            if new_speed > speed:
+                k = speed / new_speed
+                steers[u.id] = (new_vx * k - vx, new_vy * k - vy)
+        return steers
+
+    def add_steer(self, steers, unit_id, dx, dy):
+        sx, sy = steers.get(unit_id, (0.0, 0.0))
+        steers[unit_id] = (sx + dx, sy + dy)
+
+    def run_unit(self, u, steer=None):
         # the client calculates the movement with the same function and the same zonemap, see cli.Prediction,
-        # only other units are not known there
+        # only other units are not known there and it does not know the steer, see avoidance()
         size = zone.unit_size(u)
         u.w, u.h, u.shift_w, u.shift_h, u.direction, u.speed = physics.move(
             self.zonemap, u.w, u.h, u.shift_w, u.shift_h, u.direction, u.speed, u.move, u.turn, u.target_direction,
             u.max_speed, u.acceleration_value, u.deceleration_value, u.turn_speed,
-            zone.unit_radius(size), self.units_obstacle(u, size),
+            zone.unit_radius(size), self.units_obstacle(u, size), steer,
         )
-        u.action = 'run' if u.move else 'idle'
+        if not u.speed:
+            u.action = 'idle'
+        elif u.id in self.behaviors:
+            u.action = self.behaviors[u.id].action
+        else:
+            u.action = 'run'
         u.animation = self.animation_for(u)

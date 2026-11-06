@@ -399,7 +399,7 @@ class WorldsApp(App):
         self.renderer.joystick_button.x = fixed_offset
         self.renderer.joystick_button.y = fixed_offset
         self.root.add_widget(self.renderer.joystick_button)
-        # the server adds a neutral unit of a random figure in front of the hero, it runs in a circle, see lib.dress
+        # the server adds a neutral unit of a random figure in front of the hero, it walks around in a circle, see server.behavior
         add_unit_button = Button(
             text='add unit',
             size_hint=(None, None),
@@ -416,7 +416,7 @@ class WorldsApp(App):
             map_height=land.height,
             units_source=self.game_client.minimap_units,
             size_hint=(None, None),
-            size=(dp(160), dp(160)),
+            size=(dp(320), dp(320)),
             pos_hint={'x': 0.01, 'top': 0.99},
         )
         self.root.add_widget(self.minimap)

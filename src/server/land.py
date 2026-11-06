@@ -33,8 +33,8 @@ from lib import zone
 DEBUG = False
 
 # the map of the Fantasy Map Generator is drawn into the middle of the land, that part of its width and height,
-# the ocean is around it. The land takes 1.75 times more of the map than it did with 0.5
-GLOBAL_SCALE = 0.5 * math.sqrt(1.75)
+# the ocean is around it. The land takes 3.5 times more of the map than it did with 0.5
+GLOBAL_SCALE = 0.5 * math.sqrt(3.5)
 INPUT_WATER_LEVEL = 20  # 20 is the water level in the input heightmap, 100 is the input max height
 CLIFFS_HEIGHT_MARGIN = 60
 CLIFFS_HEIGHT_DROP = 10
@@ -1453,6 +1453,37 @@ def transform_neighboring_tiles_conditionally(tiles_image, tiles_map, routes_map
             print(f"  transformed 2-adjacent diagonal neighbors with {changes} changes")
 
 
+def transform_three_adjacent_neighbors(tiles_image, tiles_map, routes_map, rivers_map, buildings_map, catalog):
+    """
+    A segment with the corners of 3 types needs special tiles, see terrain.triplet_keys(), the catalog has not all of them.
+    One of the two corners of the less frequent types takes the most frequent type of the segment, so only 2 types
+    stay there: the corner without a route, a river or a building is changed first. Returns the number of changes.
+    """
+    changes = 0
+    for x in range(0, tiles_image.width - 1):
+        for y in range(0, tiles_image.height - 1):
+            quad = terrain.quad_types(tiles_map, x, y)
+            if len(quad) != 3:
+                continue
+            if all(k in catalog for k in terrain.triplet_keys(*quad)):
+                continue
+            t1 = quad[0]
+            candidates = []
+            for xd, yd in [(0, 0), (1, 0), (1, 1), (0, 1)]:
+                xy = (x + xd, y + yd)
+                tile = tiles_map[xy]
+                if tile == t1:
+                    continue
+                other = quad[2] if tile == quad[1] else quad[1]
+                pair = '_'.join(sorted([t1, other]))
+                undesired = xy in routes_map or xy in rivers_map or xy in buildings_map
+                candidates.append((pair not in catalog, undesired, xy))
+            candidates.sort()
+            tiles_map[candidates[0][2]] = t1
+            changes += 1
+    return changes
+
+
 def unpack_elevation(heightmap_values):
     """
     Elevations of the land from 0.0 to 1.0, the same as dat.LandData.load_heightmap_file() on the client,
@@ -1687,6 +1718,8 @@ def main():
     if os.path.exists('assets/tiles.png'):
         tiles_map = capture_tiles_data(tiles_image)
         print(f'Read {len(tiles_map)} tiles from existing image')
+        stats = {}
+        tiles_image_output = tiles_image.convert('RGB')
 
     else:
         buildings_map = build_buildings_tiles(tiles_image, buildings)
@@ -1705,6 +1738,12 @@ def main():
 
         print(f"Transform neighboring tiles conditionally:")
         transform_neighboring_tiles_conditionally(tiles_image, tiles_map, routes_map, rivers_map, buildings_map, heightmap_image, catalog, max_cycles=TRANSFORM_CYCLES)
+
+        for _ in range(TRANSFORM_CYCLES):
+            changes = transform_three_adjacent_neighbors(tiles_image, tiles_map, routes_map, rivers_map, buildings_map, catalog)
+            print(f"  transformed 3-adjacent neighbors with {changes} changes")
+            if not changes:
+                break
 
         stats = {}
         tiles_image_output = Image.new("RGB", biome_image.size, "black")

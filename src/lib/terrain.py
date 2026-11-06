@@ -109,6 +109,32 @@ def build_tiles(types, width, height, catalog):
     return tiles
 
 
+def quad_types(types, x, y):
+    """
+    Types of the 4 corners of the segment (x, y), each type once, the most frequent first, in the order build_puzzle() uses.
+    """
+    counts = {}
+    for xd, yd in [(0, 0), (1, 0), (1, 1), (0, 1)]:
+        tile = types[(x + xd, y + yd)]
+        counts[tile] = counts.get(tile, 0) + 1
+    return sorted(counts.keys(), key=lambda n: counts[n], reverse=True)
+
+
+def triplet_keys(t1, t2, t3):
+    """
+    Keys of the catalog which build_puzzle() needs for a segment with the corners of 3 types, see quad_types().
+    """
+    return (
+        f'{t1}_{t1}_{t2}_{t3}',
+        f'{t1}_{t2}_{t1}_{t3}',
+        f'{t1}_{t1}_{t3}_{t2}',
+        f'{t1}_{t3}_{t1}_{t2}',
+        f'{t1}_{t2}',
+        f'{t1}_{t3}',
+        f'{t2}_{t3}',
+    )
+
+
 def build_puzzle(types, width, height, catalog):
     tiles = {}
     for xb in range(0, width - 1):
@@ -218,27 +244,10 @@ def build_puzzle(types, width, height, catalog):
             elif len(samples_all) == 3:
                 t2 = counts_sorted[1]
                 t3 = counts_sorted[2]
-                k1123 = f'{t1}_{t1}_{t2}_{t3}'
-                if k1123 not in catalog:
-                    raise Exception(f"Did not found {k1123} at ({x}, {y}) in the catalog")
-                k1213 = f'{t1}_{t2}_{t1}_{t3}'
-                if k1213 not in catalog:
-                    raise Exception(f"Did not found {k1213} at ({x}, {y}) in the catalog")
-                k1132 = f'{t1}_{t1}_{t3}_{t2}'
-                if k1132 not in catalog:
-                    raise Exception(f"Did not found {k1132} at ({x}, {y}) in the catalog")
-                k1312 = f'{t1}_{t3}_{t1}_{t2}'
-                if k1312 not in catalog:
-                    raise Exception(f"Did not found {k1312} at ({x}, {y}) in the catalog")
-                k12 = f'{t1}_{t2}'
-                if k12 not in catalog:
-                    raise Exception(f"Did not found {k12} at ({x}, {y}) in the catalog")
-                k13 = f'{t1}_{t3}'
-                if k13 not in catalog:
-                    raise Exception(f"Did not found {k13} at ({x}, {y}) in the catalog")
-                k23 = f'{t2}_{t3}'
-                if k23 not in catalog:
-                    raise Exception(f"Did not found {k23} at ({x}, {y}) in the catalog")
+                k1123, k1213, k1132, k1312, _, _, _ = keys = triplet_keys(t1, t2, t3)
+                for k in keys:
+                    if k not in catalog:
+                        raise Exception(f"Did not found {k} at ({x}, {y}) in the catalog")
                 catalog1123_ids = catalog[k1123]
                 catalog1213_ids = catalog[k1213]
                 catalog1132_ids = catalog[k1132]
