@@ -19,11 +19,11 @@ from PIL import Image
 #------------------------------------------------------------------------------
 
 from lib import const
-from lib import flora
+from lib import dress
 from lib import models
 from lib import physics
+from lib import plants
 from lib import zone
-from server import showcase
 
 #------------------------------------------------------------------------------
 
@@ -45,7 +45,8 @@ DEFAULT_HERO_TEMPLATE = dict(
     store_id=2,
 )
 
-DEFAULT_HERO_POSITION = (261, 337)
+# heroes appear that many segments from the first capital of the biome, or in the middle of the map when it has no capitals
+HERO_START_SHIFT = (0, 3)
 
 # controls requested for a tick further than that in the future are applied earlier, at that many ticks from now
 MAX_INPUT_LEAD = 40
@@ -130,7 +131,7 @@ class Simulation(object):
         self.animations_catalog = {}
         self.weapons_catalog = {}
         self.action_types_cache = {}
-        # showcase.Looks, random looks of the neutral units, loaded when the first one is added
+        # dress.Looks, random looks of the neutral units, loaded when the first one is added
         self.looks = None
         self.neutral_units_count = 0
         self.objects = {}
@@ -140,15 +141,18 @@ class Simulation(object):
         self.pending_controls = {}
         self.tick_number = 0
         self.next_id = 0
+        # (w, h) where the heroes appear, see HERO_START_SHIFT
+        self.start_position = None
 
     def load(self):
         buildings_data = self.biome.read_json('buildings.json')
-        plants_data = flora.decode(self.biome.read('plants.bin'))
+        plants_data = plants.decode(self.biome.read('plants.bin'))
         self.load_heightmap(self.biome.read('heightmap.png'))
         # trees and buildings are added to the closed land of zonemap.png, units walk around them as around any closed area,
         # the client builds the same map, see dat.LandData.load_zonemap_file()
         self.zonemap = zone.ZoneMap.build(self.biome.read('zonemap.png'), self.width, self.height, plants_data, buildings_data)
         self.load_templates(buildings_data, plants_data)
+        self.start_position = self.find_start_position(buildings_data)
         with open(os.path.join(self.catalog_path, 'animations.json'), 'rt') as f:
             self.animations_catalog = json.loads(f.read())
         with open(os.path.join(self.catalog_path, 'weapons.json'), 'rt') as f:
@@ -191,6 +195,12 @@ class Simulation(object):
         world_templates = set((t.lower(), models.DEFAULT_STORE_ID) for t in templates)
         world_templates.add((DEFAULT_HERO_TEMPLATE['model_name'].lower(), DEFAULT_HERO_TEMPLATE.get('store_id', models.DEFAULT_STORE_ID)))
         self.templates = [list(t) for t in sorted(world_templates)]
+
+    def find_start_position(self, buildings_data):
+        capitals = sorted((b for b in buildings_data if b['k'] == 'capital'), key=lambda b: b['i'])
+        if not capitals:
+            return self.width // 2, self.height // 2
+        return (int(capitals[0]['x']) + HERO_START_SHIFT[0]) % self.width, (int(capitals[0]['y']) + HERO_START_SHIFT[1]) % self.height
 
     def get_elevation(self, w, h):
         return self.elevation_map_data[(w % self.width, h % self.height)]
@@ -286,7 +296,7 @@ class Simulation(object):
             w=0,
             h=0,
         )
-        hero.w, hero.h = self.find_free_position(*DEFAULT_HERO_POSITION, size=zone.unit_size(hero))
+        hero.w, hero.h = self.find_free_position(*self.start_position, size=zone.unit_size(hero))
         hero.animation = self.animation_for(hero)
         hero.input_tick = self.tick_number
         self.objects[hero.id] = hero
@@ -305,7 +315,7 @@ class Simulation(object):
         if not near or self.neutral_units_count >= MAX_NEUTRAL_UNITS:
             return None
         if self.looks is None:
-            self.looks = showcase.Looks(self.catalog_path)
+            self.looks = dress.Looks(self.catalog_path)
         self.next_id += 1
         unit = models.Unit(
             id=self.next_id,

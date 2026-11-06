@@ -35,8 +35,9 @@ CONFIG_FILE_NAME = 'server.json'
 
 # files of the biome archive, the client loads them in load_land() of src/client/main.py and the server reads some of them,
 # tools/pack_biome.py packs only these files. zonemap.png is the mask of the closed land, see lib.zone,
-# plants.bin keeps the plants, see lib.flora
-REQUIRED_FILES = ('heightmap.png', 'encoded.png', 'zonemap.png', 'plants.bin', 'buildings.json')
+# plants.bin keeps the plants, see lib.plants, terrain.bin keeps the types of the land, see lib.terrain,
+# minimap.png is shown on the screen of the client
+REQUIRED_FILES = ('heightmap.png', 'terrain.bin', 'zonemap.png', 'plants.bin', 'buildings.json', 'minimap.png')
 
 #------------------------------------------------------------------------------
 
@@ -58,7 +59,7 @@ class BiomeArchive(object):
                     self.files[os.path.normpath(member.name)] = tar.extractfile(member).read()
         missing = [f for f in REQUIRED_FILES if f not in self.files]
         if missing:
-            raise Exception(f'biome {biome_id} archive {archive_path} has no {missing}, pack it again with tools/pack_biome.py or tools/upgrade_biome.py')
+            raise Exception(f'biome {biome_id} archive {archive_path} has no {missing}, build the land again and pack it with tools/pack_biome.py')
 
     def read(self, file_name):
         return self.files[file_name]

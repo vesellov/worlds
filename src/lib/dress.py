@@ -1,11 +1,23 @@
 """
 Look of the figures: which parts and textures the armors and the weapons give them.
-Shared by the client, which builds the models, and the server, which chooses the look of new units.
+Shared by the client, which builds the models, and the server, which chooses random looks of the neutral units
+the clients ask for, see Looks and server.simulation.Simulation.add_neutral_unit().
 """
 
 #------------------------------------------------------------------------------
 
 _Debug = False
+
+#------------------------------------------------------------------------------
+
+import os
+import json
+import random
+
+#------------------------------------------------------------------------------
+
+from lib import models
+from lib import res
 
 #------------------------------------------------------------------------------
 
@@ -44,6 +56,26 @@ WEAPON_TYPE_CODES = {
     'axe': 'ax',
     'bow': 'bw',
 }
+
+# armor types in the order they are put on and how often a unit wears each of them
+ARMOR_CHANCES = (
+    ('shirt', 0.9),
+    ('pants', 0.9),
+    ('boots', 0.8),
+    ('gloves', 0.7),
+    ('leggings', 0.6),
+    ('plate', 0.6),
+    ('helm', 0.6),
+)
+
+# how often a unit which wears armors also has a weapon
+WEAPON_CHANCE = 0.8
+
+# kinds of the samples in figures_samples.json of the figures which wear armors
+ARMORED_KINDS = ('human', 'orc')
+
+# catalog/textures_store.json says which .res file of the store holds the texture, see client.loader.texture_location()
+TEXTURES_STORE_FILE_NAME = 'textures_store.json'
 
 #------------------------------------------------------------------------------
 
@@ -207,3 +239,173 @@ def weapon_parts(model_name, weapon, weapons, materials):
             textures[f'rh3.club{weapon_id:02}'] = weapon_texture
             textures[f'baseclub{weapon_id:02}'] = weapon_texture
     return weapon_type, parts, textures
+
+
+def texture_name(texture):
+    # textures of the templates can have the layer number at the end: unhumaskin_41:0
+    return texture.split(':')[0].lower()
+
+#------------------------------------------------------------------------------
+
+
+class Looks(object):
+    """
+    Chooses random figures and their look from the catalog of the game.
+    """
+
+    def __init__(self, catalog_path, store_id=models.DEFAULT_STORE_ID):
+        self.store_id = store_id
+        self.figures = self.read(catalog_path, 'figures.json')
+        self.animations = self.read(catalog_path, 'animations.json')
+        self.armors = self.read(catalog_path, 'armors.json')
+        self.weapons = self.read(catalog_path, 'weapons.json')
+        self.materials = self.read(catalog_path, 'materials.json')
+        self.samples = self.read(catalog_path, 'figures_samples.json')
+        self.store_textures = self.read(catalog_path, TEXTURES_STORE_FILE_NAME).get(str(store_id), {})
+        self.models = self.showcase_models()
+        if _Debug:
+            print(f'{len(self.models)} figures can be shown from store {store_id}')
+
+    def read(self, catalog_path, file_name):
+        with open(os.path.join(catalog_path, file_name), 'rt') as f:
+            return json.loads(f.read())
+
+    def has_texture(self, texture):
+        return texture_name(texture) in self.store_textures
+
+    def figure_parts(self, model_name):
+        return set(res.flat_tree(self.figures[model_name]))
+
+    def figure_textures(self, model_name):
+        """
+        Textures for a figure without armors: of its samples in figures_samples.json or, when it has no samples,
+        of the store which are named as the figure in animations.json. Only textures which the store has.
+        """
+        textures = []
+        for sample in self.samples.get(model_name, []):
+            # samples with the list of parts are pieces of the figure, for example a golem falling apart
+            if sample.get('p'):
+                continue
+            texture = sample['t'].lower()
+            if self.has_texture(texture) and texture not in textures:
+                textures.append(texture)
+        if textures:
+            return textures
+        name = self.animations[model_name]['name'].lower().rstrip('0123456789')
+        return sorted(t for t in self.store_textures if t.startswith(name))
+
+    def figure_coefs(self, model_name):
+        """
+        Coefficients of the figure from one of its samples, figures_samples.json has a few variants for every sample.
+        Samples of the "unknown" kind are taken only when the figure has no other samples.
+        """
+        figure_samples = self.samples.get(model_name, [])
+        known = [sample for sample in figure_samples if sample.get('k') != 'unknown']
+        variants = []
+        for sample in (known or figure_samples):
+            for coefs in (sample.get('c') or '').split(' '):
+                if coefs:
+                    variants.append([float(c) for c in coefs.split(':')])
+        if not variants:
+            return [0.5, 0.5, 0.5]
+        return random.choice(variants)
+
+    def is_armored(self, model_name):
+        return any(sample.get('k') in ARMORED_KINDS for sample in self.samples.get(model_name, []))
+
+    def showcase_models(self):
+        """
+        Figures which can be shown: animated, with the idle animation and with textures in the store.
+        """
+        result = []
+        for model_name in sorted(self.animations.keys()):
+            if model_name not in self.figures:
+                continue
+            action_types = set(a['action_type'].split(':')[0] for a in self.animations[model_name]['actions'] if a['animation_stage'] == 'cycle')
+            if 'idle' not in action_types:
+                continue
+            if not self.is_armored(model_name) and not self.figure_textures(model_name):
+                continue
+            result.append(model_name)
+        return result
+
+    def random_wears(self, model_name):
+        """
+        Random set of armors, every one of them is of a random cut and material: the material must suit the armor
+        and the store must have the texture of that armor for the figure, the figure must have the parts of the armor.
+        """
+        figure_parts = self.figure_parts(model_name)
+        wears = []
+        for armor_type, chance in ARMOR_CHANCES:
+            if random.random() > chance:
+                continue
+            variants = []
+            for armor_name, armor in self.armors.items():
+                if armor['type'] != armor_type:
+                    continue
+                body_parts = armor_body_parts(armor_type, int(armor['texture_type_1']))
+                if any(p not in figure_parts for p in body_parts if '.armor' in p):
+                    continue
+                for material_name, material in self.materials.items():
+                    if material['type'] != armor['material_type']:
+                        continue
+                    if not self.has_texture(armor_texture_name(model_name, armor_type, armor, material)):
+                        continue
+                    variants.append(f'{armor_name}.{material_name}')
+            if variants:
+                wears.append(random.choice(variants))
+        return wears
+
+    def random_weapon(self, model_name):
+        """
+        Random weapon of a random material, or None: the figure must have all parts of the weapon
+        and the store must have its texture.
+        """
+        if random.random() > WEAPON_CHANCE:
+            return None
+        figure_parts = self.figure_parts(model_name)
+        variants = []
+        for weapon_name, weapon_info in self.weapons.items():
+            for material_name, material in self.materials.items():
+                if material['type'] != weapon_info['material_type']:
+                    continue
+                weapon = f'{weapon_name}.{material_name}'
+                _, parts, textures = weapon_parts(model_name, weapon, self.weapons, self.materials)
+                if any(p.replace('.hidden', '') not in figure_parts for p in parts):
+                    continue
+                if not all(self.has_texture(t) for t in textures.values()):
+                    continue
+                variants.append(weapon)
+        if not variants:
+            return None
+        return random.choice(variants)
+
+    def random_skin(self, model_name):
+        skins = sorted(t for t in self.store_textures if t.startswith(f'{model_name}skin_'))
+        if not skins:
+            return 0
+        return int(random.choice(skins).split('_')[-1])
+
+    def random_hair(self, model_name):
+        hairs = sorted(p for p in self.figure_parts(model_name) if p.startswith('hr.'))
+        if not hairs:
+            return None
+        return int(random.choice(hairs).split('.')[-1])
+
+    def random_template(self, model_name=None):
+        """
+        Keyword arguments of models.Template of a figure with a random look, of a random type when model_name is None.
+        """
+        if model_name is None:
+            model_name = random.choice(self.models)
+        template = dict(model_name=model_name, store_id=self.store_id, coefs=self.figure_coefs(model_name))
+        if self.is_armored(model_name):
+            template['skin'] = self.random_skin(model_name)
+            template['hair'] = self.random_hair(model_name)
+            template['wears'] = self.random_wears(model_name)
+            template['weapon'] = self.random_weapon(model_name)
+        else:
+            template['texture'] = random.choice(self.figure_textures(model_name))
+        if _Debug:
+            print(f'random look: {template}')
+        return template
