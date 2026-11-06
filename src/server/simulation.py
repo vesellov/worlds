@@ -26,6 +26,7 @@ from lib import physics
 from lib import plants
 from lib import zone
 from server import behavior
+from server import roads
 
 #------------------------------------------------------------------------------
 
@@ -59,10 +60,11 @@ ACTION_ANIMATIONS = {
     'walk': ('walk', 'run', 'idle'),
 }
 
-# neutral units added by the clients: not more than that in one biome, they appear that many segments
-# in front of the hero of the client, up to NEUTRAL_UNIT_ANGLE degrees to the left or to the right of its direction,
-# so the next one does not appear right on the previous one, see Simulation.add_neutral_unit().
-# They walk around in a circle of NEUTRAL_CIRCLE_RADIUS segments, see behavior.UnitWalkInCircle
+# neutral units added by the clients: not more than that in one biome. They appear at the first capital
+# of the biome and walk along the roads to the second one, see Simulation.add_neutral_unit().
+# In a biome without roads or with less than two capitals they appear that many segments in front of the hero of the client,
+# up to NEUTRAL_UNIT_ANGLE degrees to the left or to the right of its direction, so the next one does not appear
+# right on the previous one, and walk around in a circle of NEUTRAL_CIRCLE_RADIUS segments, see behavior.UnitWalkInCircle
 MAX_NEUTRAL_UNITS = 100
 NEUTRAL_UNIT_DISTANCE = 2.0
 NEUTRAL_UNIT_ANGLE = 60.0
@@ -169,10 +171,14 @@ class Simulation(object):
         # dress.Looks, random looks of the neutral units, loaded when the first one is added
         self.looks = None
         self.neutral_units_count = 0
+        # figures of the neutral units go one by one in the order of their names, see add_neutral_unit()
+        self.next_figure_index = 0
         # unit id -> behavior.UnitBehavior of the neutral units, units which are controlled by nobody
         self.behaviors = {}
-        # (x, y) of the capitals of the biome, see nearest_capital()
-        self.capitals = []
+        # number of the capital ("i" of buildings.json) -> (x, y) of the capitals of the biome, see nearest_capital()
+        self.capitals = {}
+        # roads.Roads of roads.json, None when the biome has no roads
+        self.roads = None
         self.objects = {}
         # holds various info about particular land segment, key is cell coordinates tuple [(w,h)]
         self.land_store = {}
@@ -192,7 +198,10 @@ class Simulation(object):
         self.zonemap = zone.ZoneMap.build(self.biome.read('zonemap.png'), self.width, self.height, plants_data, buildings_data)
         self.load_templates(buildings_data, plants_data)
         self.start_position = self.find_start_position(buildings_data)
-        self.capitals = [(float(b['x']), float(b['y'])) for b in buildings_data if b['k'] == 'capital']
+        self.capitals = dict((b['i'], (float(b['x']), float(b['y']))) for b in buildings_data if b['k'] == 'capital')
+        # biomes built before roads.json was added have no roads
+        if self.biome.has('roads.json'):
+            self.roads = roads.Roads(self.biome.read_json('roads.json'), self.width, self.height)
         with open(os.path.join(self.catalog_path, 'animations.json'), 'rt') as f:
             self.animations_catalog = json.loads(f.read())
         with open(os.path.join(self.catalog_path, 'weapons.json'), 'rt') as f:
@@ -200,7 +209,7 @@ class Simulation(object):
         self.map = models.Map(width=self.width, height=self.height, water_level=const.WATER_LEVEL / 100.0)
         self.info = models.World(name=self.biome.id, width=self.width, height=self.height)
         if _Debug:
-            print(f'biome {self.biome.id} loaded, map is {self.width}x{self.height}, zonemap has {self.zonemap.scale} pixels per segment, {len(self.templates)} templates')
+            print(f'biome {self.biome.id} loaded, map is {self.width}x{self.height}, zonemap has {self.zonemap.scale} pixels per segment, {len(self.templates)} templates, {len(self.roads or [])} roads')
 
     #--- MAP ---
 
@@ -245,7 +254,7 @@ class Simulation(object):
     def nearest_capital(self, x, y):
         best = None
         best_distance2 = None
-        for cx, cy in self.capitals:
+        for cx, cy in self.capitals.values():
             dx = behavior.nearest_shift(x, cx, self.width)
             dy = behavior.nearest_shift(y, cy, self.height)
             distance2 = dx * dx + dy * dy
@@ -372,36 +381,46 @@ class Simulation(object):
 
     def add_neutral_unit(self, near_id):
         """
-        Adds a unit of a random figure with a random look in front of the object near_id, the unit walks around
-        in a circle, see behavior.UnitWalkInCircle. Returns the unit or None.
+        Adds a unit with a random look, the figures go one by one in the order of their names. The unit appears
+        at the first capital of the biome and walks along the roads to the second one, see behavior.UnitRoadToCapitalWalk.
+        In a biome without roads or with less than two capitals it appears in front of the object near_id and walks around in a circle,
+        see behavior.UnitWalkInCircle. Returns the unit or None.
         """
         near = self.objects.get(near_id)
         if not near or self.neutral_units_count >= MAX_NEUTRAL_UNITS:
             return None
         if self.looks is None:
             self.looks = dress.Looks(self.catalog_path)
+        model_name = self.looks.models[self.next_figure_index % len(self.looks.models)]
+        self.next_figure_index += 1
         self.next_id += 1
         unit = models.Unit(
             id=self.next_id,
             name=f'unit{self.next_id}',
-            template=models.Template(**self.looks.random_template()),
+            template=models.Template(**self.looks.random_template(model_name)),
             w=0,
             h=0,
             direction=float(random.randint(0, 359)),
         )
-        angle = math.radians(near.direction + random.uniform(-NEUTRAL_UNIT_ANGLE, NEUTRAL_UNIT_ANGLE))
-        x = near.w + near.shift_w + NEUTRAL_UNIT_DISTANCE * math.cos(angle)
-        y = near.h + near.shift_h + NEUTRAL_UNIT_DISTANCE * math.sin(angle)
-        unit.w, unit.h = self.find_free_position(int(math.floor(x)) % self.width, int(math.floor(y)) % self.height, size=zone.unit_size(unit))
-        # the unit stands on the circle, the point it follows goes around from there
-        angle = random.uniform(0.0, 2.0 * math.pi)
-        self.behaviors[unit.id] = behavior.UnitWalkInCircle(
-            unit.w + unit.shift_w - NEUTRAL_CIRCLE_RADIUS * math.cos(angle),
-            unit.h + unit.shift_h - NEUTRAL_CIRCLE_RADIUS * math.sin(angle),
-            NEUTRAL_CIRCLE_RADIUS,
-            angle=angle,
-            clockwise=random.choice((True, False)),
-        )
+        capital_numbers = sorted(self.capitals.keys())
+        if len(capital_numbers) >= 2 and self.roads:
+            x, y = self.capitals[capital_numbers[0]]
+            unit.w, unit.h = self.find_free_position(int(math.floor(x)) % self.width, int(math.floor(y)) % self.height, size=zone.unit_size(unit))
+            self.behaviors[unit.id] = behavior.UnitRoadToCapitalWalk(capital_numbers[1])
+        else:
+            angle = math.radians(near.direction + random.uniform(-NEUTRAL_UNIT_ANGLE, NEUTRAL_UNIT_ANGLE))
+            x = near.w + near.shift_w + NEUTRAL_UNIT_DISTANCE * math.cos(angle)
+            y = near.h + near.shift_h + NEUTRAL_UNIT_DISTANCE * math.sin(angle)
+            unit.w, unit.h = self.find_free_position(int(math.floor(x)) % self.width, int(math.floor(y)) % self.height, size=zone.unit_size(unit))
+            # the unit stands on the circle, the point it follows goes around from there
+            angle = random.uniform(0.0, 2.0 * math.pi)
+            self.behaviors[unit.id] = behavior.UnitWalkInCircle(
+                unit.w + unit.shift_w - NEUTRAL_CIRCLE_RADIUS * math.cos(angle),
+                unit.h + unit.shift_h - NEUTRAL_CIRCLE_RADIUS * math.sin(angle),
+                NEUTRAL_CIRCLE_RADIUS,
+                angle=angle,
+                clockwise=random.choice((True, False)),
+            )
         unit.animation = self.animation_for(unit)
         self.objects[unit.id] = unit
         self.neutral_units_count += 1

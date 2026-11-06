@@ -640,6 +640,27 @@ def build_routes(data, tiles_draw, routes_draw=None, highlight_routes=False, sho
     return count
 
 
+def build_roads_data(data):
+    """
+    Roads of the map for roads.json of the biome: [{"i": route id, "p": [[x, y], ...]}, ...], the points are
+    in segments of the land, the same as the routes drawn by build_routes(). Trails and sea routes are not included.
+    The server leads the units along them, see server.roads.
+    """
+    roads = []
+    for route in data['pack']['routes']:
+        if route['group'] != 'roads':
+            continue
+        points = []
+        for x, y, _ in route['points']:
+            x, y = xy2draw(x, y)
+            point = [round(x, 2), round(y, 2)]
+            if not points or points[-1] != point:
+                points.append(point)
+        if len(points) >= 2:
+            roads.append({'i': route['i'], 'p': points})
+    return roads
+
+
 def capture_routes_data(routes_image):
     routes_map = {}
     for x in range(routes_image.width):
@@ -1707,6 +1728,11 @@ def main():
     buildings.extend(flags)
     print(f"Total {len(buildings)} buildings generated")
     open('assets/buildings.json', 'w').write(json.dumps(buildings, indent=2))
+
+    roads = build_roads_data(data)
+    open('assets/roads.json', 'w').write(json.dumps(roads))
+    if _Debug:
+        print(f"Saved {len(roads)} roads")
 
     cell_index_image = Image.new("RGB", (width, height), "black")
     cell_index_draw = ImageDraw.Draw(cell_index_image)

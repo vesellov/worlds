@@ -155,7 +155,7 @@ class GameServer(object):
 
     def on_add_unit(self, key):
         """
-        Adds a neutral unit in front of the hero of that client, all clients of the biome see it.
+        Adds a neutral unit for that client, see Simulation.add_neutral_unit(), all clients of the biome see it.
         """
         biome_id, hero_id = self.clients.get(key, (None, None))
         if hero_id is None:

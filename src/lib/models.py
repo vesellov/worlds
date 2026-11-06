@@ -33,8 +33,8 @@ MSG_JOIN = 'join'
 # {biome_id, sha256}: client wants to enter the biome, sha256 of the biome archive it already has or None
 MSG_ENTER = 'enter'
 MSG_INPUT = 'input'
-# {}: client asks to add a neutral unit of a random figure in front of its hero, it walks around in a circle,
-# see server.behavior, the server sends "spawn" of the new unit to all clients of the biome
+# {}: client asks to add a neutral unit, it appears at the first capital of the biome and walks along the roads
+# to the second one, see server.behavior, the server sends "spawn" of the new unit to all clients of the biome
 MSG_ADD_UNIT = 'add_unit'
 
 # server -> client

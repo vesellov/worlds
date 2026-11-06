@@ -2,7 +2,7 @@
 Packs files of a biome (by default the ./assets/ folder) into <biomes dir>/<biome_id>.tar.gz and adds the biome
 to <biomes dir>/server.json, the game server loads its biomes from there, see src/server/biomes.py.
 Only the files the client loads go into the archive, see load_land() in src/client/main.py and
-biomes.REQUIRED_FILES, other files of the folder are skipped.
+biomes.REQUIRED_FILES and biomes.OPTIONAL_FILES, other files of the folder are skipped.
 The first biome of the list is where the clients come when they connect to the server.
 Packing the same biome again replaces its archive and keeps its place in the list.
 
@@ -58,7 +58,7 @@ def skipped_files(source_dir_path):
     for folder_path, _, files in os.walk(source_dir_path):
         for file_name in files:
             rel_path = os.path.relpath(os.path.join(folder_path, file_name), source_dir_path)
-            if rel_path not in biomes.REQUIRED_FILES:
+            if rel_path not in biomes.REQUIRED_FILES and rel_path not in biomes.OPTIONAL_FILES:
                 skipped.append(rel_path)
     return sorted(skipped)
 

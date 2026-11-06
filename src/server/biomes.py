@@ -39,6 +39,10 @@ CONFIG_FILE_NAME = 'server.json'
 # minimap.png is shown on the screen of the client
 REQUIRED_FILES = ('heightmap.png', 'terrain.bin', 'zonemap.png', 'plants.bin', 'buildings.json', 'minimap.png')
 
+# files which go into the archive when the folder has them, biomes built earlier do not have them.
+# roads.json keeps the roads, only the server reads it, see server.roads
+OPTIONAL_FILES = ('roads.json', )
+
 #------------------------------------------------------------------------------
 
 
@@ -67,6 +71,9 @@ class BiomeArchive(object):
     def read_json(self, file_name):
         return json.loads(self.files[file_name].decode('utf-8'))
 
+    def has(self, file_name):
+        return file_name in self.files
+
     def info(self):
         return models.Biome(id=self.id, name=self.name, sha256=self.sha256, size=self.size)
 
@@ -85,9 +92,10 @@ class BiomeArchive(object):
 
 def pack(source_dir_path, archive_path):
     """
-    Writes the files of the biome (REQUIRED_FILES) from the folder into the .tar.gz archive, files are at the root of the archive.
+    Writes the files of the biome (REQUIRED_FILES and OPTIONAL_FILES which the folder has) from the folder
+    into the .tar.gz archive, files are at the root of the archive.
     """
-    names = sorted(REQUIRED_FILES)
+    names = sorted(list(REQUIRED_FILES) + [f for f in OPTIONAL_FILES if os.path.isfile(os.path.join(source_dir_path, f))])
     part_path = archive_path + '.part'
     # no time in the gzip header: the same files give the same archive and the clients do not download it again
     with open(part_path, 'wb') as raw, gzip.GzipFile(filename='', fileobj=raw, mode='wb', compresslevel=9, mtime=0) as gz, tarfile.open(fileobj=gz, mode='w') as tar:

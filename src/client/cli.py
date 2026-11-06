@@ -714,7 +714,7 @@ class GameClient(object):
 
     def add_unit(self):
         """
-        Asks the server to add a neutral unit in front of the hero, it comes back as "spawn" like any other unit.
+        Asks the server to add a neutral unit, it comes back as "spawn" like any other unit, see server.simulation.Simulation.add_neutral_unit().
         """
         if self.hero_id is None:
             return

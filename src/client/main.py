@@ -402,7 +402,7 @@ class WorldsApp(App):
         self.renderer.joystick_button.x = fixed_offset
         self.renderer.joystick_button.y = fixed_offset
         self.root.add_widget(self.renderer.joystick_button)
-        # the server adds a neutral unit of a random figure in front of the hero, it walks around in a circle, see server.behavior
+        # the server adds a neutral unit at the first capital, it walks along the roads to the second one, see server.behavior
         add_unit_button = Button(
             text='add unit',
             size_hint=(None, None),
