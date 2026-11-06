@@ -277,11 +277,11 @@ class Scene(object):
             print(f'visible area created at {w} {h} with {added} segments, elevation at center is {elevation_at_center} with planet shift {planet_shift_y}, queue is {len(self.segments_waiting)} / {len(self.segments_cleanup_queue)}')
         self.update_segments()
 
-    def figure_ground_offset(self, o, m, coefs, scale):
+    def figure_height_range(self, o, m, coefs, scale):
         """
-        Height of the lowest point of the figure above the ground in the first frame of its idle animation.
-        Figures are made with different base points: a tiger stands in the air and a goblin in the ground
-        when the root part is placed at the ground level, see unt.Unit.set_position() and lib.figures.
+        Heights of the lowest and of the highest point of the figure above its root part in the first frame
+        of its idle animation. Figures are made with different base points: a tiger stands in the air and a goblin
+        in the ground when the root part is placed at the ground level, see unt.Unit.set_position() and lib.figures.
         """
         idle_name = None
         for action in self.catalog.animations.get(o.template, {}).get('actions', []):
@@ -289,9 +289,10 @@ class Scene(object):
                 idle_name = action['action_name']
                 break
         if idle_name is None:
-            return 0.0
+            return 0.0, 0.0
         animation = o.animations[idle_name]
         lowest = None
+        highest = None
         for part_name in o.meshes.keys():
             fig_data = m.figures.get(part_name)
             part_animation = animation.parts.get(part_name)
@@ -310,7 +311,9 @@ class Scene(object):
                     y = rotate_mat.transform_point(v[0], v[1], v[2])[1] + t[1]
                     if lowest is None or y < lowest:
                         lowest = y
-        return lowest or 0.0
+                    if highest is None or y > highest:
+                        highest = y
+        return lowest or 0.0, highest or 0.0
 
     def mesh_key(self, template, part_name, coefs, scale=(1.0, 1.0, 1.0)):
         c = mth.quantize_coefs(coefs)
@@ -745,7 +748,7 @@ class Scene(object):
             self.static_objects[o.name] = o
         else:
             o.calculate_animations()
-            o.ground_offset = self.figure_ground_offset(o, m, coefs, scale)
+            o.ground_offset, o.top_offset = self.figure_height_range(o, m, coefs, scale)
             self.animated_objects[o.name] = o
         # t2 = time.time()
         # if _Debug:

@@ -98,6 +98,23 @@ class Hero(object):
     def get_unit(self):
         return self.scene.units.get(self.unit_name)
 
+    def label_text(self):
+        """
+        Name of the figure and of its texture, shown above the unit, see scr.UnitLabels.
+        """
+        texture = self.texture or self.build_template()['textures'].get('*') or ''
+        # the layer of the texture after ":" is not interesting
+        return f'{self.model_name} {texture.split(":")[0]}'.strip()
+
+    def label_height(self):
+        """
+        Height above the root part of the unit where its label is shown, in the units of the scene.
+        """
+        u = self.get_unit()
+        if not u:
+            return 0.0
+        return self.scene.animated_objects[u.object_name].top_offset
+
     def set_animation(self, animation_name):
         """
         Server decides which animation the unit is playing, client only plays frames of it.

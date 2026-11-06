@@ -388,6 +388,9 @@ class WorldsApp(App):
         self.renderer.game_client = self.game_client
         # must add renderer the first to properly propagate touch events and draw widgets on top of it
         self.root.add_widget(self.renderer)
+        # names of the units above them, under all other widgets
+        self.renderer.unit_labels = scr.UnitLabels()
+        self.root.add_widget(self.renderer.unit_labels)
         self.renderer.joystick_button = scr.JoystickRoundButton(
             move_callback=self.renderer.on_joystick_move,
             text="", 

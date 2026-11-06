@@ -184,6 +184,11 @@ class Renderer(Widget):
         self.camera_speed = 0.0
         self.camera_unit_lock = None
         self.camera_capital_lock = 0
+        # scr.UnitLabels with the names of the units, see update_unit_labels()
+        self.unit_labels = None
+        # matrices of the camera of the last frame, see update_canvas()
+        self.projection_matrix = None
+        self.modelview_matrix = None
         self.camera_move_mode = 1
         self.global_eye_x = 0
         self.global_eye_y = 0
@@ -298,12 +303,14 @@ class Renderer(Widget):
         self.global_eye_y = float(self.camera_distance_scale_factor) * self.camera_distance_to_center * math.cos(math.radians(self.camera_angle_y))
         self.global_eye_z = float(self.camera_distance_scale_factor) * self.camera_distance_to_center * math.sin(math.radians(self.camera_angle_y)) * math.cos(math.radians(self.camera_angle_z))
         self.update_sky_background()
-        self.canvas['projection_mat'] = Matrix().view_clip(-asp, asp, -1, 1, const.CAMERA_VIEW_CLIP_NEAR, const.CAMERA_VIEW_CLIP_FAR, 1)
-        self.canvas['modelview_mat'] = Matrix().look_at(
+        self.projection_matrix = Matrix().view_clip(-asp, asp, -1, 1, const.CAMERA_VIEW_CLIP_NEAR, const.CAMERA_VIEW_CLIP_FAR, 1)
+        self.modelview_matrix = Matrix().look_at(
             self.global_eye_x, self.global_eye_y, self.global_eye_z,
             self.global_center_x, self.global_center_y, self.global_center_z,
             0, 1, 0,  # up vector
         )
+        self.canvas['projection_mat'] = self.projection_matrix
+        self.canvas['modelview_mat'] = self.modelview_matrix
         self.canvas['center_point'] = (0.0, 0.0, - float(self.camera_distance_scale_factor) * float(self.camera_distance_to_center))
         # if _Debug:
         #     print(f'updating canvas center_point={self.canvas["center_point"]} asp={asp}')
@@ -967,6 +974,44 @@ class Renderer(Widget):
             if u:
                 self.scene.update_land(new_position=(u.w, u.h, u.shift_w, u.shift_h))
         self.update_canvas()
+        self.update_unit_labels()
+
+    def screen_position(self, unit, height):
+        """
+        (x, y) in the pixels of the window of the point that high above the root part of the unit,
+        or None when the point is behind the camera or out of the window.
+        The same transformations as the scene applies to the unit, see scen.Scene.construct_unit_from_object_data().
+        """
+        scene = self.scene
+        model = self.modelview_matrix
+        for instruction in (
+            scene.global_translate_before,
+            scene.global_rotate_x,
+            scene.global_rotate_z,
+            unit.rotate_axis_x,
+            unit.rotate_axis_z,
+            unit.translate_shift,
+        ):
+            model = model.multiply(instruction.matrix)
+        # the camera looks along -z
+        if model.transform_point(0.0, height, 0.0)[2] >= 0.0:
+            return None
+        x, y, _ = Matrix().project(0.0, height, 0.0, model, self.projection_matrix, 0, 0, Window.width, Window.height)
+        if x < 0 or y < 0 or x > Window.width or y > Window.height:
+            return None
+        return x, y
+
+    def update_unit_labels(self):
+        if not self.unit_labels or not self.game_client or self.modelview_matrix is None:
+            return
+        items = []
+        for o, view, _ in self.game_client.objects.values():
+            u = view.get_unit()
+            position = None
+            if u and u.onstage:
+                position = self.screen_position(u, view.label_height())
+            items.append((o.id, view.label_text(), position))
+        self.unit_labels.show(items)
 
     def on_update_animations(self, delta):
         if self.this_animation_frame is not None:

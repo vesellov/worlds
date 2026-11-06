@@ -1,5 +1,5 @@
 """
-Screen widgets: the root container of the application, the joystick button and the minimap.
+Screen widgets: the root container of the application, the joystick button, the minimap and the labels of the units.
 """
 
 #------------------------------------------------------------------------------
@@ -12,6 +12,7 @@ import math
 
 from kivy.clock import Clock
 from kivy.core.image import Image as CoreImage
+from kivy.core.text import Label as CoreLabel
 from kivy.core.window import Window
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
@@ -38,6 +39,14 @@ MINIMAP_DOTS = {
     'hero': ((0.2, 0.8, 1.0, 1.0), 2.5),
     'unit': ((1.0, 0.25, 0.2, 1.0), 2.0),
 }
+
+# labels above the units: font size in sp, text color and the color of the thin outline around the letters,
+# a soft light gray which is readable on the land and on the sky but does not take the attention from the game
+UNIT_LABEL_FONT_SIZE = 11
+UNIT_LABEL_COLOR = (0.88, 0.88, 0.82, 0.7)
+UNIT_LABEL_OUTLINE_COLOR = (0.4, 0.4, 0.4)
+# space between the top of the figure and the bottom of its label, dp
+UNIT_LABEL_GAP = 4
 
 #------------------------------------------------------------------------------
 
@@ -216,3 +225,60 @@ class MiniMap(Widget):
         if self.update_event:
             self.update_event.cancel()
             self.update_event = None
+
+#------------------------------------------------------------------------------
+
+
+class UnitLabels(Widget):
+    """
+    Small labels above the units of the scene. The text keeps its size on the screen, only its position follows
+    the unit and the camera, see rend.Renderer.update_unit_labels(). Labels of the units which are not seen are hidden.
+    """
+
+    def __init__(self, **kwargs):
+        super(UnitLabels, self).__init__(**kwargs)
+        # key -> (text, Rectangle), the texture of the text is made once
+        self.labels = {}
+        with self.canvas:
+            self.color = Color(*UNIT_LABEL_COLOR)
+        self.group = InstructionGroup()
+        self.canvas.add(self.group)
+
+    def make_texture(self, text):
+        label = CoreLabel(
+            text=text,
+            font_size=sp(UNIT_LABEL_FONT_SIZE),
+            outline_width=1,
+            outline_color=UNIT_LABEL_OUTLINE_COLOR,
+        )
+        label.refresh()
+        return label.texture
+
+    def show(self, items):
+        """
+        items is [(key, text, (x, y) of the point above the unit on the screen or None when it is not seen)].
+        """
+        seen = set()
+        for key, text, position in items:
+            if position is None:
+                continue
+            seen.add(key)
+            label = self.labels.get(key)
+            if label is None or label[0] != text:
+                if label is not None:
+                    self.group.remove(label[1])
+                texture = self.make_texture(text)
+                label = (text, Rectangle(texture=texture, size=texture.size))
+                self.labels[key] = label
+                self.group.add(label[1])
+            rectangle = label[1]
+            width, _ = rectangle.size
+            # whole pixels keep the small letters sharp
+            rectangle.pos = (int(position[0] - width / 2.0), int(position[1] + dp(UNIT_LABEL_GAP)))
+        for key in list(self.labels.keys()):
+            if key not in seen:
+                self.group.remove(self.labels.pop(key)[1])
+
+    def clear(self):
+        self.group.clear()
+        self.labels.clear()

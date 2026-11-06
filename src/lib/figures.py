@@ -8,7 +8,7 @@ the animation as fast as the unit really moves, see client.cli.GameClient.animat
 of a slow zombie and of a fast tiger both stay on the ground.
 
 The catalog has no flag for the figures which fly: they are listed in FLYING_FIGURES.
-Figures which walk are placed so their lowest point is on the ground, see client.scen.Scene.figure_ground_offset().
+Figures which walk are placed so their lowest point is on the ground, see client.scen.Scene.figure_height_range().
 """
 
 #------------------------------------------------------------------------------
