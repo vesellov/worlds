@@ -19,14 +19,6 @@ import math
 
 #------------------------------------------------------------------------------
 
-from lib import models
-
-#------------------------------------------------------------------------------
-
-# segments per tick
-RUN_SPEED = models.MAX_SPEED
-WALK_SPEED = 0.04
-
 # a unit going to a point stops when it is that close to the point, in segments
 ARRIVE_DISTANCE = 0.15
 
@@ -40,8 +32,8 @@ FOLLOW_DISTANCE = 1.0
 # a unit running to a capital stops that far from its center, the capital itself is closed
 CAPITAL_DISTANCE = 1.5
 
-# the point of UnitWalkInCircle goes around the circle that fast, in segments per tick, a bit slower than the unit walks
-CIRCLE_POINT_SPEED = WALK_SPEED * 0.8
+# the point of UnitWalkInCircle goes around the circle a bit slower than the unit walks
+CIRCLE_POINT_SPEED = 0.8
 
 #------------------------------------------------------------------------------
 
@@ -64,9 +56,9 @@ class UnitBehavior(object):
     it returns the behavior for the next tick: the same one, or another one when this one is finished.
     """
 
-    # what the unit plays while it moves, the simulation chooses the animation, see Simulation.animation_for()
+    # what the unit plays while it moves, the simulation chooses the animation, see Simulation.animation_for(),
+    # and the speed of the unit follows from that animation, see Simulation.unit_speed()
     action = 'idle'
-    speed = 0.0
 
     def think(self, sim, unit):
         return self
@@ -107,7 +99,6 @@ class UnitGoToPoint(UnitBehavior):
     """
 
     action = 'walk'
-    speed = WALK_SPEED
     arrive_distance = ARRIVE_DISTANCE
 
     def __init__(self, x, y, next_behavior=None):
@@ -131,8 +122,9 @@ class UnitGoToPoint(UnitBehavior):
             self.stop(unit)
             return self.arrived(sim, unit)
         # slower near the point, so the unit does not run past it
+        speed = sim.unit_speed(unit, self.action)
         k = min(1.0, (distance - self.arrive_distance) / SLOW_DOWN_DISTANCE)
-        self.go(unit, dx, dy, max(self.speed * k, self.speed * 0.25))
+        self.go(unit, dx, dy, speed * max(k, 0.25))
         return self
 
     def arrived(self, sim, unit):
@@ -144,7 +136,6 @@ class UnitGoToPoint(UnitBehavior):
 class UnitRunToPoint(UnitGoToPoint):
 
     action = 'run'
-    speed = RUN_SPEED
 
 #------------------------------------------------------------------------------
 
@@ -152,7 +143,6 @@ class UnitRunToPoint(UnitGoToPoint):
 class UnitWalkToPoint(UnitGoToPoint):
 
     action = 'walk'
-    speed = WALK_SPEED
 
 #------------------------------------------------------------------------------
 
@@ -199,13 +189,14 @@ class UnitWalkInCircle(UnitWalkToPoint):
         self.radius = radius
         # radians
         self.angle = angle
-        self.angle_step = CIRCLE_POINT_SPEED / radius * (-1.0 if clockwise else 1.0)
+        self.direction = -1.0 if clockwise else 1.0
 
     def target(self, sim, unit):
         return self.center_x + self.radius * math.cos(self.angle), self.center_y + self.radius * math.sin(self.angle)
 
     def think(self, sim, unit):
-        self.angle = (self.angle + self.angle_step) % (2.0 * math.pi)
+        angle_step = sim.unit_speed(unit, self.action) * CIRCLE_POINT_SPEED / self.radius
+        self.angle = (self.angle + angle_step * self.direction) % (2.0 * math.pi)
         return super().think(sim, unit)
 
     def arrived(self, sim, unit):

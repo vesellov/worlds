@@ -18,7 +18,7 @@ from kivy.base import EventLoop
 from kivy.app import App
 from kivy.cache import Cache
 from kivy.clock import Clock
-from kivy.core.window import Window
+from kivy.core.window import Window, Keyboard
 from kivy.uix.widget import Widget
 from kivy.core.image import Image
 from kivy.resources import resource_find
@@ -49,6 +49,13 @@ from lib import mth
 from lib import res
 
 #------------------------------------------------------------------------------
+
+# keys of the letters and digits by their place on the keyboard (USB HID scancodes, the same in SDL2),
+# so "w", "a", "d" work with any keyboard layout, for example a cyrillic one, see Renderer.key_name()
+SCANCODE_KEYS = dict([(4 + i, chr(ord('a') + i)) for i in range(26)] + [(30 + i, '1234567890'[i]) for i in range(10)])
+
+# key number -> name of the key, see kivy.core.window.Keyboard.keycodes
+KEY_NAMES = {code: name for name, code in Keyboard.keycodes.items()}
 
 VERTEX_SHADER = """
 #ifdef GL_ES
@@ -222,11 +229,11 @@ class Renderer(Widget):
             PopMatrix()
             self.cb = Callback(self.on_reset_gl_context)
         self.canvas['texture_id'] = 1
-        self.keyboard_handler = None
+        self.keyboard_bound = False
         if not system.is_android():
-            self.keyboard_handler = Window.request_keyboard(self.on_keyboard_closed, self)
-            self.keyboard_handler.bind(on_key_down=self.on_keyboard_down)
-            self.keyboard_handler.bind(on_key_up=self.on_keyboard_up)
+            # the events of the window bring the place of the key on the keyboard too, see key_name()
+            Window.bind(on_key_down=self.on_window_key_down, on_key_up=self.on_window_key_up)
+            self.keyboard_bound = True
         Clock.schedule_interval(self.on_update_glsl, 1 / 60)
         # animations of the fast running units are played faster than 20 frames per second, see unt.Unit.animation_rate
         Clock.schedule_interval(self.on_update_animations, 1 / 40)
@@ -313,9 +320,15 @@ class Renderer(Widget):
         y_angle = -1.0 * (float(touch.dy) / float(self.height)) * 360.0 * const.ROTATE_SPEED
         return x_angle, y_angle
 
-    def on_keyboard_closed(self):
-        self.keyboard_handler.unbind(on_key_down=self.on_keyboard_down)
-        self.keyboard_handler = None
+    def key_name(self, key, scancode):
+        # with a cyrillic layout the "w" key gives "ц", Kivy does not know its name and the hero would not move
+        return SCANCODE_KEYS.get(scancode) or KEY_NAMES.get(key, '')
+
+    def on_window_key_down(self, window, key, scancode=None, codepoint=None, modifiers=None, *largs):
+        return self.on_keyboard_down(None, (key, self.key_name(key, scancode)), codepoint, modifiers or [])
+
+    def on_window_key_up(self, window, key, scancode=None, *largs):
+        return self.on_keyboard_up(None, (key, self.key_name(key, scancode)))
 
     def stop(self):
         """
@@ -324,11 +337,9 @@ class Renderer(Widget):
         Clock.unschedule(self.on_update_glsl)
         Clock.unschedule(self.on_update_animations)
         Clock.unschedule(self.on_run_units)
-        if self.keyboard_handler:
-            self.keyboard_handler.unbind(on_key_down=self.on_keyboard_down)
-            self.keyboard_handler.unbind(on_key_up=self.on_keyboard_up)
-            self.keyboard_handler.release()
-            self.keyboard_handler = None
+        if self.keyboard_bound:
+            Window.unbind(on_key_down=self.on_window_key_down, on_key_up=self.on_window_key_up)
+            self.keyboard_bound = False
         self.game_client = None
 
     def _show_unit(self, template_data, scale=[1.0, 1.0, 1.0], coefs_index=None):

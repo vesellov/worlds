@@ -21,6 +21,7 @@ from kivy.clock import Clock
 
 #------------------------------------------------------------------------------
 
+from lib import figures
 from lib import models
 from lib import physics
 from lib import zone
@@ -53,14 +54,7 @@ INPUT_LEAD_MAX = 20.0
 # spare ticks kept for uneven network
 INPUT_LEAD_MARGIN = 1.0
 
-# speed in segments per tick of a unit of the usual size which moves its legs exactly as fast as the animation of
-# that action goes at the usual pace, see unt.ANIMATION_FPS. A faster unit plays the animation faster, so its feet
-# do not slide along the ground, a bigger unit makes longer steps
-ANIMATION_NATURAL_SPEED = {
-    'run': 0.06,
-    'walk': 0.025,
-}
-# the pace of the animation is not changed more than that
+# the pace of the animation is not changed more than that, see GameClient.animation_rate()
 ANIMATION_RATE_RANGE = (0.3, 3.0)
 
 #------------------------------------------------------------------------------
@@ -645,10 +639,16 @@ class GameClient(object):
             u.set_position(self.scene, w, h, x - w, y - h, direction)
 
     def animation_rate(self, o, speed):
-        natural_speed = ANIMATION_NATURAL_SPEED.get(getattr(o, 'action', None))
-        if not natural_speed or not speed:
+        """
+        How fast the animation of the unit is played: as fast as the unit moves comparing to the speed
+        the animation was recorded for, so the feet do not slide along the ground, see lib.figures.
+        """
+        if not speed or not self.scene or not getattr(o, 'animation', None):
             return 1.0
-        rate = abs(speed) / (natural_speed * zone.unit_size(o))
+        natural_speed = figures.natural_speed(self.scene.catalog.animations, o.template.model_name, o.animation, zone.unit_size(o))
+        if not natural_speed:
+            return 1.0
+        rate = abs(speed) / natural_speed
         return min(max(rate, ANIMATION_RATE_RANGE[0]), ANIMATION_RATE_RANGE[1])
 
     def minimap_units(self):

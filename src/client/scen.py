@@ -30,6 +30,7 @@ from kivy.graphics import (
 )
 from kivy.graphics.instructions import InstructionGroup  # @UnresolvedImport
 from kivy.graphics.context_instructions import Transform  # @UnresolvedImport
+from kivy.graphics.transformation import Matrix  # @UnresolvedImport
 from PIL import Image, ImageChops, ImageDraw, ImageFilter
 from PIL.Image import Transpose
 
@@ -275,6 +276,41 @@ class Scene(object):
         if _Debug:
             print(f'visible area created at {w} {h} with {added} segments, elevation at center is {elevation_at_center} with planet shift {planet_shift_y}, queue is {len(self.segments_waiting)} / {len(self.segments_cleanup_queue)}')
         self.update_segments()
+
+    def figure_ground_offset(self, o, m, coefs, scale):
+        """
+        Height of the lowest point of the figure above the ground in the first frame of its idle animation.
+        Figures are made with different base points: a tiger stands in the air and a goblin in the ground
+        when the root part is placed at the ground level, see unt.Unit.set_position() and lib.figures.
+        """
+        idle_name = None
+        for action in self.catalog.animations.get(o.template, {}).get('actions', []):
+            if action['animation_stage'] == 'cycle' and action['action_type'].split(':')[0] == 'idle' and action['action_name'] in o.animations:
+                idle_name = action['action_name']
+                break
+        if idle_name is None:
+            return 0.0
+        animation = o.animations[idle_name]
+        lowest = None
+        for part_name in o.meshes.keys():
+            fig_data = m.figures.get(part_name)
+            part_animation = animation.parts.get(part_name)
+            if not fig_data or not part_animation or not part_animation.rotation_frames:
+                continue
+            part_coefs = mth.quantize_coefs(m.part_coefs(o.template, part_name, coefs))
+            r = part_animation.rotation_frames[0]
+            t = part_animation.translation_frames[0]
+            rotate_mat = Matrix()
+            rotate_mat.set(array=mth.quaternion_to_matrix(r[0], r[1], r[2], r[3]))
+            rotate_mat = rotate_mat.inverse()
+            # the same transformation of the vertices as the animation does, see unt.Unit.animate()
+            for block in fig_data[13]:
+                for j in range(4):
+                    v = mth.ei2xyz_list([mth.trilinear([block[axis][k][j] for k in range(8)], part_coefs) * scale[axis] for axis in range(3)])
+                    y = rotate_mat.transform_point(v[0], v[1], v[2])[1] + t[1]
+                    if lowest is None or y < lowest:
+                        lowest = y
+        return lowest or 0.0
 
     def mesh_key(self, template, part_name, coefs, scale=(1.0, 1.0, 1.0)):
         c = mth.quantize_coefs(coefs)
@@ -709,6 +745,7 @@ class Scene(object):
             self.static_objects[o.name] = o
         else:
             o.calculate_animations()
+            o.ground_offset = self.figure_ground_offset(o, m, coefs, scale)
             self.animated_objects[o.name] = o
         # t2 = time.time()
         # if _Debug:

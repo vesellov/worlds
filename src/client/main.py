@@ -415,8 +415,6 @@ class WorldsApp(App):
             map_width=land.width,
             map_height=land.height,
             units_source=self.game_client.minimap_units,
-            size_hint=(None, None),
-            size=(dp(320), dp(320)),
             pos_hint={'x': 0.01, 'top': 0.99},
         )
         self.root.add_widget(self.minimap)

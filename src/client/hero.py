@@ -9,6 +9,7 @@ _Debug = True
 #------------------------------------------------------------------------------
 
 from lib import const
+from lib import figures
 from lib import mth
 from lib import models
 from client import loader
@@ -83,6 +84,9 @@ class Hero(object):
         unit.action_types = template['action_types']
         unit.animation_playing = unit.action_types['idle'][0]['name']
         unit.animation_next = None
+        if elevation_correction is None and not figures.is_flying(self.model_name):
+            # the lowest point of the figure stands on the ground, flying figures stay as high as they fly
+            elevation_correction = self.scene.animated_objects[unit.object_name].ground_offset
         unit.elevation_correction = elevation_correction
         unit.coefs = coefs
         unit.scale = scale

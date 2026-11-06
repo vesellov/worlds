@@ -114,6 +114,8 @@ class ObjectData(object):
         self.root_mesh_center = None
         self.animations = {}
         self.animations_loaded = []
+        # height of the lowest point of the figure above the ground, see scen.Scene.figure_ground_offset()
+        self.ground_offset = 0.0
 
     # def list_parents(self, part_name):
     #     if part_name not in self.parts_parents:

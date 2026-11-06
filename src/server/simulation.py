@@ -20,6 +20,7 @@ from PIL import Image
 
 from lib import const
 from lib import dress
+from lib import figures
 from lib import models
 from lib import physics
 from lib import plants
@@ -163,6 +164,8 @@ class Simulation(object):
         self.animations_catalog = {}
         self.weapons_catalog = {}
         self.action_types_cache = {}
+        # (model name, weapon, action, size) -> speed, see unit_speed()
+        self.unit_speeds_cache = {}
         # dress.Looks, random looks of the neutral units, loaded when the first one is added
         self.looks = None
         self.neutral_units_count = 0
@@ -315,13 +318,26 @@ class Simulation(object):
             self.action_types_cache[key] = action_types
         return self.action_types_cache[key]
 
-    def animation_for(self, unit):
+    def animation_for(self, unit, action=None):
+        # the animation the unit plays for that action, the current action of the unit by default
+        action = action or unit.action
         action_types = self.action_types(unit.template.model_name, self.weapon_type(unit.template.weapon))
-        for action_type in ACTION_ANIMATIONS.get(unit.action, (unit.action, )):
+        for action_type in ACTION_ANIMATIONS.get(action, (action, )):
             names = action_types.get(action_type)
             if names:
                 return names[0]
         return None
+
+    def unit_speed(self, unit, action):
+        """
+        Segments per tick the unit moves while it plays the animation of that action ('walk' or 'run'),
+        a zombie is slower than a tiger, see lib.figures.
+        """
+        size = zone.unit_size(unit)
+        key = (unit.template.model_name, unit.template.weapon, action, size)
+        if key not in self.unit_speeds_cache:
+            self.unit_speeds_cache[key] = figures.max_speed(self.animations_catalog, unit.template.model_name, self.animation_for(unit, action), size)
+        return self.unit_speeds_cache[key]
 
     def find_free_position(self, w, h, size=1.0):
         # the nearest open cell for a unit of that size, see zone.unit_size(), the whole map is searched when the cells around are closed
@@ -346,6 +362,7 @@ class Simulation(object):
         )
         hero.w, hero.h = self.find_free_position(*self.start_position, size=zone.unit_size(hero))
         hero.animation = self.animation_for(hero)
+        hero.max_speed = self.unit_speed(hero, 'run')
         hero.input_tick = self.tick_number
         self.objects[hero.id] = hero
         self.pending_controls[hero.id] = []

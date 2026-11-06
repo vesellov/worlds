@@ -12,6 +12,7 @@ import math
 
 from kivy.clock import Clock
 from kivy.core.image import Image as CoreImage
+from kivy.core.window import Window
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
@@ -27,6 +28,9 @@ from lib import system
 
 # how often the dots of the units on the minimap are moved, seconds
 MINIMAP_UPDATE_INTERVAL = 0.2
+
+# side of the minimap, the part of the shorter side of the screen
+MINIMAP_SCREEN_PART = 0.28
 
 # kind of the dot on the minimap -> (color, radius in dp), see MiniMap.show_units()
 MINIMAP_DOTS = {
@@ -177,7 +181,15 @@ class MiniMap(Widget):
         self.dots = InstructionGroup()
         self.canvas.add(self.dots)
         self.bind(pos=self.update_layout, size=self.update_layout)
+        # the minimap follows the size of the window
+        self.size_hint = (None, None)
+        Window.bind(size=self.fit_to_screen)
+        self.fit_to_screen()
         self.update_event = Clock.schedule_interval(self.update, MINIMAP_UPDATE_INTERVAL)
+
+    def fit_to_screen(self, *args):
+        side = int(MINIMAP_SCREEN_PART * min(Window.width, Window.height))
+        self.size = (side, side)
 
     def update_layout(self, *args):
         self.picture.pos = self.pos
@@ -200,6 +212,7 @@ class MiniMap(Widget):
             self.dots.add(Ellipse(pos=(px - radius, py - radius), size=(2 * radius, 2 * radius)))
 
     def stop(self):
+        Window.unbind(size=self.fit_to_screen)
         if self.update_event:
             self.update_event.cancel()
             self.update_event = None
