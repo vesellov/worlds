@@ -24,14 +24,17 @@ import cv2
 #------------------------------------------------------------------------------
 
 from lib import const
-from lib import flora
+from lib import plants
+from lib import terrain
 from lib import zone
 
 #------------------------------------------------------------------------------
 
 DEBUG = False
 
-GLOBAL_SCALE = 0.5
+# the map of the Fantasy Map Generator is drawn into the middle of the land, that part of its width and height,
+# the ocean is around it. The land takes 1.75 times more of the map than it did with 0.5
+GLOBAL_SCALE = 0.5 * math.sqrt(1.75)
 INPUT_WATER_LEVEL = 20  # 20 is the water level in the input heightmap, 100 is the input max height
 CLIFFS_HEIGHT_MARGIN = 60
 CLIFFS_HEIGHT_DROP = 10
@@ -1450,251 +1453,6 @@ def transform_neighboring_tiles_conditionally(tiles_image, tiles_map, routes_map
             print(f"  transformed 2-adjacent diagonal neighbors with {changes} changes")
 
 
-def build_tiles_puzzle(tiles_image, tiles_map, catalog):
-    tiles = {}
-    for xb in range(0, tiles_image.width-1):
-        for yb in range(0, tiles_image.height-1):
-            square = {}
-            for xi, yi in [(0, 0), (1, 0), (1, 1), (0, 1)]:
-                xn = xb + xi
-                yn = yb + yi
-                square[(xi, yi)] = tiles_map[(xn, yn)]
-            samples_all = list(set(square.values()))
-            samples_sorted = list(sorted(list(set(square.values())), reverse=True))
-            counts = {}
-            coords = {}
-            for xd, yd in [(0, 0), (1, 0), (1, 1), (0, 1)]:
-                tile = square[(xd, yd)]
-                if tile not in counts:
-                    counts[tile] = 0
-                counts[tile] += 1
-                if tile not in coords:
-                    coords[tile] = []
-                coords[tile].append((xd, yd))
-            counts_sorted = sorted(counts.keys(), key=lambda n: counts[n], reverse=True)
-            t1 = counts_sorted[0]
-            col1 = set([square[(0, 0)], square[(1, 0)]])
-            col2 = set([square[(0, 1)], square[(1, 1)]])
-            diag1 = set([square[(0, 0)], square[(1, 1)]])
-            diag2 = set([square[(1, 0)], square[(0, 1)]])
-            x = xb
-            y = yb
-            if len(samples_all) == 1:
-                k = samples_sorted[0]
-                if k not in catalog:
-                    raise Exception(f"Did not found {k} at ({x}, {y}) in the catalog")
-                catalog_ids = catalog[k]
-                tiles[(x, y)] = (catalog_ids[random.randint(0, len(catalog_ids) - 1)], 90 * random.randint(0, 3))
-            elif len(samples_all) == 2:
-                t2 = counts_sorted[1]
-                k = f'{t2}_{t1}'
-                if k not in catalog:
-                    raise Exception(f"Did not found {k} at ({x}, {y}) in the catalog")
-                corner_ids = catalog[k]['c']
-                side_ids = catalog[k]['s']
-                shape = None
-                if counts[t1] == 3:
-                    if len(diag1) == 1:
-                        if len(col1) == 1:
-                            shape = 'topleft_bottomright'
-                        else:
-                            shape = 'bottomright_topleft'
-                    else:
-                        if len(col1) == 1:
-                            shape = 'topright_bottomleft'
-                        else:
-                            shape = 'bottomleft_topright'
-                else:
-                    if len(diag1) == 1 and len(diag2) == 1:
-                        raise Exception(f"Found neighboring tiles with 2 different types in diagonal at ({x}, {y})")
-                    else:
-                        if coords[t1].count((0, 0)):
-                            if len(col1) == 1:
-                                shape = 'top_bottom'
-                            else:
-                                if coords[t1].count((0, 1)):
-                                    shape = 'left_right'
-                                else:
-                                    shape = 'right_left'
-                        elif coords[t1].count((1, 0)):
-                            if len(col1) == 1:
-                                shape = 'top_bottom'
-                            else:
-                                if coords[t1].count((1, 1)):
-                                    shape = 'right_left'
-                                else:
-                                    shape = 'left_right'
-                        elif coords[t1].count((0, 1)):
-                            if len(col2) == 1:
-                                shape = 'bottom_top'
-                            else:
-                                if coords[t1].count((0, 0)):
-                                    shape = 'left_right'
-                                else:
-                                    shape = 'right_left'
-                        elif coords[t1].count((1, 1)):
-                            if len(col2) == 1:
-                                shape = 'bottom_top'
-                            else:
-                                if coords[t1].count((1, 0)):
-                                    shape = 'right_left'
-                                else:
-                                    shape = 'left_right'
-                if shape == 'top_bottom':
-                    tiles[(x, y)] = (side_ids[random.randint(0, len(side_ids) - 1)], 0)
-                elif shape == 'right_left':
-                    tiles[(x, y)] = (side_ids[random.randint(0, len(side_ids) - 1)], 270)
-                elif shape == 'bottom_top':
-                    tiles[(x, y)] = (side_ids[random.randint(0, len(side_ids) - 1)], 180)
-                elif shape == 'left_right':
-                    tiles[(x, y)] = (side_ids[random.randint(0, len(side_ids) - 1)], 90)
-                elif shape == 'bottomleft_topright':
-                    tiles[(x, y)] = (corner_ids[random.randint(0, len(corner_ids) - 1)], 270)
-                elif shape == 'topleft_bottomright':
-                    tiles[(x, y)] = (corner_ids[random.randint(0, len(corner_ids) - 1)], 0)
-                elif shape == 'topright_bottomleft':
-                    tiles[(x, y)] = (corner_ids[random.randint(0, len(corner_ids) - 1)], 90)
-                elif shape == 'bottomright_topleft':
-                    tiles[(x, y)] = (corner_ids[random.randint(0, len(corner_ids) - 1)], 180)
-            elif len(samples_all) == 3:
-                t2 = counts_sorted[1]
-                t3 = counts_sorted[2]
-                k1123 = f'{t1}_{t1}_{t2}_{t3}'
-                if k1123 not in catalog:
-                    raise Exception(f"Did not found {k1123} at ({x}, {y}) in the catalog")
-                k1213 = f'{t1}_{t2}_{t1}_{t3}'
-                if k1213 not in catalog:
-                    raise Exception(f"Did not found {k1213} at ({x}, {y}) in the catalog")
-                k1132 = f'{t1}_{t1}_{t3}_{t2}'
-                if k1132 not in catalog:
-                    raise Exception(f"Did not found {k1132} at ({x}, {y}) in the catalog")
-                k1312 = f'{t1}_{t3}_{t1}_{t2}'
-                if k1312 not in catalog:
-                    raise Exception(f"Did not found {k1312} at ({x}, {y}) in the catalog")
-                k12 = f'{t1}_{t2}'
-                if k12 not in catalog:
-                    raise Exception(f"Did not found {k12} at ({x}, {y}) in the catalog")
-                k13 = f'{t1}_{t3}'
-                if k13 not in catalog:
-                    raise Exception(f"Did not found {k13} at ({x}, {y}) in the catalog")
-                k23 = f'{t2}_{t3}'
-                if k23 not in catalog:
-                    raise Exception(f"Did not found {k23} at ({x}, {y}) in the catalog")
-                catalog1123_ids = catalog[k1123]
-                catalog1213_ids = catalog[k1213]
-                catalog1132_ids = catalog[k1132]
-                catalog1312_ids = catalog[k1312]
-                shape = None
-                if coords[t1].count((0, 0)):
-                    if len(diag1) == 1:
-                        if coords[t2].count((1, 0)):
-                            shape = 1
-                            tiles[(x, y)] = (catalog1213_ids[random.randint(0, len(catalog1213_ids) - 1)], 0)
-                        else:
-                            shape = 2
-                            tiles[(x, y)] = (catalog1312_ids[random.randint(0, len(catalog1312_ids) - 1)], 0)
-                    else:
-                        if len(col1) == 1:
-                            if coords[t2].count((0, 1)):
-                                shape = 3
-                                tiles[(x, y)] = (catalog1123_ids[random.randint(0, len(catalog1123_ids) - 1)], 0)
-                            else:
-                                shape = 4
-                                tiles[(x, y)] = (catalog1132_ids[random.randint(0, len(catalog1132_ids) - 1)], 0)
-                        else:
-                            if coords[t2].count((1, 0)):
-                                shape = 5
-                                tiles[(x, y)] = (catalog1132_ids[random.randint(0, len(catalog1132_ids) - 1)], 90)
-                            else:
-                                shape = 6
-                                tiles[(x, y)] = (catalog1123_ids[random.randint(0, len(catalog1123_ids) - 1)], 90)
-                elif coords[t1].count((1, 0)):
-                    if len(diag2) == 1:
-                        if coords[t2].count((0, 0)):
-                            shape = 7
-                            tiles[(x, y)] = (catalog1312_ids[random.randint(0, len(catalog1312_ids) - 1)], 270)
-                        else:
-                            shape = 8
-                            tiles[(x, y)] = (catalog1312_ids[random.randint(0, len(catalog1312_ids) - 1)], 270)
-                    else:
-                        if len(col1) == 1:
-                            if coords[t2].count((0, 1)):
-                                shape = 9
-                                tiles[(x, y)] = (catalog1123_ids[random.randint(0, len(catalog1123_ids) - 1)], 180)
-                            else:
-                                shape = 10
-                                tiles[(x, y)] = (catalog1132_ids[random.randint(0, len(catalog1132_ids) - 1)], 180)
-                        else:
-                            if coords[t2].count((0, 0)):
-                                shape = 11
-                                tiles[(x, y)] = (catalog1123_ids[random.randint(0, len(catalog1123_ids) - 1)], 270)
-                            else:
-                                shape = 12
-                                tiles[(x, y)] = (catalog1132_ids[random.randint(0, len(catalog1132_ids) - 1)], 270)
-                elif coords[t1].count((0, 1)):
-                    if len(diag2) == 1:
-                        if coords[t2].count((0, 0)):
-                            shape = 13
-                            tiles[(x, y)] = (catalog1312_ids[random.randint(0, len(catalog1312_ids) - 1)], 90)
-                        else:
-                            shape = 14
-                            tiles[(x, y)] = (catalog1213_ids[random.randint(0, len(catalog1213_ids) - 1)], 90)
-                    else:
-                        if len(col2) == 1:
-                            if coords[t2].count((0, 0)):
-                                shape = 15
-                                tiles[(x, y)] = (catalog1132_ids[random.randint(0, len(catalog1132_ids) - 1)], 180)
-                            else:
-                                shape = 16
-                                tiles[(x, y)] = (catalog1123_ids[random.randint(0, len(catalog1123_ids) - 1)], 180)
-                        else:
-                            if coords[t2].count((1, 0)):
-                                shape = 17
-                                tiles[(x, y)] = (catalog1132_ids[random.randint(0, len(catalog1132_ids) - 1)], 0)
-                            else:
-                                shape = 18
-                                tiles[(x, y)] = (catalog1123_ids[random.randint(0, len(catalog1123_ids) - 1)], 0)
-                elif coords[t1].count((1, 1)):
-                    if len(diag1) == 1:
-                        if coords[t2].count((1, 0)):
-                            shape = 19
-                            tiles[(x, y)] = (catalog1213_ids[random.randint(0, len(catalog1213_ids) - 1)], 0)
-                        else:
-                            shape = 20
-                            tiles[(x, y)] = (catalog1312_ids[random.randint(0, len(catalog1312_ids) - 1)], 0)
-                    else:
-                        if len(col2) == 1:
-                            if coords[t2].count((0, 0)):
-                                shape = 21
-                                tiles[(x, y)] = (catalog1132_ids[random.randint(0, len(catalog1132_ids) - 1)], 0)
-                            else:
-                                shape = 22
-                                tiles[(x, y)] = (catalog1123_ids[random.randint(0, len(catalog1123_ids) - 1)], 0)
-                        else:
-                            if coords[t2].count((0, 0)):
-                                shape = 23
-                                tiles[(x, y)] = (catalog1123_ids[random.randint(0, len(catalog1123_ids) - 1)], 270)
-                            else:
-                                shape = 24
-                                tiles[(x, y)] = (catalog1132_ids[random.randint(0, len(catalog1132_ids) - 1)], 270)
-            else:
-                raise Exception(f"Did not found a shape for {samples_all} at ({x}, {y})")
-    return tiles
-
-
-def encode_tiles(encoded_image, tiles, water_catalog_id):
-    catalog_stats = {}
-    for x in range(0, encoded_image.width):
-        for y in range(0, encoded_image.height):
-            catalog_id, rotate = tiles[(x, y)] if (x, y) in tiles else (water_catalog_id, 0)
-            catalog_id = int(catalog_id)
-            rotate = int(rotate)
-            if catalog_id is not None:
-                encoded_image.putpixel((x, y), (catalog_id % 256, catalog_id // 256, rotate // 90))
-                catalog_stats[catalog_id] = catalog_stats.get(catalog_id, 0) + 1
-    return catalog_stats
-
-
 def unpack_elevation(heightmap_values):
     """
     Elevations of the land from 0.0 to 1.0, the same as dat.LandData.load_heightmap_file() on the client,
@@ -2031,18 +1789,19 @@ def main():
     heightmap_image.convert('L').save('assets/heightmap.png', optimize=True)
     print(f"Generated heightmap image, elevations are from {min_elevation} to {max_elevation}")
 
-    tiles = build_tiles_puzzle(tiles_image, tiles_map, catalog)
+    # the client builds the same tiles from terrain.bin, see lib.terrain
+    tiles = terrain.build_tiles(tiles_map, tiles_image.width, tiles_image.height, catalog)
     print(f"Built tiles puzzle with {len(tiles)} tiles")
-    
-    encoded_image = Image.new("RGB", (tiles_image.size[0], tiles_image.size[1]), "black")
-    catalog_stats = encode_tiles(encoded_image, tiles, water_catalog_id=catalog['water5'][0])
+    catalog_stats = {}
+    for catalog_id, _ in tiles.values():
+        catalog_stats[catalog_id] = catalog_stats.get(catalog_id, 0) + 1
     open('assets/tiles_stats.json', 'w').write(json.dumps(catalog_stats, indent=2))
-    encoded_image.save('assets/encoded.png')
-    print(f"Generated encoded tiles image")
+    open('assets/terrain.bin', 'wb').write(terrain.encode(tiles_map, tiles_image.width, tiles_image.height))
+    print(f"Generated terrain data")
 
-    plants = build_plants(data, buildings, tiles_image, tiles_map, cell_index_map, catalog_plants, heightmap_image)
-    open('assets/plants.bin', 'wb').write(flora.encode(plants))
-    print(f"Generated plants data with {len(plants)} plants")
+    plants_data = build_plants(data, buildings, tiles_image, tiles_map, cell_index_map, catalog_plants, heightmap_image)
+    open('assets/plants.bin', 'wb').write(plants.encode(plants_data))
+    print(f"Generated plants data with {len(plants_data)} kinds of plants")
 
     zonemap_image, zonemap_stats = build_zonemap(heightmap_image)
     zonemap_image.save('assets/zonemap.png', optimize=True)

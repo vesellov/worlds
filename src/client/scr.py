@@ -1,5 +1,5 @@
 """
-Screen widgets: the root container of the application and the joystick button.
+Screen widgets: the root container of the application, the joystick button and the minimap.
 """
 
 #------------------------------------------------------------------------------
@@ -10,15 +10,30 @@ _Debug = False
 
 import math
 
+from kivy.clock import Clock
+from kivy.core.image import Image as CoreImage
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
-from kivy.graphics import Color, Ellipse, Triangle
+from kivy.uix.widget import Widget
+from kivy.graphics import Color, Ellipse, Line, Rectangle, Triangle, InstructionGroup
 from kivy.metrics import dp, sp, cm
 
 #------------------------------------------------------------------------------
 
 from lib import system
+
+#------------------------------------------------------------------------------
+
+# how often the dots of the units on the minimap are moved, seconds
+MINIMAP_UPDATE_INTERVAL = 0.2
+
+# kind of the dot on the minimap -> (color, radius in dp), see MiniMap.show_units()
+MINIMAP_DOTS = {
+    'me': ((1.0, 0.9, 0.1, 1.0), 3.0),
+    'hero': ((0.2, 0.8, 1.0, 1.0), 2.5),
+    'unit': ((1.0, 0.25, 0.2, 1.0), 2.0),
+}
 
 #------------------------------------------------------------------------------
 
@@ -135,3 +150,56 @@ class JoystickRoundButton(Button):
                 self.move_callback(0, 0)
             return True
         return super().on_touch_up(touch)
+
+#------------------------------------------------------------------------------
+
+
+class MiniMap(Widget):
+    """
+    The whole map of the biome in the corner of the screen: minimap.png of the biome and the dots of all units
+    of the world. A pixel (x, y) of the image is the segment (w=x, h=y) of the map, the top row of the image is h=0.
+    units_source() returns [(x, y, kind)], positions are continuous map coordinates, kind is a key of MINIMAP_DOTS.
+    """
+
+    def __init__(self, image_file_path, map_width, map_height, units_source, **kwargs):
+        super(MiniMap, self).__init__(**kwargs)
+        self.map_width = map_width
+        self.map_height = map_height
+        self.units_source = units_source
+        texture = CoreImage(image_file_path).texture
+        # every pixel of the small image stays sharp when it is drawn bigger
+        texture.mag_filter = 'nearest'
+        with self.canvas:
+            Color(1.0, 1.0, 1.0, 0.85)
+            self.picture = Rectangle(texture=texture, pos=self.pos, size=self.size)
+            Color(0.0, 0.0, 0.0, 0.6)
+            self.frame = Line(rectangle=(self.x, self.y, self.width, self.height), width=1.0)
+        self.dots = InstructionGroup()
+        self.canvas.add(self.dots)
+        self.bind(pos=self.update_layout, size=self.update_layout)
+        self.update_event = Clock.schedule_interval(self.update, MINIMAP_UPDATE_INTERVAL)
+
+    def update_layout(self, *args):
+        self.picture.pos = self.pos
+        self.picture.size = self.size
+        self.frame.rectangle = (self.x, self.y, self.width, self.height)
+        self.update()
+
+    def update(self, *args):
+        self.show_units(self.units_source() if self.units_source else [])
+
+    def show_units(self, units):
+        self.dots.clear()
+        # the own hero is drawn the last, on top of the others
+        for x, y, kind in sorted(units, key=lambda u: u[2] == 'me'):
+            color, radius = MINIMAP_DOTS.get(kind, MINIMAP_DOTS['unit'])
+            radius = dp(radius)
+            px = self.x + (x % self.map_width) / self.map_width * self.width
+            py = self.top - (y % self.map_height) / self.map_height * self.height
+            self.dots.add(Color(*color))
+            self.dots.add(Ellipse(pos=(px - radius, py - radius), size=(2 * radius, 2 * radius)))
+
+    def stop(self):
+        if self.update_event:
+            self.update_event.cancel()
+            self.update_event = None

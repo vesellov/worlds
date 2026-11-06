@@ -24,10 +24,11 @@ from kivy.resources import resource_find
 #------------------------------------------------------------------------------
 
 from lib import const
-from lib import flora
 from lib import res
-from lib import looks
+from lib import dress
 from lib import mth
+from lib import plants
+from lib import terrain
 from lib import zone
 
 #------------------------------------------------------------------------------
@@ -530,6 +531,8 @@ class CatalogData(object):
         self.armors = {}
         self.weapons = {}
         self.materials = {}
+        # catalog/land.json: type of the land or types around a segment -> ids of the tiles, see lib.terrain
+        self.land = {}
         self.land_tiles = {}
 
     def load_land_tiles(self, land_tiles_file_path):
@@ -537,6 +540,9 @@ class CatalogData(object):
         for tile_info in land_tiles_list:
             catalog_id, mozaic_id, mozaic_pos = [int(i) for i in tile_info.split(' ')]
             self.land_tiles[catalog_id] = (mozaic_id, mozaic_pos)
+
+    def load_land(self, land_file_path):
+        self.land = json.loads(open(land_file_path, 'rt').read())
 
     def load_figures(self, figures_file_path):
         self.figures = json.loads(open(figures_file_path, 'rt').read())
@@ -604,9 +610,9 @@ class CatalogData(object):
             #     has_boots = True
             armor_id = int(armor['texture_type_1'])
             material = self.materials[material_name]
-            body_parts = looks.armor_body_parts(armor_type, armor_id)
+            body_parts = dress.armor_body_parts(armor_type, armor_id)
             for body_part in body_parts:
-                body_part_texture = looks.armor_texture_name(model_name, armor_type, armor, material)
+                body_part_texture = dress.armor_texture_name(model_name, armor_type, armor, material)
                 if body_part.count('.armor'):
                     if armor_type in ['helm', ]:
                         body_part_texture = f'{body_part_texture}:1'
@@ -629,7 +635,7 @@ class CatalogData(object):
                 parts.append(f'hr.{hair:02}')
         weapon_type = None
         if weapon:
-            weapon_type, weapon_parts, weapon_textures = looks.weapon_parts(model_name, weapon, self.weapons, self.materials)
+            weapon_type, weapon_parts, weapon_textures = dress.weapon_parts(model_name, weapon, self.weapons, self.materials)
             parts.extend(weapon_parts)
             textures.update(weapon_textures)
         anim = self.animations[model_name]
@@ -692,32 +698,20 @@ class LandData(object):
         with open(zonemap_file_path, 'rb') as f:
             self.zonemap = zone.ZoneMap.build(f.read(), self.width, self.height, self.plants_data, self.buildings_data)
 
-    def load_tilemap_file(self, tilemap_file_path):
-        im = Image(tilemap_file_path, keep_data=True)
-        if self.width is not None and self.width != im.width:
-            raise ValueError(f'land width mismatch: expected {self.width}, got {im.width}')
-        if self.height is not None and self.height != im.height:
-            raise ValueError(f'land height mismatch: expected {self.height}, got {im.height}')
-        data = im.image._data[0]
-        size = 3 if data.fmt in ('rgb', 'bgr') else 4
+    def load_terrain_file(self, terrain_file_path):
+        # tiles of the segments are built from the types of the land at their corners, see lib.terrain
+        with open(terrain_file_path, 'rb') as f:
+            types, width, height = terrain.decode(f.read())
+        if self.width is not None and self.width != width:
+            raise ValueError(f'land width mismatch: expected {self.width}, got {width}')
+        if self.height is not None and self.height != height:
+            raise ValueError(f'land height mismatch: expected {self.height}, got {height}')
+        tiles = terrain.build_tiles(types, width, height, self.catalog.land)
         step = 1.0 / 8.0
         corr = 1.0 / ( 64.0 * 8.0 )
         for x in range(self.width):
             for y in range(self.height):
-                index = y * data.width * size + x * size
-                raw = bytearray(data.data[index:index + size])
-                color = [int(c) for c in raw]
-                bgr_flag = False
-                if data.fmt == 'argb':
-                    color.reverse()  # bgra
-                    bgr_flag = True
-                elif data.fmt == 'abgr':
-                    color.reverse()  # rgba
-                # conversion for BGR->RGB, BGRA->RGBA format
-                if bgr_flag or data.fmt in ('bgr', 'bgra'):
-                    color[0], color[2] = color[2], color[0]
-                catalog_id = color[0] + color[1] * 256
-                rotate = color[2] * 90
+                catalog_id, rotate = tiles[(x, y)]
                 mozaic_id, mozaic_pos = self.catalog.land_tiles[catalog_id]
                 tex_cell_x = ( mozaic_pos % 8 ) * step
                 tex_cell_y = ( mozaic_pos // 8 ) * step
@@ -802,7 +796,7 @@ class LandData(object):
 
     def load_plants_data(self, plants_data_file_path):
         with open(plants_data_file_path, 'rb') as f:
-            plants_data = flora.decode(f.read())
+            plants_data = plants.decode(f.read())
         self.plants_data = plants_data
         for plant_key in plants_data.keys():
             template, texture, parts = plant_key.split('#')
