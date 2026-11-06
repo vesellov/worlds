@@ -627,6 +627,28 @@ class GameClient(object):
             h = math.floor(y)
             u.set_position(self.scene, w, h, x - w, y - h, direction)
 
+    def minimap_units(self):
+        """
+        [(x, y, kind)] of all units of the world where they are drawn now, kind is "me" for the own hero,
+        "hero" for the heroes of the other players and "unit" for others, see scr.MiniMap.
+        """
+        result = []
+        for o, _, prediction in self.objects.values():
+            if not isinstance(o, models.Unit):
+                continue
+            if prediction.drawn:
+                x, y, _ = prediction.drawn
+            else:
+                x, y = o.w + o.shift_w, o.h + o.shift_h
+            if o.id == self.hero_id:
+                kind = 'me'
+            elif isinstance(o, models.Hero):
+                kind = 'hero'
+            else:
+                kind = 'unit'
+            result.append((x, y, kind))
+        return result
+
     def despawn(self, object_id):
         self.loading.pop(object_id, None)
         o, view, _ = self.objects.pop(object_id, (None, None, None))

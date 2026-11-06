@@ -193,6 +193,7 @@ class WorldsApp(App):
             print(f'starting the app')
         self.root.clear_widgets()
         catalog = dat.CatalogData()
+        catalog.load_land(land_file_path=res.catalog_path('land.json'))
         catalog.load_land_tiles(land_tiles_file_path=res.catalog_path('land_tiles.json'))
         catalog.load_figures(figures_file_path=res.catalog_path('figures.json'))
         catalog.load_animations(animations_file_path=res.catalog_path('animations.json'))
@@ -204,6 +205,9 @@ class WorldsApp(App):
         self.scene = None
         self.renderer = None
         self.models_popup = None
+        self.minimap = None
+        # folder with the files of the current biome, see load_land()
+        self.biome_dir_path = None
         self.server_name = None
         self.biomes = []
         # the land comes from the game server: the archive of the biome is downloaded before anything is rendered,
@@ -247,6 +251,9 @@ class WorldsApp(App):
         self.enter_biome(ids[index])
 
     def close_scene(self):
+        if self.minimap:
+            self.minimap.stop()
+            self.minimap = None
         if self.renderer:
             self.renderer.stop()
         if self.scene:
@@ -274,13 +281,14 @@ class WorldsApp(App):
     def load_land(self, biome_dir_path):
         land = dat.LandData(catalog=self.catalog)
         land.load_heightmap_file(heightmap_file_path=os.path.join(biome_dir_path, 'heightmap.png'))
-        land.load_tilemap_file(tilemap_file_path=os.path.join(biome_dir_path, 'encoded.png'))
+        land.load_terrain_file(terrain_file_path=os.path.join(biome_dir_path, 'terrain.bin'))
         land.load_cache_tiles_textures(textures_dir_path=res.data_path('textures/land'))
         land.load_plants_data(plants_data_file_path=os.path.join(biome_dir_path, 'plants.bin'))
         land.load_buildings_data(buildings_data_file_path=os.path.join(biome_dir_path, 'buildings.json'))
         # trees and buildings are added to the zonemap, so it is loaded after them
         land.load_zonemap_file(zonemap_file_path=os.path.join(biome_dir_path, 'zonemap.png'))
         self.land = land
+        self.biome_dir_path = biome_dir_path
         if _Debug:
             print(f'loaded the land of biome {self.game_client.location_id} from {biome_dir_path}')
         self.game_client.biome_loaded(zonemap=land.zonemap)
@@ -374,7 +382,8 @@ class WorldsApp(App):
         self.renderer = rend.Renderer(app_root=self, scene=scene)
         self.known_templates = json.loads(open(res.catalog_path('figures_samples.json'), 'rt').read())
         scene.renderer = self.renderer
-        scene.init_scene(250, 350)
+        # the camera moves to the hero when the server sends it
+        scene.init_scene()
         # all units are created by the game server, client only renders them, see cli.GameClient
         self.renderer.game_client = self.game_client
         # must add renderer the first to properly propagate touch events and draw widgets on top of it
@@ -390,7 +399,7 @@ class WorldsApp(App):
         self.renderer.joystick_button.x = fixed_offset
         self.renderer.joystick_button.y = fixed_offset
         self.root.add_widget(self.renderer.joystick_button)
-        # the server adds a neutral unit of a random figure in front of the hero, it runs in a circle, see server.showcase
+        # the server adds a neutral unit of a random figure in front of the hero, it runs in a circle, see lib.dress
         add_unit_button = Button(
             text='add unit',
             size_hint=(None, None),
@@ -400,6 +409,17 @@ class WorldsApp(App):
         )
         add_unit_button.bind(on_release=lambda *args: self.game_client.add_unit())
         self.root.add_widget(add_unit_button)
+        # the whole map in the top left corner of the screen with the dots of all units of the world
+        self.minimap = scr.MiniMap(
+            image_file_path=os.path.join(self.biome_dir_path, 'minimap.png'),
+            map_width=land.width,
+            map_height=land.height,
+            units_source=self.game_client.minimap_units,
+            size_hint=(None, None),
+            size=(dp(160), dp(160)),
+            pos_hint={'x': 0.01, 'top': 0.99},
+        )
+        self.root.add_widget(self.minimap)
         # the loaded catalog, map and models are millions of long-living Python objects, a full garbage
         # collection has to walk all of them and it freezes the app for hundreds of milliseconds on a phone,
         # move them out of the garbage collector reach so periodic collections only check new objects
