@@ -129,5 +129,5 @@ fmg_generate:
 
 land_build:
 	@rm -rfv assets/tiles.png
-	@PYTHONPATH=src venv_tools/bin/python -m server.land assets/map.json 256 256
+	@PYTHONPATH=src venv_tools/bin/python -m server.land assets/map.json 128 128
 	@open assets/minimap.png

@@ -141,6 +141,22 @@ class Scene(object):
         self.segments_queue = []
         self.segments_cleanup_queue = []
 
+    def map_key(self, w, h):
+        """
+        Segment of the land data for the position (w, h). Positions are not limited by the size of the map,
+        the map is repeated around itself like a mosaic: near the edge the segments of the other side are shown.
+        """
+        return w % self.map_width, h % self.map_height
+
+    def area_shift(self, w, h):
+        """
+        Where the position (w, h) is from the center of the visible area, in segments, the shortest way around the map:
+        a unit at the other edge of the map is seen next to the hero, see map_key().
+        """
+        half_w = self.map_width // 2
+        half_h = self.map_height // 2
+        return (w - self.area_center_w + half_w) % self.map_width - half_w, (h - self.area_center_h + half_h) % self.map_height - half_h
+
     def coords_area2angles(self, w, h):
         angle_z = mth.w2lat_degrees(float(w), const.PLANET_EQUATOR_SEGMENTS)
         angle_x = mth.h2lon_degrees(float(h), const.PLANET_EQUATOR_SEGMENTS)
@@ -974,8 +990,7 @@ class Scene(object):
         if wd != 0 or hd != 0:
             for unit_name in self.units.keys():
                 unit = self.units[unit_name]
-                unit.area_w = unit.w - w_i
-                unit.area_h = unit.h - h_i
+                unit.area_w, unit.area_h = self.area_shift(unit.w, unit.h)
                 segment_angle_x, segment_angle_z = self.coords_area2angles(unit.area_w, unit.area_h)
                 unit.rotate_axis_x.angle = segment_angle_x
                 unit.rotate_axis_z.angle = segment_angle_z
@@ -1008,8 +1023,7 @@ class Scene(object):
                 unit = self.units[unit_name]
                 if not unit.onstage:
                     continue
-                _w = unit.w - w_i
-                _h = unit.h - h_i
+                _w, _h = self.area_shift(unit.w, unit.h)
                 if (_w, _h) not in self.visible_area_mask:
                     self.hide_unit(container=self.container_animated_objects, unit_name=unit.name)
             for k, dist_to_center in self.visible_area_mask.items():
@@ -1053,7 +1067,7 @@ class Scene(object):
                 _w = w_t - w_i
                 _h = h_t - h_i
                 if (_w, _h) not in self.visible_area_mask:
-                    if (w_t, w_t) not in self.segments_cleanup_queue:
+                    if (w_t, h_t) not in self.segments_cleanup_queue:
                         self.segments_cleanup_queue.append((w_t, h_t))
         chunk = 100 if not added else int(added / 2)
         while chunk and self.segments_cleanup_queue:
@@ -1082,8 +1096,10 @@ class Scene(object):
         h_t = int(map_h)
         w = float(area_w)
         h = float(area_h)
-        v00, v01, v10, v11, e_min, e_max = self.land_vertices[(w_t, h_t)]
-        tex_file_path, tex_coord00, tex_coord01, tex_coord10, tex_coord11 = _get_texture(w_t, h_t)
+        # the key of the visible segment is its position, the data is taken from the map, see map_key()
+        data_key = self.map_key(w_t, h_t)
+        v00, v01, v10, v11, e_min, e_max = self.land_vertices[data_key]
+        tex_file_path, tex_coord00, tex_coord01, tex_coord10, tex_coord11 = _get_texture(*data_key)
         # the segment mesh itself is drawn as part of the batched land meshes, see rebuild_land_meshes()
         self.add_land_slot(
             key=(w_t, h_t),
@@ -1095,7 +1111,7 @@ class Scene(object):
         # e_correction = (e_max - e_min) * 0.05
         segment_angle_x, segment_angle_z = self.coords_area2angles(w, h)
         static_units_at_segment = []
-        plant_segments = [(w_t, h_t), ]
+        plant_segments = [data_key, ]
         for wn, hn in plant_segments:
             building_list = self.land.buildings_map_data.get((wn, hn), [])
             for i in range(len(building_list)):
@@ -1194,7 +1210,7 @@ class Scene(object):
                 continue
             if unit.onstage:
                 continue
-            if int(unit.w) == w_t and int(unit.h) == h_t:
+            if self.map_key(int(unit.w), int(unit.h)) == data_key:
                 self.show_unit(container=self.container_animated_objects, unit_name=unit.name)
         # if _Debug:
         #     print(f'     added land segment at w:{map_w} h:{map_h} area_w:{area_w} area_h:{area_h} e_min:{e_min} with {len(static_units_at_segment)} static units')
@@ -1292,27 +1308,12 @@ class Scene(object):
                 self.container_land_tiles.remove(self.land_meshes.pop(tex_file_path)[0])
 
     def land_shift(self, shift_w, shift_h):
-        require_update = False
-        if shift_h != 0:
-            if shift_h > 0:
-                if self.area_center_h + const.VISIBLE_AREA_SIZE_SEGMENTS_HALF + 1 < self.map_height:
-                    self.segment_shift_h = self.segment_shift_h + shift_h
-                    require_update = True
-            else:
-                if self.area_center_h - const.VISIBLE_AREA_SIZE_SEGMENTS_HALF > 0:
-                    self.segment_shift_h = self.segment_shift_h + shift_h
-                    require_update = True
-        if shift_w != 0:
-            if shift_w > 0:
-                if self.area_center_w + const.VISIBLE_AREA_SIZE_SEGMENTS_HALF + 1 < self.map_width:
-                    self.segment_shift_w = self.segment_shift_w + shift_w
-                    require_update = True
-            else:
-                if self.area_center_w - const.VISIBLE_AREA_SIZE_SEGMENTS_HALF > 0:
-                    self.segment_shift_w = self.segment_shift_w + shift_w
-                    require_update = True
-        if require_update:
-            self.update_land()
+        # the camera can go over the edges of the map, the other side of the map is shown there, see map_key()
+        if shift_w == 0 and shift_h == 0:
+            return
+        self.segment_shift_w = self.segment_shift_w + shift_w
+        self.segment_shift_h = self.segment_shift_h + shift_h
+        self.update_land()
 
     def land_move(self, direction_angle, distance):
         shift_w = math.cos(math.radians(direction_angle - 90)) * distance
@@ -1358,8 +1359,7 @@ class Scene(object):
             return None
         map_w = int(map_w)
         map_h = int(map_h)
-        area_w = map_w - int(self.area_center_w) 
-        area_h = map_h - int(self.area_center_h)
+        area_w, area_h = self.area_shift(map_w, map_h)
         # e_correction = 0
         # if ao.root_mesh_center:
         #     e_correction = ao.root_mesh_center[0][2] * const.MODELS_SCALE_FACTOR

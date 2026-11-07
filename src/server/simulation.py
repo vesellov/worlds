@@ -295,7 +295,10 @@ class Simulation(object):
                     continue
                 # units do not overlap: the distance between their centers is not smaller than their two radiuses
                 keep = zone.unit_radius(size) + zone.unit_radius(zone.unit_size(o))
-                push = push_out_of_circle(x - o.w - o.shift_w, y - o.h - o.shift_h, keep * keep, heading)
+                # the map is wrapped around, units at the opposite edges of the map are next to each other
+                dx = -behavior.nearest_shift(x, o.w + o.shift_w, self.width)
+                dy = -behavior.nearest_shift(y, o.h + o.shift_h, self.height)
+                push = push_out_of_circle(dx, dy, keep * keep, heading)
                 if push:
                     return push
             return None

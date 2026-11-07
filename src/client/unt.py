@@ -86,13 +86,11 @@ class Unit(object):
         shift_vector = scene.coords_map2xyz(self.w, self.h, self.shift_w, self.shift_h, elevation_correction=self.elevation_correction)
         self.translate_shift.xyz = shift_vector
         if w_diff != 0 or h_diff != 0:
-            self.area_w = self.w - int(scene.area_center_w)
-            self.area_h = self.h - int(scene.area_center_h)
+            self.area_w, self.area_h = scene.area_shift(self.w, self.h)
             segment_angle_x, segment_angle_z = scene.coords_area2angles(self.area_w, self.area_h)
             self.rotate_axis_x.angle = segment_angle_x
             self.rotate_axis_z.angle = segment_angle_z
-            _w = int(self.w) - int(scene.area_center_w)
-            _h = int(self.h) - int(scene.area_center_h)
+            _w, _h = scene.area_shift(int(self.w), int(self.h))
             if self.onstage:
                 if (_w, _h) in scene.visible_area_mask:
                     pass

@@ -857,29 +857,15 @@ class LandData(object):
         return file_path
 
     def get_elevation(self, w, h):
-        _w = w
-        _h = h
-        if w < 0:
-            _w = w + self.width
-        if w >= self.width:
-            _w = w - self.width
-        if h < 0:
-            _h = h + self.height
-        if h >= self.height:
-            _h = h - self.height
+        # positions are not limited by the size of the map, it is repeated around itself
+        _w = w % self.width
+        _h = h % self.height
         return self.elevation_map_data[(_w, _h)]
 
     def get_texture(self, w, h):
-        _w = w
-        _h = h
-        if w < 0:
-            _w = w + self.width
-        if w >= self.width:
-            _w = w - self.width
-        if h < 0:
-            _h = h + self.height
-        if h >= self.height:
-            _h = h - self.height
+        # positions are not limited by the size of the map, it is repeated around itself
+        _w = w % self.width
+        _h = h % self.height
         mozaic_id, tex_coord00, tex_coord01, tex_coord10, tex_coord11 = self.tiles_map_data[(_w, _h)]
         return self.tiles_files[mozaic_id], tex_coord00, tex_coord01, tex_coord10, tex_coord11
 
