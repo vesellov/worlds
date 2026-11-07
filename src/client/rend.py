@@ -100,9 +100,10 @@ uniform vec3 center_point;
 // uniform float dist_to_center;
 uniform float material_density;
 uniform float water_transparency;
-uniform float fog_density;
-uniform float fog_radius;
-// uniform vec3 fog_color;
+uniform float fog_start;
+uniform float fog_end;
+uniform float fog_dissolve;
+uniform vec3 fog_color;
 uniform mat4 normal_mat;
 
 void main (void){
@@ -138,18 +139,26 @@ void main (void){
     // float result_alpha = tex_color.a * fog_factor;
 
     vec4 tex_color = texture2D(texture_id, tex_coord0).rgba;
-    float center_point_distance = length(center_point - vertex_pos.xyz);
-    center_point_distance = clamp(center_point_distance - fog_radius, 0.0, center_point_distance);
-    float fog_distance = center_point_distance * fog_density;
-    float fog_factor = exp(-fog_distance * fog_distance);
-    fog_factor = clamp(fog_factor + material_density, 0.0, 1.0);
-
-    vec3 result_color = (tex_color.rgb - 0.5) * contrast + 0.5 + brightness;
-    float result_alpha = tex_color.a * fog_factor;
-
-    if ( result_alpha < 0.5) {
+    if (tex_color.a < 0.5) {
         discard;
     }
+
+    // 0.0 - no fog, 1.0 - the object is not seen any more, the sky has material_density = 1.0 and is never in the fog
+    float center_point_distance = length(center_point - vertex_pos.xyz);
+    float fog = smoothstep(fog_start, fog_end, center_point_distance);
+    fog = clamp(fog - material_density, 0.0, 1.0);
+
+    // in the far part of the fog the object dissolves: more and more of its pixels are not drawn,
+    // the pixels are picked by a noise of the screen position, so the colors do not need to be blended
+    float visible = 1.0 - smoothstep(fog_dissolve, 1.0, fog);
+    float noise = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+    if (visible < noise) {
+        discard;
+    }
+
+    vec3 result_color = (tex_color.rgb - 0.5) * contrast + 0.5 + brightness;
+    result_color = mix(result_color, fog_color, fog);
+    float result_alpha = tex_color.a;
 
     gl_FragColor = vec4(result_color, result_alpha);
 }
@@ -316,8 +325,10 @@ class Renderer(Widget):
         #     print(f'updating canvas center_point={self.canvas["center_point"]} asp={asp}')
         self.canvas['brightness'] = self.brightness
         self.canvas['contrast'] = self.contrast
-        self.canvas['fog_density'] = 0.08
-        self.canvas['fog_radius'] = (const.VISIBLE_AREA_SIZE_SEGMENTS_HALF - 3) * const.SEGMENT_SIZE
+        self.canvas['fog_start'] = (const.VISIBLE_AREA_SIZE_SEGMENTS_HALF - const.FOG_DEPTH_SEGMENTS) * const.SEGMENT_SIZE
+        self.canvas['fog_end'] = (const.VISIBLE_AREA_SIZE_SEGMENTS_HALF - const.FOG_EDGE_SEGMENTS) * const.SEGMENT_SIZE
+        self.canvas['fog_dissolve'] = const.FOG_DISSOLVE_START
+        self.canvas['fog_color'] = const.FOG_COLOR
         self.canvas['material_density'] = 0.0
         self.canvas['water_transparency'] = 10.0 / 255.0
         # self.on_gl_error('step 2')

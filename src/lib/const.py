@@ -64,9 +64,22 @@ PI_4_SIN = math.sin(math.pi / 4.0)
 
 PI_4_COS = math.cos(math.pi / 4.0)
 
-VISIBLE_AREA_SIZE_SEGMENTS = 40
+VISIBLE_AREA_SIZE_SEGMENTS = 64
 
 VISIBLE_AREA_SIZE_SEGMENTS_HALF = int(VISIBLE_AREA_SIZE_SEGMENTS / 2.0)
+
+#--- FOG ---
+# the far part of the visible area is covered with the fog, so the segments appear and disappear at its edge unseen:
+# the fog starts that many segments from the edge of the visible area ...
+FOG_DEPTH_SEGMENTS = 15.0
+
+# ... and nothing is seen that many segments from the edge
+FOG_EDGE_SEGMENTS = 1.5
+
+# the far objects take the color of the sky, in the far half of the fog they dissolve, see rend.FRAGMENT_SHADER
+FOG_COLOR = (0.36, 0.47, 0.58)
+
+FOG_DISSOLVE_START = 0.5
 
 MODELS_SCALE_FACTOR = 2.0
 
