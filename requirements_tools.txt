@@ -9,3 +9,4 @@ imagehash
 scipy
 scikit-image
 shapely
+pycollada

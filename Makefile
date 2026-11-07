@@ -19,7 +19,7 @@ PYTHON_SERVER="venv_server/bin/python3"
 
 .DEFAULT_GOAL := venv
 
-.PHONY: clean pyclean run server
+.PHONY: clean pyclean run server ei_models_scan ei_res_unpack ei_db_scan ei_registry ei_figures_repack
 
 pyclean:
 	@find src tools -name '*.pyc' -exec rm -f {} +
@@ -58,6 +58,7 @@ PORT ?= 8280
 server: venv_server
 	@PYTHONPATH=src $(PYTHON_SERVER) -m server.main --host $(HOST) --port $(PORT)
 
+# names of the figures and their textures of the maps of the game: figures_names.json and textures.json
 ei_models_scan:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
 	@cp -v tools/scan_models.py repack/EIrepack/
@@ -65,43 +66,44 @@ ei_models_scan:
 # 	@mv -v repack/EIrepack/figures_names.json catalog/
 # 	@mv -v repack/EIrepack/textures.json catalog/
 
+# unpacks all archives of the game into UNPACK_DIR, writes figures_parts.json, figures_samples.json, buildings.json
+# and plants.json of the maps, figures.json of the catalog is made by "make ei_registry" for every store
 ei_res_unpack:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
 	@cp -v tools/unpack_all.py repack/EIrepack/Converters/
 	@cp -v tools/convert_model.py repack/EIrepack/Converters/
 	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:." ../../venv_tools/bin/python3 Converters/unpack_all.py ${SRC_DIR} ${UNPACK_DIR} --verbose
-# 	@mv -v repack/EIrepack/figures.json catalog/
 # 	@mv -v repack/EIrepack/figures_parts.json catalog/
 # 	@mv -v repack/EIrepack/figures_samples.json catalog/
 # 	@mv -v repack/EIrepack/buildings.json catalog/
 # 	@mv -v repack/EIrepack/plants.json catalog/
 
-ei_figures_scan:
-	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
-	@cp -v tools/scan_figures.py repack/EIrepack/
-	@cp -v catalog/figures.json repack/EIrepack/
-	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv_tools/bin/python3 scan_figures.py ${UNPACK_DIR}/Res/figures/
-# 	@mv -v repack/EIrepack/figures.json catalog/
-
+# tables of the database unpacked by "make ei_res_unpack" as JSON files in repack/EIrepack/ to look at them,
+# the catalog is made of the database by "make ei_registry"
 ei_db_scan:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
 	@cp -v tools/extract_db_data.py repack/EIrepack/
 	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv_tools/bin/python3 extract_db_data.py ${UNPACK_DIR}/Res/database/
 
-ei_compile:
+# catalog of the units of the game for catalog/: races, monsters, NPCs, items, spells, animations and sounds of the figures,
+# units of the maps, and figures.json, animations.json, armors.json, weapons.json, materials.json of the server and the client.
+# The archives are read right from the game folders, nothing is unpacked. Every version of the game is a store, see lib.models:
+# EI1_DIR is store 1 "Evil Islands" and EI2_DIR is store 2 "Lost in Astral", every file of the catalog has both of them.
+# EI1_MOD_DIRS and EI2_MOD_DIRS are the folders of the mods which go over the game, for example
+# EI2_DIR=.../ei2rebirth_unpacked EI2_MOD_DIRS=.../ei2rebirth_unpacked/Starter/Mods/LostInAstral
+EI1_DIR ?= /run/media/veselin/STUFF/evil_islands/ei-1
+EI2_DIR ?= /run/media/veselin/STUFF/evil_islands/ei-2
+REGISTRY_DIR ?= catalog
+ei_registry:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
-	@cp -v tools/compile_data.py repack/EIrepack/
-	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv_tools/bin/python3 compile_data.py
-# 	@mv -v repack/EIrepack/armors.json catalog/
-# 	@mv -v repack/EIrepack/weapons.json catalog/
-# 	@mv -v repack/EIrepack/materials.json catalog/
-# 	@mv -v repack/EIrepack/animations.json catalog/
+	@cp -v tools/extract_db_data.py tools/build_registry.py repack/EIrepack/
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:." ../../venv_tools/bin/python3 build_registry.py --store 1 ${EI1_DIR} ${EI1_MOD_DIRS} --store 2 ${EI2_DIR} ${EI2_MOD_DIRS} --dest $(CURDIR)/${REGISTRY_DIR}/
 
 FIGURES_RES ?= $(HOME)/.worlds/data/figures.res
 FIGURES_OUT ?= ./figures/
+# split big figures.res into one .res file per model, those are downloaded by the client one by one
 ei_figures_repack: venv
-	# split big figures.res into one .res file per model, those are downloaded by the client one by one
-	@PYTHONPATH=src $(PYTHON) tools/split_figures_res.py $(FIGURES_RES) $(FIGURES_OUT)
+	@PYTHONPATH=src $(PYTHON) tools/split_figures.py $(FIGURES_RES) $(FIGURES_OUT)
 
 tiles_build:
 	@rm -rf ${RES_DIR}/merged_hq/*

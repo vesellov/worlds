@@ -45,6 +45,7 @@ class Hero(object):
                 wears=self.wears,
                 weapon=self.weapon,
                 texture=self.texture,
+                store_id=self.store_id,
             )
         return self.template_data
 

@@ -10,7 +10,6 @@ _Debug = True
 
 import os
 import io
-import json
 import math
 import random
 
@@ -24,6 +23,7 @@ from lib import figures
 from lib import models
 from lib import physics
 from lib import plants
+from lib import stores
 from lib import zone
 from server import behavior
 from server import roads
@@ -70,7 +70,7 @@ NEUTRAL_UNIT_DISTANCE = 2.0
 NEUTRAL_UNIT_ANGLE = 60.0
 NEUTRAL_CIRCLE_RADIUS = 1.5
 
-# when the server starts one unit of every figure is added to every biome, see Simulation.add_showcase_units():
+# when the server starts one unit of every figure of every store is added to every biome, see Simulation.add_showcase_units():
 # they stand at equal distances along all roads of the biome, or in rows that many segments apart around the place
 # where the heroes appear when the biome has no roads, and walk around in a small circle of SHOWCASE_CIRCLE_RADIUS segments
 SHOWCASE_SPACING = 3.0
@@ -169,13 +169,14 @@ class Simulation(object):
         self.zonemap = None
         # [template, store_id] of all models used in the world, clients download them before rendering the scene
         self.templates = []
+        # store id -> animations.json and weapons.json of the store, the template of the unit says its store, see lib.stores
         self.animations_catalog = {}
         self.weapons_catalog = {}
         self.action_types_cache = {}
         # (model name, weapon, action, size) -> speed, see unit_speed()
         self.unit_speeds_cache = {}
-        # dress.Looks, random looks of the neutral units, loaded when the first one is added
-        self.looks = None
+        # store id -> dress.Looks, random looks of the neutral units, loaded when the first one of the store is added
+        self.looks = {}
         self.neutral_units_count = 0
         # figures of the neutral units go one by one in the order of their names, see add_neutral_unit()
         self.next_figure_index = 0
@@ -208,10 +209,8 @@ class Simulation(object):
         # biomes built before roads.json was added have no roads
         if self.biome.has('roads.json'):
             self.roads = roads.Roads(self.biome.read_json('roads.json'), self.width, self.height)
-        with open(os.path.join(self.catalog_path, 'animations.json'), 'rt') as f:
-            self.animations_catalog = json.loads(f.read())
-        with open(os.path.join(self.catalog_path, 'weapons.json'), 'rt') as f:
-            self.weapons_catalog = json.loads(f.read())
+        self.animations_catalog = stores.read(os.path.join(self.catalog_path, 'animations.json'))
+        self.weapons_catalog = stores.read(os.path.join(self.catalog_path, 'weapons.json'))
         self.map = models.Map(width=self.width, height=self.height, water_level=const.WATER_LEVEL / 100.0)
         self.info = models.World(name=self.biome.id, width=self.width, height=self.height)
         if _Debug:
@@ -313,19 +312,19 @@ class Simulation(object):
 
     #--- OBJECTS ---
 
-    def weapon_type(self, weapon):
+    def weapon_type(self, weapon, store_id=None):
         # weapon of the template is "<weapon name>.<material name>"
         if not weapon:
             return None
-        return self.weapons_catalog[weapon.split('.')[0]]['type']
+        return stores.of(self.weapons_catalog, store_id)[weapon.split('.')[0]]['type']
 
-    def action_types(self, model_name, weapon_type=None):
+    def action_types(self, model_name, weapon_type=None, store_id=None):
         # same as action_types in dat.CatalogData.build_template_data() on the client, but only the animations
         # which the client loads for a figure with that weapon
-        key = (model_name, weapon_type)
+        key = (model_name, weapon_type, store_id)
         if key not in self.action_types_cache:
             action_types = {}
-            for action in self.animations_catalog[model_name]['actions']:
+            for action in stores.of(self.animations_catalog, store_id)[model_name]['actions']:
                 if action['animation_stage'] != 'cycle':
                     continue
                 weapons = action['weapons'].split(',')
@@ -339,7 +338,8 @@ class Simulation(object):
     def animation_for(self, unit, action=None):
         # the animation the unit plays for that action, the current action of the unit by default
         action = action or unit.action
-        action_types = self.action_types(unit.template.model_name, self.weapon_type(unit.template.weapon))
+        store_id = unit.template.store_id
+        action_types = self.action_types(unit.template.model_name, self.weapon_type(unit.template.weapon, store_id), store_id)
         for action_type in ACTION_ANIMATIONS.get(action, (action, )):
             names = action_types.get(action_type)
             if names:
@@ -352,9 +352,10 @@ class Simulation(object):
         a zombie is slower than a tiger, see lib.figures.
         """
         size = zone.unit_size(unit)
-        key = (unit.template.model_name, unit.template.weapon, action, size)
+        key = (unit.template.model_name, unit.template.weapon, action, size, unit.template.store_id)
         if key not in self.unit_speeds_cache:
-            self.unit_speeds_cache[key] = figures.max_speed(self.animations_catalog, unit.template.model_name, self.animation_for(unit, action), size)
+            animations = stores.of(self.animations_catalog, unit.template.store_id)
+            self.unit_speeds_cache[key] = figures.max_speed(animations, unit.template.model_name, self.animation_for(unit, action), size)
         return self.unit_speeds_cache[key]
 
     def find_free_position(self, w, h, size=1.0):
@@ -398,9 +399,8 @@ class Simulation(object):
         near = self.objects.get(near_id)
         if not near or self.neutral_units_count >= MAX_NEUTRAL_UNITS:
             return None
-        if self.looks is None:
-            self.looks = dress.Looks(self.catalog_path)
-        model_name = self.looks.models[self.next_figure_index % len(self.looks.models)]
+        looks = self.store_looks()
+        model_name = looks.models[self.next_figure_index % len(looks.models)]
         self.next_figure_index += 1
         capital_numbers = sorted(self.capitals.keys())
         if len(capital_numbers) >= 2 and self.roads:
@@ -417,14 +417,16 @@ class Simulation(object):
 
     def add_showcase_units(self):
         """
-        Adds one unit of every figure, so all of them can be seen in the biome. They stand at equal distances
+        Adds one unit of every figure of every store, so all of them can be seen in the biome. They stand at equal distances
         along all roads of the biome, see showcase_positions(), and walk around in a small circle there.
         """
-        if self.looks is None:
-            self.looks = dress.Looks(self.catalog_path)
-        positions = self.showcase_positions(len(self.looks.models))
-        for model_name, (x, y) in zip(self.looks.models, positions):
-            unit = self.create_neutral_unit(model_name, x, y)
+        # (store id, model name) of the figures of all stores, the same figure of two stores is shown twice
+        showcase = []
+        for store_id in sorted(self.animations_catalog.keys()):
+            showcase.extend((store_id, model_name) for model_name in self.store_looks(store_id).models)
+        positions = self.showcase_positions(len(showcase))
+        for (store_id, model_name), (x, y) in zip(showcase, positions):
+            unit = self.create_neutral_unit(model_name, x, y, store_id=store_id)
             self.behaviors[unit.id] = self.walk_in_circle(unit, SHOWCASE_CIRCLE_RADIUS)
         if _Debug:
             print(f'added {len(positions)} showcase units in biome {self.biome.id}')
@@ -469,15 +471,24 @@ class Simulation(object):
             positions.append((ax + dx * t, ay + dy * t))
         return positions
 
-    def create_neutral_unit(self, model_name, x, y):
+    def store_looks(self, store_id=None):
+        # dress.Looks of the figures of that store, the default store when store_id is None
+        if store_id is None:
+            store_id = models.DEFAULT_STORE_ID
+        if store_id not in self.looks:
+            self.looks[store_id] = dress.Looks(self.catalog_path, store_id=store_id)
+        return self.looks[store_id]
+
+    def create_neutral_unit(self, model_name, x, y, store_id=None):
         """
-        Adds a unit with a random look of that figure at the open cell nearest to (x, y), see find_free_position().
+        Adds a unit with a random look of that figure of that store at the open cell nearest to (x, y),
+        see find_free_position(). The figure is of the default store when store_id is None.
         """
         self.next_id += 1
         unit = models.Unit(
             id=self.next_id,
             name=f'unit{self.next_id}',
-            template=models.Template(**self.looks.random_template(model_name)),
+            template=models.Template(**self.store_looks(store_id).random_template(model_name)),
             w=0,
             h=0,
             direction=float(random.randint(0, 359)),

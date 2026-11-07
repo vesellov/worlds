@@ -360,9 +360,20 @@ def extract_value(v):
             return v
 
 
-def split_data(data, suffix):
-    buf = ""
-    result = {}
+def table_records(headers, lines, check=True):
+    records = []
+    for ln_data in lines:
+        if check and len(ln_data) != len(headers):
+            raise ValueError(f"{headers}\n\n{ln_data}")
+        records.append({headers[i]: extract_value(ln_data[i]) for i in range(len(ln_data))})
+    return records
+
+
+def data_tables(data):
+    """
+    Tables of the data read by read_data(): table name -> list of records, every record is a dict.
+    """
+    tables = {}
     this_table_name = ''
     this_table_headers = []
     this_table_data = []
@@ -370,29 +381,13 @@ def split_data(data, suffix):
     for line in data:
         if type(line) == list:
             for item in line:
-                buf += array_to_str(item) + "\n"
-                # this_line_data.extend(array_to_str(item).split(','))
                 this_line_data.extend(unwrap_arr(item))
                 this_table_data.append(this_line_data)
                 this_line_data = []
         elif type(line) == str:
-            buf += line
             if line.count('\n'):
                 if this_table_name:
-                    table = []
-                    for ln_data in this_table_data:
-                        if len(ln_data) != len(this_table_headers):
-                            raise ValueError(f"{this_table_headers}\n\n{ln_data}")
-                        rec = {this_table_headers[i]: extract_value(ln_data[i]) for i in range(len(ln_data))}
-                        # rec_id = rec['name'].lower().replace(" ", "_")
-                        # if rec_id in table:
-                        #     raise ValueError(rec_id)
-                        # table[rec_id] = rec
-                        table.append(rec)
-                    file_name = f'{suffix}_{this_table_name}'
-                    open(f'{file_name}.json', 'wt').write(json.dumps(table, indent=2))
-                    print(f"    extracted {len(table)} records to {file_name}.json")
-                    this_table_name = ''
+                    tables[this_table_name] = table_records(this_table_headers, this_table_data)
                 this_table_name = line.strip('\n').split('\n')[0].lower().replace(" ", "_")
                 this_table_headers = line.strip('\n').split('\n')[1].split(',')
                 this_table_headers_copy = this_table_headers.copy()
@@ -403,22 +398,17 @@ def split_data(data, suffix):
                 this_table_data = []
                 this_line_data = []
         else:
-            buf += str(line)
             this_line_data.append(str(line))
-        buf += "\n"
     if this_table_name:
-        table = []
-        for ln_data in this_table_data:
-            rec = {this_table_headers[i]: extract_value(ln_data[i]) for i in range(len(ln_data))}
-            # rec_id = rec['name'].lower().replace(" ", "_")
-            # if rec_id in table:
-            #     raise ValueError(rec_id)
-            # table[rec_id] = rec
-            table.append(rec)
-        file_name = f'{suffix}_{this_table_name}'
+        tables[this_table_name] = table_records(this_table_headers, this_table_data, check=False)
+    return tables
+
+
+def split_data(data, suffix):
+    for table_name, table in data_tables(data).items():
+        file_name = f'{suffix}_{table_name}'
         open(f'{file_name}.json', 'wt').write(json.dumps(table, indent=2))
         print(f"    extracted {len(table)} records to {file_name}.json")
-    return buf
 
 
 def read_adb_data(file_path):

@@ -293,14 +293,14 @@ class Scene(object):
             print(f'visible area created at {w} {h} with {added} segments, elevation at center is {elevation_at_center} with planet shift {planet_shift_y}, queue is {len(self.segments_waiting)} / {len(self.segments_cleanup_queue)}')
         self.update_segments()
 
-    def figure_height_range(self, o, m, coefs, scale):
+    def figure_height_range(self, o, m, coefs, scale, store_id=models.DEFAULT_STORE_ID):
         """
         Heights of the lowest and of the highest point of the figure above its root part in the first frame
         of its idle animation. Figures are made with different base points: a tiger stands in the air and a goblin
         in the ground when the root part is placed at the ground level, see unt.Unit.set_position() and lib.figures.
         """
         idle_name = None
-        for action in self.catalog.animations.get(o.template, {}).get('actions', []):
+        for action in self.catalog.store_animations(store_id).get(o.template, {}).get('actions', []):
             if action['animation_stage'] == 'cycle' and action['action_type'].split(':')[0] == 'idle' and action['action_name'] in o.animations:
                 idle_name = action['action_name']
                 break
@@ -764,7 +764,7 @@ class Scene(object):
             self.static_objects[o.name] = o
         else:
             o.calculate_animations()
-            o.ground_offset, o.top_offset = self.figure_height_range(o, m, coefs, scale)
+            o.ground_offset, o.top_offset = self.figure_height_range(o, m, coefs, scale, store_id=store_id)
             self.animated_objects[o.name] = o
         # t2 = time.time()
         # if _Debug:

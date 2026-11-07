@@ -1,0 +1,8395 @@
+{
+  "1": {
+    "unanhoco": {
+      "actions": {
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "cidle03"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "CowF0",
+        "LMP Decorative Cow"
+      ],
+      "name": "cow",
+      "npcs": [],
+      "races": [
+        "Cow",
+        "LMP Cow"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/cow"
+      ],
+      "sounds": {
+        "death": 2,
+        "hit": 1,
+        "idle": 3
+      },
+      "store_id": 1
+    },
+    "unanhodo": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "cdeath02",
+          "udeath01"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 12,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "DogGreyF6",
+        "DogGreyF7",
+        "DogGreyF8",
+        "DogRedF12",
+        "DogRedF14",
+        "DogRedF16",
+        "LMP Dog Ingos 11",
+        "LMP Dog Ingos 9"
+      ],
+      "name": "dog",
+      "npcs": [],
+      "races": [
+        "Dog",
+        "LMP Dog Ingos"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/dog"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 2,
+        "hit": 3
+      },
+      "store_id": 1
+    },
+    "unanhoha": {
+      "actions": {
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 5,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "HareF0",
+        "LMP Decorative Hare Red",
+        "LMP Decorative Hare White"
+      ],
+      "name": "hare",
+      "npcs": [],
+      "races": [
+        "Hare",
+        "LMP Hare Red",
+        "LMP Hare White"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/Hare"
+      ],
+      "sounds": {
+        "death": 1,
+        "hit": 1
+      },
+      "store_id": 1
+    },
+    "unanhoho": {
+      "actions": {
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "cidle03"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 8,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "HorseRedF0",
+        "HorseWhiteF0",
+        "LMP Decorative Horse Red",
+        "LMP Decorative Horse White"
+      ],
+      "name": "horse",
+      "npcs": [],
+      "races": [
+        "Horse",
+        "LMP Horse Red",
+        "LMP Horse White"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/Horse"
+      ],
+      "sounds": {
+        "death": 1,
+        "hit": 4,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unanhopi": {
+      "actions": {
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 5,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Decorative Pig",
+        "LMP Unique Pig Boryka 1",
+        "PigF0"
+      ],
+      "name": "pig",
+      "npcs": [],
+      "races": [
+        "LMP Pig",
+        "Pig"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/pig"
+      ],
+      "sounds": {
+        "death": 4,
+        "hit": 4,
+        "idle": 3
+      },
+      "store_id": 1
+    },
+    "unanwiba": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "cflight01"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cflight02"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "BatDarkM12",
+        "BatDarkM14",
+        "BatDarkM16",
+        "BatLightM10",
+        "BatLightM7",
+        "BatLightM8",
+        "BatLightM9",
+        "BatRedM1",
+        "BatRedM3",
+        "BatRedM5",
+        "LMP Bat Gipath 1",
+        "LMP Bat Gipath 3",
+        "LMP Bat Gipath 5",
+        "LMP Bat Gipath 7"
+      ],
+      "name": "bat",
+      "npcs": [],
+      "races": [
+        "Bat",
+        "LMP Bat Gipath"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/Bat"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1,
+        "hit": 2,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unanwibo": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02",
+          "uattack03"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 9,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "BoarDarkF3",
+        "BoarDarkF4",
+        "BoarDarkF5",
+        "BoarDarkF6",
+        "BoarRedF1",
+        "BoarRedF2",
+        "BoarRedF3",
+        "BoarTutor",
+        "LMP Boar Black 5",
+        "LMP Boar Black 7",
+        "LMP Boar Red 1",
+        "LMP Boar Red 3"
+      ],
+      "name": "boar",
+      "npcs": [],
+      "races": [
+        "Boar",
+        "LMP Boar Black",
+        "LMP Boar Red"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/boar"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 3,
+        "hit": 3,
+        "idle": 3
+      },
+      "store_id": 1
+    },
+    "unanwicr": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "unk0": [
+          "ucross02"
+        ],
+        "walk": [
+          "cwalk",
+          "ucross01"
+        ]
+      },
+      "animations_count": 10,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "ScrabBlueF5",
+        "ScrabGreyF5",
+        "ScrabMotherHealthF20",
+        "ScrabMotherPoisonedF6"
+      ],
+      "name": "crab",
+      "npcs": [],
+      "races": [
+        "Scrab"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/Scrab"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1,
+        "hit": 2,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unanwide": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "DeerF0",
+        "LMP Decorative Deer",
+        "LMP Unique Deer King 13"
+      ],
+      "name": "deer",
+      "npcs": [],
+      "races": [
+        "Deer",
+        "LMP Deer"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/Deer"
+      ],
+      "sounds": {
+        "death": 1,
+        "hit": 3,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unanwigi": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "giantrat",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 1
+    },
+    "unanwihy": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 13,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "HyenaF6",
+        "LMP Hyena 13",
+        "LMP Hyena 15"
+      ],
+      "name": "hyena",
+      "npcs": [],
+      "races": [
+        "Hyena",
+        "LMP Hyena"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/Hyena"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 2,
+        "hit": 3
+      },
+      "store_id": 1
+    },
+    "unanwira": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "RatGiantF10",
+        "RatGiantF11",
+        "RatGiantF9",
+        "RatSmallF1"
+      ],
+      "name": "rat",
+      "npcs": [],
+      "races": [
+        "Rat"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/rat"
+      ],
+      "sounds": {
+        "attack": 2,
+        "death": 2,
+        "hit": 2
+      },
+      "store_id": 1
+    },
+    "unanwiti": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "cdeath02",
+          "udeath01",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 13,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Tiger Red 2",
+        "LMP Tiger Red 4",
+        "LMP Tiger Red 6",
+        "LMP Tiger Red 8",
+        "LMP Tiger White 11",
+        "LMP Tiger White 9",
+        "LMP Unique Tiger Rampaging 12",
+        "TigerRedF2",
+        "TigerRedF4",
+        "TigerRedF6",
+        "TigerWhiteF10",
+        "TigerWhiteF6",
+        "TigerWhiteF8"
+      ],
+      "name": "tiger",
+      "npcs": [],
+      "races": [
+        "LMP Tiger Red",
+        "LMP Tiger White",
+        "Tiger"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/Tiger"
+      ],
+      "sounds": {
+        "attack": 8,
+        "cross": 2,
+        "death": 4,
+        "hit": 4,
+        "idle": 2
+      },
+      "store_id": 1
+    },
+    "unanwiwo": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "cdeath02",
+          "udeath01",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 13,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Wolf Gray 2",
+        "LMP Wolf Gray 4",
+        "LMP Wolf White 5",
+        "LMP Wolf White 7",
+        "WolfGreyF0",
+        "WolfGreyF1",
+        "WolfGreyF2",
+        "WolfGreyF3",
+        "WolfTutor",
+        "WolfTutorWOLoot",
+        "WolfWhiteF4",
+        "WolfWhiteF5",
+        "WolfWhiteF6",
+        "WolfWhiteQF6"
+      ],
+      "name": "wolf",
+      "npcs": [],
+      "races": [
+        "LMP Wolf Gray",
+        "LMP Wolf White",
+        "Wolf"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/wolf"
+      ],
+      "sounds": {
+        "attack": 3,
+        "death": 2,
+        "hit": 3,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unhufe": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02",
+          "uattack03",
+          "uattack04",
+          "uattack05",
+          "uattack06",
+          "uattack07",
+          "uattack08",
+          "uattack09",
+          "uattack10",
+          "uattack11",
+          "uattack12",
+          "uattack13",
+          "uattack14",
+          "uattack15",
+          "uattack16"
+        ],
+        "cast": [
+          "ucast01",
+          "ucast02",
+          "ucast03",
+          "ucast04",
+          "ucast05"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02",
+          "ucross03",
+          "ucross04",
+          "ucross05",
+          "ucross06",
+          "ucross07",
+          "ucross08",
+          "ucross09",
+          "ucross10",
+          "ucross11",
+          "ucross12",
+          "ucross28",
+          "ucross29"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03",
+          "udeath04",
+          "udeath05",
+          "udeath06",
+          "udeath07",
+          "udeath08",
+          "udeath09",
+          "udeath10",
+          "udeath11",
+          "udeath12",
+          "udeath13",
+          "udeath14",
+          "udeath15",
+          "udeath17",
+          "udeath18",
+          "udeath19",
+          "udeath20",
+          "udeath21",
+          "udeath22",
+          "udeath23",
+          "udeath24",
+          "udeath25",
+          "udeath26",
+          "udeath27"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "cidle03",
+          "cidle04",
+          "cidle05",
+          "cidle06",
+          "cidle07",
+          "cidle08",
+          "cidle09",
+          "cidle10",
+          "cidle11",
+          "cidle12",
+          "cidle13",
+          "cidle14",
+          "cidle15",
+          "cidle16",
+          "cidle17",
+          "cidle18",
+          "cidle19",
+          "cidle20",
+          "cidle21",
+          "cidle22",
+          "crest"
+        ],
+        "run": [
+          "crun01",
+          "crun02",
+          "crun04",
+          "crun05",
+          "scross13",
+          "scross14",
+          "scross16",
+          "scross18",
+          "scross24",
+          "scross27"
+        ],
+        "special": [
+          "cspecial14",
+          "cspecial28",
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03",
+          "ubriefing05",
+          "ubriefing06",
+          "ubriefing07",
+          "ubriefing08",
+          "ubriefing09",
+          "ubriefing10",
+          "ubriefing11",
+          "ubriefing12",
+          "ubriefing13",
+          "ubriefing14",
+          "ubriefing15",
+          "ubriefing16",
+          "ubriefing17",
+          "ubriefing18",
+          "ubriefing19",
+          "ubriefing20",
+          "ubriefing21",
+          "ubriefing22",
+          "ubriefing23",
+          "ubriefing33",
+          "ubriefing34",
+          "ubriefing35",
+          "ubriefing36",
+          "ubriefing37",
+          "ubriefing38",
+          "ubriefing39",
+          "ubriefing40",
+          "ubriefing41",
+          "ubriefing42",
+          "ubriefing43",
+          "ubriefing44",
+          "ubriefing45",
+          "uspecial01",
+          "uspecial02",
+          "uspecial03",
+          "uspecial04",
+          "uspecial05",
+          "uspecial06",
+          "uspecial07",
+          "uspecial08",
+          "uspecial17",
+          "uspecial22",
+          "uspecial23",
+          "uspecial24",
+          "uspecial26"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02",
+          "uhit06",
+          "uhit13",
+          "uhit14",
+          "uhit18",
+          "uhit20",
+          "uhit21"
+        ],
+        "walk": [
+          "ccrawl01",
+          "cwalk01",
+          "cwalk02",
+          "cwalk03",
+          "cwalk04",
+          "cwalk05",
+          "cwalk06",
+          "cwalk07",
+          "cwalk08",
+          "cwalk09",
+          "cwalk10",
+          "cwalk11",
+          "scross19",
+          "scross20",
+          "scross21",
+          "scross22",
+          "scross23",
+          "scross25"
+        ]
+      },
+      "animations_count": 170,
+      "attack_weapons": [
+        "axe",
+        "bow",
+        "crossbow",
+        "dagger",
+        "hammer",
+        "none",
+        "spear",
+        "sword"
+      ],
+      "can_shoot": true,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "Human Gipath Brigand A1",
+        "Human Gipath Brigand A3",
+        "Human Gipath Brigand Gloves A1",
+        "Human Gipath Brigand HGloves A1",
+        "Human Gipath Brigand HHelm A1",
+        "Human Gipath Brigand HShirt A1",
+        "Human Gipath Brigand Leggins A1",
+        "Human Gipath Brigand Pants A1",
+        "Human Gipath NPC Daughter M1",
+        "Human Gipath NPC Wife M3",
+        "Human Gipath NPC Witch 1",
+        "Human Gipath NPC Witch 2",
+        "Human Gipath NPC Witch 3",
+        "Human Gipath NPC Witch 4",
+        "Human Gipath NPC Witch M1",
+        "Human Gipath Runner Female F1",
+        "Human Hadagan Citizens A1",
+        "Human Hadagan Guards A14",
+        "Human Hadagan Guards A16",
+        "Human Hadagan Guards A17",
+        "Human Hadagan Guards A20",
+        "Human Hadagan Guards Boots M14",
+        "Human Hadagan Guards Gloves M14",
+        "Human Hadagan Guards Helm A14",
+        "Human Hadagan Guards M14",
+        "Human Hadagan Guards M16",
+        "Human Hadagan Guards M17",
+        "Human Hadagan Guards M20",
+        "Human Hadagan Guards Pants A14",
+        "Human Hadagan NPC Rebel Thief A15",
+        "Human Hadagan Necromancer Keykeeper M14",
+        "Human Hadagan Necromancer M14",
+        "Human Hadagan Necromancer M17",
+        "Human Hadagan Peasants A1",
+        "Human Hadagan Pretty",
+        "Human Hadagan Pretty 2",
+        "Human Hadagan Pretty 3",
+        "Human Hadagan Pretty 4",
+        "Human Hadagan Students A10",
+        "Human Hadagan Students M10",
+        "Human Hadagan TeacherLC A14",
+        "Human Kania Citizen A7",
+        "Human Kania Citizen A8",
+        "Human Kania Citizen F1 Female",
+        "Human Kania Citizen High F1 Female",
+        "Human Kania Gang A10",
+        "Human Kania Gang A12",
+        "Human Kania Gang A8",
+        "Human Kania Gang A9",
+        "Human Kania Huntress F7",
+        "Human Kania NPC Sorceress 1",
+        "Human Kania NPC Sorceress 2",
+        "Human Kania NPC Sorceress 3",
+        "Human Kania NPC Sorceress 4",
+        "Human Kania NPC Sorceress M11",
+        "Human Kania Police A10",
+        "Human Kania Police A8",
+        "Human Kania Police KBoots A8",
+        "Human Kania Police KGloves A8",
+        "Human Kania Police KHelm A10",
+        "Human Kania Police Karansul A10",
+        "Human Kania Police Karansul A8",
+        "Human Kania Police Leggins A10",
+        "Human Mercenary Hadagan Rogue",
+        "Human Mercenary Hadagan Rogue 1",
+        "Human Mercenary Hadagan Rogue 3",
+        "Human Mercenary Hadagan Rogue 4",
+        "Human Mercenary Kania Archer",
+        "Human Mercenary Kania Archer 1",
+        "Human Mercenary Kania Archer 3",
+        "Human Mercenary Kania Archer 4",
+        "Human Mercenary Shaivar",
+        "Human Mercenary Shaivar 1",
+        "Human Mercenary Shaivar 3",
+        "Human Mercenary Shaivar 4",
+        "Human Mercenary Thief",
+        "Human Mercenary Thief 1",
+        "Human Mercenary Thief 2",
+        "Human Mercenary Thief 4",
+        "Jun Female Deva M1",
+        "LMP Human Gipath Archer 2",
+        "LMP Human Gipath Archer 4",
+        "LMP Human Gipath Archer 6",
+        "LMP Human Gipath Archer 8",
+        "LMP Human Gipath Mage 2",
+        "LMP Human Gipath Mage 4",
+        "LMP Human Gipath Mage 6",
+        "LMP Human Gipath Mage 8",
+        "LMP Human Hadagan Archer 14",
+        "LMP Human Hadagan Archer 16",
+        "LMP Human Hadagan Archer 20",
+        "LMP Human Hadagan Archer 24",
+        "LMP Human Hadagan Archer 28",
+        "LMP Human Hadagan Mage 14",
+        "LMP Human Hadagan Mage 16",
+        "LMP Human Hadagan Mage 20",
+        "LMP Human Hadagan Mage 24",
+        "LMP Human Hadagan Mage 28",
+        "LMP Human Ingos Archer 10",
+        "LMP Human Ingos Archer 12",
+        "LMP Human Ingos Mage 10",
+        "LMP Human Ingos Mage 12",
+        "LMP Unique Human Messanger 20"
+      ],
+      "name": "female",
+      "npcs": [
+        "Human Gipath NPC Witch 1",
+        "Human Gipath NPC Witch 2",
+        "Human Gipath NPC Witch 3",
+        "Human Gipath NPC Witch 4",
+        "Human Hadagan Pretty",
+        "Human Hadagan Pretty 2",
+        "Human Hadagan Pretty 3",
+        "Human Hadagan Pretty 4",
+        "Human Kania NPC Sorceress 1",
+        "Human Kania NPC Sorceress 2",
+        "Human Kania NPC Sorceress 3",
+        "Human Kania NPC Sorceress 4",
+        "Human Mercenary Hadagan Rogue",
+        "Human Mercenary Hadagan Rogue 1",
+        "Human Mercenary Hadagan Rogue 3",
+        "Human Mercenary Hadagan Rogue 4",
+        "Human Mercenary Kania Archer",
+        "Human Mercenary Kania Archer 1",
+        "Human Mercenary Kania Archer 3",
+        "Human Mercenary Kania Archer 4",
+        "Human Mercenary Shaivar",
+        "Human Mercenary Shaivar 1",
+        "Human Mercenary Shaivar 3",
+        "Human Mercenary Shaivar 4",
+        "Human Mercenary Thief",
+        "Human Mercenary Thief 1",
+        "Human Mercenary Thief 2",
+        "Human Mercenary Thief 4"
+      ],
+      "races": [
+        "Human Female"
+      ],
+      "redress": [
+        "axe",
+        "boots",
+        "bow",
+        "crossbow",
+        "dagger",
+        "gloves",
+        "hammer",
+        "helm",
+        "leggings",
+        "pants",
+        "plate",
+        "shirt",
+        "spear",
+        "sword"
+      ],
+      "sfx_paths": [
+        "heroes/human/female"
+      ],
+      "sounds": {
+        "attack": 6,
+        "death": 9,
+        "hit": 9
+      },
+      "store_id": 1
+    },
+    "unhuma": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02",
+          "uattack03",
+          "uattack04",
+          "uattack05",
+          "uattack06",
+          "uattack07",
+          "uattack08",
+          "uattack09",
+          "uattack10",
+          "uattack11",
+          "uattack12",
+          "uattack13",
+          "uattack14",
+          "uattack15",
+          "uattack16"
+        ],
+        "cast": [
+          "ucast01",
+          "ucast02",
+          "ucast03",
+          "ucast04",
+          "ucast05"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02",
+          "ucross03",
+          "ucross04",
+          "ucross05",
+          "ucross06",
+          "ucross07",
+          "ucross08",
+          "ucross09",
+          "ucross10",
+          "ucross11",
+          "ucross12",
+          "ucross28",
+          "ucross29"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03",
+          "udeath04",
+          "udeath05",
+          "udeath06",
+          "udeath07",
+          "udeath08",
+          "udeath09",
+          "udeath10",
+          "udeath11",
+          "udeath12",
+          "udeath13",
+          "udeath14",
+          "udeath15",
+          "udeath17",
+          "udeath19",
+          "udeath20",
+          "udeath21",
+          "udeath22",
+          "udeath23",
+          "udeath24",
+          "udeath25",
+          "udeath26",
+          "udeath27"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "cidle03",
+          "cidle04",
+          "cidle05",
+          "cidle06",
+          "cidle07",
+          "cidle08",
+          "cidle09",
+          "cidle10",
+          "cidle11",
+          "cidle12",
+          "cidle13",
+          "cidle14",
+          "cidle15",
+          "cidle16",
+          "cidle18",
+          "cidle19",
+          "cidle20",
+          "cidle21",
+          "cidle22",
+          "crest"
+        ],
+        "run": [
+          "crun01",
+          "crun02",
+          "crun04",
+          "crun05",
+          "scross13",
+          "scross15",
+          "scross17",
+          "scross18",
+          "scross24",
+          "scross27"
+        ],
+        "special": [
+          "cspecial14",
+          "cspecial28",
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03",
+          "ubriefing05",
+          "ubriefing06",
+          "ubriefing07",
+          "ubriefing08",
+          "ubriefing09",
+          "ubriefing10",
+          "ubriefing11",
+          "ubriefing12",
+          "ubriefing13",
+          "ubriefing14",
+          "ubriefing15",
+          "ubriefing16",
+          "ubriefing17",
+          "ubriefing18",
+          "ubriefing19",
+          "ubriefing20",
+          "ubriefing21",
+          "ubriefing22",
+          "ubriefing23",
+          "ubriefing24",
+          "ubriefing25",
+          "ubriefing26",
+          "ubriefing27",
+          "ubriefing28",
+          "ubriefing29",
+          "ubriefing30",
+          "ubriefing31",
+          "ubriefing32",
+          "ubriefing33",
+          "ubriefing34",
+          "ubriefing35",
+          "uspecial01",
+          "uspecial02",
+          "uspecial03",
+          "uspecial04",
+          "uspecial05",
+          "uspecial06",
+          "uspecial07",
+          "uspecial08",
+          "uspecial09",
+          "uspecial10",
+          "uspecial11",
+          "uspecial12",
+          "uspecial13",
+          "uspecial15",
+          "uspecial16",
+          "uspecial17",
+          "uspecial18",
+          "uspecial19",
+          "uspecial20",
+          "uspecial22",
+          "uspecial23",
+          "uspecial24",
+          "uspecial25",
+          "uspecial26",
+          "uspecial27"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02",
+          "uhit06",
+          "uhit13",
+          "uhit14",
+          "uhit18",
+          "uhit20",
+          "uhit21"
+        ],
+        "walk": [
+          "ccrawl01",
+          "cwalk01",
+          "cwalk02",
+          "cwalk03",
+          "cwalk04",
+          "cwalk05",
+          "cwalk06",
+          "cwalk07",
+          "cwalk08",
+          "cwalk09",
+          "cwalk10",
+          "cwalk11",
+          "scross19",
+          "scross20",
+          "scross21",
+          "scross22",
+          "scross23",
+          "scross25"
+        ]
+      },
+      "animations_count": 179,
+      "attack_weapons": [
+        "axe",
+        "bow",
+        "crossbow",
+        "dagger",
+        "hammer",
+        "none",
+        "spear",
+        "sword"
+      ],
+      "can_shoot": true,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "Human Gipath Brigand Boots F1",
+        "Human Gipath Brigand Deputy -1",
+        "Human Gipath Brigand Deputy 0",
+        "Human Gipath Brigand Deputy 1",
+        "Human Gipath Brigand Deputy F1",
+        "Human Gipath Brigand Effect F3",
+        "Human Gipath Brigand F1",
+        "Human Gipath Brigand F3",
+        "Human Gipath Brigand HBoots F1",
+        "Human Gipath Brigand HLeggins F1",
+        "Human Gipath Brigand HPants F1",
+        "Human Gipath Brigand HPlate F1",
+        "Human Gipath Brigand Helm F1",
+        "Human Gipath Brigand Leader F4",
+        "Human Gipath Brigand Plate F1",
+        "Human Gipath Brigand Shirt F1",
+        "Human Gipath Expeditor F12",
+        "Human Gipath NPC Boss 1",
+        "Human Gipath NPC Boss F5",
+        "Human Gipath NPC Buerocrat -1",
+        "Human Gipath NPC Buerocrat 1",
+        "Human Gipath NPC Buerocrat F1",
+        "Human Gipath NPC Demon F7",
+        "Human Gipath NPC Elder -1",
+        "Human Gipath NPC Elder 0",
+        "Human Gipath NPC Elder 1",
+        "Human Gipath NPC Elder F1",
+        "Human Gipath NPC Expeditor -1",
+        "Human Gipath NPC Expeditor 0",
+        "Human Gipath NPC Expeditor 1",
+        "Human Gipath NPC Expeditor 2",
+        "Human Gipath NPC Expeditor F15",
+        "Human Gipath NPC Master -1",
+        "Human Gipath NPC Master 0",
+        "Human Gipath NPC Master 1",
+        "Human Gipath NPC Master F1",
+        "Human Gipath NPC New Sheriff F1",
+        "Human Gipath NPC Warlord -1",
+        "Human Gipath NPC Warlord 0",
+        "Human Gipath NPC Warlord 1",
+        "Human Gipath NPC Warlord F5",
+        "Human Gipath Runner Male F1",
+        "Human Gipath Warlord -1",
+        "Human Gipath Warlord 0",
+        "Human Gipath Warlord 1",
+        "Human Gipath Warlord F2",
+        "Human Hadagan Citizens F1",
+        "Human Hadagan Guard Commander F17",
+        "Human Hadagan Guard Commander F20",
+        "Human Hadagan Guards F14",
+        "Human Hadagan Guards F16",
+        "Human Hadagan Guards F17",
+        "Human Hadagan Guards F20",
+        "Human Hadagan Guards HHelm F17",
+        "Human Hadagan Guards HLeggins F17",
+        "Human Hadagan Guards HPlate F17",
+        "Human Hadagan Guards Leggins F14",
+        "Human Hadagan Guards Plate F14",
+        "Human Hadagan Guards Shirt F14",
+        "Human Hadagan Mine Keykeeper F14",
+        "Human Hadagan NPC Flunkey -1",
+        "Human Hadagan NPC Flunkey 0",
+        "Human Hadagan NPC Flunkey 1",
+        "Human Hadagan NPC Flunkey F17",
+        "Human Hadagan NPC Junofil -1",
+        "Human Hadagan NPC Junofil 0",
+        "Human Hadagan NPC Junofil 1",
+        "Human Hadagan NPC Junofil F10",
+        "Human Hadagan NPC Lieutenant -1",
+        "Human Hadagan NPC Lieutenant 0",
+        "Human Hadagan NPC Lieutenant 1",
+        "Human Hadagan NPC Lieutenant F15",
+        "Human Hadagan NPC Old Necro -1",
+        "Human Hadagan NPC Old Necro 0",
+        "Human Hadagan NPC Old Necro 1",
+        "Human Hadagan NPC Old Necro M20",
+        "Human Hadagan NPC Rebel Boss -1",
+        "Human Hadagan NPC Rebel Boss 1",
+        "Human Hadagan NPC Rebel Boss 2",
+        "Human Hadagan NPC Rebel Boss F15",
+        "Human Hadagan NPC Rebel Guru F20",
+        "Human Hadagan NPC Rebel Necro -1",
+        "Human Hadagan NPC Rebel Necro 0",
+        "Human Hadagan NPC Rebel Necro 1",
+        "Human Hadagan NPC Rebel Necro M15",
+        "Human Hadagan NPC Rebel Smith -1",
+        "Human Hadagan NPC Rebel Smith 0",
+        "Human Hadagan NPC Rebel Smith 1",
+        "Human Hadagan NPC Rebel Smith F15",
+        "Human Hadagan NPC Rebel Zaku -1",
+        "Human Hadagan NPC Rebel Zaku 0",
+        "Human Hadagan NPC Rebel Zaku 1",
+        "Human Hadagan NPC Rebel Zaku 2",
+        "Human Hadagan NPC Rebel Zaku F1",
+        "Human Hadagan NPC Spirit -1",
+        "Human Hadagan NPC Spirit 0",
+        "Human Hadagan NPC Spirit 1",
+        "Human Hadagan NPC Spirit M20",
+        "Human Hadagan Overseer -1",
+        "Human Hadagan Overseer 0",
+        "Human Hadagan Overseer 1",
+        "Human Hadagan Overseer 2",
+        "Human Hadagan Overseer F14",
+        "Human Hadagan OverseerBA F14",
+        "Human Hadagan OverseerSC F14",
+        "Human Hadagan Peasants F1",
+        "Human Hadagan Portal Keykeeper F14",
+        "Human Hadagan Students F10",
+        "Human Hero",
+        "Human Hero Hadagan",
+        "Human Kania Citizen F1",
+        "Human Kania Citizen F7",
+        "Human Kania Citizen F8",
+        "Human Kania Citizen High F1",
+        "Human Kania Detective F7",
+        "Human Kania Gang F1",
+        "Human Kania Gang F10",
+        "Human Kania Gang F11",
+        "Human Kania Gang F12",
+        "Human Kania Gang F8",
+        "Human Kania Gang F9",
+        "Human Kania Gang Leader F13",
+        "Human Kania Gang Spear F10",
+        "Human Kania Goldminer F7",
+        "Human Kania Hunter F7",
+        "Human Kania Miner F8",
+        "Human Kania NPC Bodyguard F12",
+        "Human Kania NPC Captain 0",
+        "Human Kania NPC Captain F14",
+        "Human Kania NPC Governor 0",
+        "Human Kania NPC Governor 1",
+        "Human Kania NPC Governor F10",
+        "Human Kania NPC Lovkach A10",
+        "Human Kania NPC Manager F1",
+        "Human Kania NPC Thief -1",
+        "Human Kania NPC Thief 1",
+        "Human Kania NPC Thief 2",
+        "Human Kania NPC Thief A10",
+        "Human Kania NPC Trader 0",
+        "Human Kania NPC Trader 1",
+        "Human Kania NPC Trader F5",
+        "Human Kania NPC Trapper 1",
+        "Human Kania NPC Trapper F9",
+        "Human Kania Police F10",
+        "Human Kania Police F8",
+        "Human Kania Police Helm F10",
+        "Human Kania Police KLeggins F10",
+        "Human Kania Police KPants F8",
+        "Human Kania Police KPlate F10",
+        "Human Kania Police KShirt F8",
+        "Human Kania Police Karansul F10",
+        "Human Kania Police Karansul F8",
+        "Human Kania Police Leader F10",
+        "Human Kania Police Plate F10",
+        "Human Kania Ranger F9",
+        "Human Kania Sorceress Bodyguard F9",
+        "Human Kania Woodcutter F8",
+        "Human Mercenary Bodyguard",
+        "Human Mercenary Bodyguard -1",
+        "Human Mercenary Bodyguard 1",
+        "Human Mercenary Hadagan Thief",
+        "Human Mercenary Hadagan Thief 0",
+        "Human Mercenary Hadagan Thief 1",
+        "Human Mercenary Hadagan Warrior",
+        "Human Mercenary Hadagan Warrior 0",
+        "Human Mercenary Hadagan Warrior 1",
+        "Human Mercenary Kania Paladin",
+        "Human Mercenary Kania Paladin -1",
+        "Human Mercenary Kania Paladin 1",
+        "Human Mercenary Kania Thief",
+        "Human Mercenary Kania Thief -1",
+        "Human Mercenary Kania Thief 1",
+        "Human Mercenary Warrior",
+        "Human Mercenary Warrior -1",
+        "Human Mercenary Warrior 1",
+        "Jun Male Hero",
+        "Jun Male Hero -1",
+        "Jun Male Hero 2",
+        "LMP Human Gipath Fighter 2",
+        "LMP Human Gipath Fighter 4",
+        "LMP Human Gipath Fighter 6",
+        "LMP Human Gipath Fighter 8",
+        "LMP Human Hadagan Fighter 14",
+        "LMP Human Hadagan Fighter 16",
+        "LMP Human Hadagan Fighter 20",
+        "LMP Human Hadagan Fighter 24",
+        "LMP Human Hadagan Fighter 28",
+        "LMP Human Ingos Fighter 10",
+        "LMP Human Ingos Fighter 12",
+        "LMP Unique Human Aizet-Bek 17",
+        "LMP Unique Human Betrayer Slave",
+        "LMP Unique Human Betrayer Soldiers",
+        "LMP Unique Human Captain 15",
+        "LMP Unique Human Jun Scientists 13",
+        "LMP Unique Human Junophile Friend 13",
+        "LMP Unique Human Pleshivy 15",
+        "LMP Unique Human Portal Warlord 32",
+        "LMP Unique Human Summoner 24",
+        "LMP Unique Undead Hadagan 8",
+        "LMP Unique Undead Hadagan BMZombie 17",
+        "LMP Unique Undead Hadagan Leader 11",
+        "Undead -1",
+        "Undead 0",
+        "Undead 1",
+        "Undead 2",
+        "UndeadF13",
+        "UndeadF15",
+        "UndeadF17"
+      ],
+      "name": "male",
+      "npcs": [
+        "Human Gipath Brigand Deputy -1",
+        "Human Gipath Brigand Deputy 0",
+        "Human Gipath Brigand Deputy 1",
+        "Human Gipath NPC Boss 1",
+        "Human Gipath NPC Buerocrat -1",
+        "Human Gipath NPC Buerocrat 1",
+        "Human Gipath NPC Elder -1",
+        "Human Gipath NPC Elder 0",
+        "Human Gipath NPC Elder 1",
+        "Human Gipath NPC Expeditor -1",
+        "Human Gipath NPC Expeditor 0",
+        "Human Gipath NPC Expeditor 1",
+        "Human Gipath NPC Expeditor 2",
+        "Human Gipath NPC Master -1",
+        "Human Gipath NPC Master 0",
+        "Human Gipath NPC Master 1",
+        "Human Gipath NPC Warlord -1",
+        "Human Gipath NPC Warlord 0",
+        "Human Gipath NPC Warlord 1",
+        "Human Gipath Warlord -1",
+        "Human Gipath Warlord 0",
+        "Human Gipath Warlord 1",
+        "Human Hadagan NPC Flunkey -1",
+        "Human Hadagan NPC Flunkey 0",
+        "Human Hadagan NPC Flunkey 1",
+        "Human Hadagan NPC Junofil -1",
+        "Human Hadagan NPC Junofil 0",
+        "Human Hadagan NPC Junofil 1",
+        "Human Hadagan NPC Lieutenant -1",
+        "Human Hadagan NPC Lieutenant 0",
+        "Human Hadagan NPC Lieutenant 1",
+        "Human Hadagan NPC Old Necro -1",
+        "Human Hadagan NPC Old Necro 0",
+        "Human Hadagan NPC Old Necro 1",
+        "Human Hadagan NPC Rebel Boss -1",
+        "Human Hadagan NPC Rebel Boss 1",
+        "Human Hadagan NPC Rebel Boss 2",
+        "Human Hadagan NPC Rebel Necro -1",
+        "Human Hadagan NPC Rebel Necro 0",
+        "Human Hadagan NPC Rebel Necro 1",
+        "Human Hadagan NPC Rebel Smith -1",
+        "Human Hadagan NPC Rebel Smith 0",
+        "Human Hadagan NPC Rebel Smith 1",
+        "Human Hadagan NPC Rebel Zaku -1",
+        "Human Hadagan NPC Rebel Zaku 0",
+        "Human Hadagan NPC Rebel Zaku 1",
+        "Human Hadagan NPC Rebel Zaku 2",
+        "Human Hadagan NPC Spirit -1",
+        "Human Hadagan NPC Spirit 0",
+        "Human Hadagan NPC Spirit 1",
+        "Human Hadagan Overseer -1",
+        "Human Hadagan Overseer 0",
+        "Human Hadagan Overseer 1",
+        "Human Hadagan Overseer 2",
+        "Human Hero",
+        "Human Hero Hadagan",
+        "Human Kania NPC Captain 0",
+        "Human Kania NPC Governor 0",
+        "Human Kania NPC Governor 1",
+        "Human Kania NPC Thief -1",
+        "Human Kania NPC Thief 1",
+        "Human Kania NPC Thief 2",
+        "Human Kania NPC Trader 0",
+        "Human Kania NPC Trader 1",
+        "Human Kania NPC Trapper 1",
+        "Human Mercenary Bodyguard",
+        "Human Mercenary Bodyguard -1",
+        "Human Mercenary Bodyguard 1",
+        "Human Mercenary Hadagan Thief",
+        "Human Mercenary Hadagan Thief 0",
+        "Human Mercenary Hadagan Thief 1",
+        "Human Mercenary Hadagan Warrior",
+        "Human Mercenary Hadagan Warrior 0",
+        "Human Mercenary Hadagan Warrior 1",
+        "Human Mercenary Kania Paladin",
+        "Human Mercenary Kania Paladin -1",
+        "Human Mercenary Kania Paladin 1",
+        "Human Mercenary Kania Thief",
+        "Human Mercenary Kania Thief -1",
+        "Human Mercenary Kania Thief 1",
+        "Human Mercenary Warrior",
+        "Human Mercenary Warrior -1",
+        "Human Mercenary Warrior 1",
+        "Jun Male Hero",
+        "Jun Male Hero -1",
+        "Jun Male Hero 2",
+        "Undead -1",
+        "Undead 0",
+        "Undead 1",
+        "Undead 2"
+      ],
+      "races": [
+        "Human Male"
+      ],
+      "redress": [
+        "axe",
+        "boots",
+        "bow",
+        "crossbow",
+        "dagger",
+        "gloves",
+        "hammer",
+        "helm",
+        "leggings",
+        "pants",
+        "plate",
+        "shirt",
+        "spear",
+        "sword"
+      ],
+      "sfx_paths": [
+        "heroes/human/male"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 4,
+        "hit": 4
+      },
+      "store_id": 1
+    },
+    "unmoba1": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "BansheeDarkM12",
+        "BansheeDarkM12Canyon",
+        "BansheeDarkM14",
+        "BansheeDarkM16",
+        "BansheeLightM5",
+        "BansheeLightM6",
+        "BansheeLightM7",
+        "LMP Banshee Gipath Mage 2",
+        "LMP Banshee Gipath Mage 4",
+        "LMP Banshee Gipath Mage 6",
+        "LMP Banshee Gipath Mage 8",
+        "LMP Banshee Hadagan Mage 13",
+        "LMP Banshee Hadagan Mage 15"
+      ],
+      "name": "banshee00",
+      "npcs": [],
+      "races": [
+        "Banshee Dgun",
+        "LMP Banshee Gipath M",
+        "LMP Banshee Hadagan M"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/banshee01"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 4,
+        "hit": 4,
+        "idle": 3
+      },
+      "store_id": 1
+    },
+    "unmoba2": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "BansheeDarkF12",
+        "BansheeDarkF12Canyon",
+        "BansheeDarkF14",
+        "BansheeDarkF16",
+        "BansheeLightF2",
+        "BansheeLightF3",
+        "BansheeLightF4",
+        "BansheeTutor",
+        "LMP Banshee Gipath Fighter 2",
+        "LMP Banshee Gipath Fighter 4",
+        "LMP Banshee Gipath Fighter 6",
+        "LMP Banshee Gipath Fighter 8",
+        "LMP Banshee Hadagan Fighter 13",
+        "LMP Banshee Hadagan Fighter 15"
+      ],
+      "name": "banshee01",
+      "npcs": [],
+      "races": [
+        "Banshee",
+        "LMP Banshee Gipath F",
+        "LMP Banshee Hadagan F"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/banshee00"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 4,
+        "hit": 4,
+        "idle": 3
+      },
+      "store_id": 1
+    },
+    "unmobe0": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "EvileyeRedM12",
+        "EvileyeRedM14",
+        "EvileyeRedM16",
+        "LMP Beholder Red Ingos 11",
+        "LMP Beholder Red Ingos 9"
+      ],
+      "name": "beholder00",
+      "npcs": [],
+      "races": [
+        "Beholder",
+        "LMP Beholder Red Ingos"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Beholder00"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1,
+        "hit": 2,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unmobe1": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "EvileyeGreenM13",
+        "EvileyeGreenM15",
+        "EvileyeGreenM17",
+        "EvileyeSimpleM5",
+        "EvileyeSimpleM6",
+        "EvileyeSimpleM7"
+      ],
+      "name": "beholder01",
+      "npcs": [],
+      "races": [
+        "Beholder 2"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Beholder01"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1,
+        "hit": 3,
+        "idle": 2
+      },
+      "store_id": 1
+    },
+    "unmobi": {
+      "actions": {
+        "walk": [
+          "cflight"
+        ]
+      },
+      "animations_count": 1,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "bird00",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 1
+    },
+    "unmoco1": {
+      "actions": {
+        "idle": [
+          "cidle"
+        ],
+        "special": [
+          "uspecial01",
+          "uspecial02",
+          "uspecial03",
+          "uspecial04",
+          "uspecial05",
+          "uspecial06",
+          "uspecial07"
+        ]
+      },
+      "animations_count": 8,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "escmenu00",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 1
+    },
+    "unmoco2": {
+      "actions": {
+        "idle": [
+          "cidle"
+        ],
+        "special": [
+          "uspecial01",
+          "uspecial02",
+          "uspecial03",
+          "uspecial04",
+          "uspecial05",
+          "uspecial06",
+          "uspecial07",
+          "uspecial08",
+          "uspecial09",
+          "uspecial10",
+          "uspecial11",
+          "uspecial12",
+          "uspecial13",
+          "uspecial14",
+          "uspecial15",
+          "uspecial16"
+        ]
+      },
+      "animations_count": 17,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "MainMenu"
+      ],
+      "name": "mainmenu00",
+      "npcs": [],
+      "races": [
+        "Column"
+      ],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 1
+    },
+    "unmoco3": {
+      "actions": {
+        "idle": [
+          "cidle01"
+        ],
+        "unk0": [
+          "01\u0002e",
+          "e02\u0001"
+        ]
+      },
+      "animations_count": 3,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "cursearms00",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 1
+    },
+    "unmoco4": {
+      "actions": {
+        "idle": [
+          "cidle01"
+        ],
+        "unk0": [
+          "01\u0002e",
+          "e02\u0001"
+        ]
+      },
+      "animations_count": 3,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "cursealtar00",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 1
+    },
+    "unmocu": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "cdeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "cflight02",
+          "scross02"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cflight01",
+          "scross01"
+        ]
+      },
+      "animations_count": 8,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "AncientCurseM25"
+      ],
+      "name": "curse",
+      "npcs": [],
+      "races": [
+        "Ancient Curse"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Curse"
+      ],
+      "sounds": {
+        "attack": 4,
+        "hit": 4,
+        "idle": 4
+      },
+      "store_id": 1
+    },
+    "unmocy": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun",
+          "srun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk",
+          "swalk"
+        ]
+      },
+      "animations_count": 10,
+      "attack_weapons": [
+        "hammer"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "CyclopsA16",
+        "CyclopsA18",
+        "CyclopsA20",
+        "LMP Cyclops 14",
+        "LMP Cyclops 16",
+        "LMP Unique Cyclops Leader 20"
+      ],
+      "name": "cyclop",
+      "npcs": [],
+      "races": [
+        "Cyclope",
+        "LMP Cyclops"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Cyclope"
+      ],
+      "sounds": {
+        "attack": 2,
+        "death": 1,
+        "hit": 3
+      },
+      "store_id": 1
+    },
+    "unmodg": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "cflight02",
+          "scross02"
+        ],
+        "special": [
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03",
+          "ubriefing04",
+          "ubriefing05"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cflight01",
+          "scross01"
+        ]
+      },
+      "animations_count": 13,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "DragonBlueM14",
+        "DragonBrownM16",
+        "DragonGreenM12",
+        "LMP Unique Dragon Plague Ancient 30",
+        "LMP Unique Dragon Plague Soldiers 24",
+        "LMP Unique Dragon Plague Wingmans 26"
+      ],
+      "name": "dragon",
+      "npcs": [],
+      "races": [
+        "Dragon",
+        "LMP Dragon Black",
+        "LMP Dragon Green",
+        "LMP Dragon Red"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/dragon"
+      ],
+      "sounds": {
+        "attack": 3,
+        "death": 4,
+        "hit": 3,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unmodr": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "crest",
+          "cspecial01"
+        ],
+        "run": [
+          "crun"
+        ],
+        "special": [
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 17,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "DriadDarkA11",
+        "DriadDarkA7",
+        "DriadDarkA9",
+        "DriadDarkM11",
+        "DriadDarkM7",
+        "DriadDarkM9",
+        "DriadGreenA11",
+        "DriadGreenA7",
+        "DriadGreenA9",
+        "DriadGreenM11",
+        "DriadGreenM7",
+        "DriadGreenM9",
+        "DriadSnowA11",
+        "DriadSnowA7",
+        "DriadSnowA9",
+        "DriadSnowM11",
+        "DriadSnowM7",
+        "DriadSnowM9",
+        "DriadSnowQM9",
+        "LMP Driad Black Archer 11",
+        "LMP Driad Black Archer 9",
+        "LMP Driad Black Mage 11",
+        "LMP Driad Black Mage 9",
+        "LMP Driad Blue Archer 11",
+        "LMP Driad Blue Archer 9",
+        "LMP Driad Blue Mage 11",
+        "LMP Driad Blue Mage 9"
+      ],
+      "name": "driad",
+      "npcs": [],
+      "races": [
+        "Driad",
+        "LMP Driad Black A",
+        "LMP Driad Black M",
+        "LMP Driad Blue A",
+        "LMP Driad Blue M"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/driad"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 2,
+        "hit": 3
+      },
+      "store_id": 1
+    },
+    "unmoel0": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 12,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "ElementalEarthF8"
+      ],
+      "name": "earth",
+      "npcs": [],
+      "races": [
+        "Elemental Earth"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Elemental"
+      ],
+      "sounds": {
+        "attack": 3,
+        "death": 2,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unmoel1": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 12,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "ElementalLavaF12"
+      ],
+      "name": "earth",
+      "npcs": [],
+      "races": [
+        "Elemental Lava"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Elemental"
+      ],
+      "sounds": {
+        "attack": 3,
+        "death": 2,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unmoel2": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 12,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "ElementalIceF11",
+        "ElementalIceF15",
+        "ElementalIceF9",
+        "LMP Elemental Ice 10",
+        "LMP Elemental Ice 12"
+      ],
+      "name": "earth",
+      "npcs": [],
+      "races": [
+        "Elemental Ice",
+        "LMP ElementalIce"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Elemental"
+      ],
+      "sounds": {
+        "attack": 3,
+        "death": 2,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unmogo": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02",
+          "uattack03",
+          "uattack04"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "crest"
+        ],
+        "run": [
+          "crun01"
+        ],
+        "special": [
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk01"
+        ]
+      },
+      "animations_count": 19,
+      "attack_weapons": [
+        "axe",
+        "bow",
+        "spear"
+      ],
+      "can_shoot": true,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "GoblinA1",
+        "GoblinA2",
+        "GoblinA3",
+        "GoblinF1",
+        "GoblinF2",
+        "GoblinF3",
+        "GoblinGogoF3",
+        "GoblinSentryF1",
+        "GoblinTutor",
+        "LMP Goblin Archer 1",
+        "LMP Goblin Archer 3",
+        "LMP Goblin Archer 5",
+        "LMP Goblin Archer 7",
+        "LMP Goblin Fighter 1",
+        "LMP Goblin Fighter 3",
+        "LMP Goblin Fighter 5",
+        "LMP Goblin Fighter 7",
+        "LMP Unique Goblin Gogo"
+      ],
+      "name": "goblin",
+      "npcs": [],
+      "races": [
+        "Goblin",
+        "Goblin_Sling",
+        "LMP Goblin A",
+        "LMP Goblin F",
+        "LMP Goblin Gogo"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/goblin"
+      ],
+      "sounds": {
+        "attack": 2,
+        "death": 2,
+        "hit": 4
+      },
+      "store_id": 1
+    },
+    "unmogo1": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "GolemVerticalF20"
+      ],
+      "name": "golem00",
+      "npcs": [],
+      "races": [
+        "Golem"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Golem00"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unmogo2": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "GolemHorizontalF20"
+      ],
+      "name": "golem01",
+      "npcs": [],
+      "races": [
+        "Golem 2"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Golem01"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unmoli": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "special": [
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 16,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "DragonkinBeastmenF3",
+        "DragonkinGreenF3",
+        "DragonkinGreenF7",
+        "DragonkinJunF11",
+        "DragonkinJunF7",
+        "DragonkinOrcishF5",
+        "DragonkinOrcishF9",
+        "LMP Dragonkin 2",
+        "LMP Dragonkin 4",
+        "LMP Dragonkin 6",
+        "LMP Dragonkin 8",
+        "LMP Unique Dragonkin Amulet 7"
+      ],
+      "name": "lizardman",
+      "npcs": [],
+      "races": [
+        "LMP Dragonkin",
+        "LMP Lizardman Green",
+        "Lizardman"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Lisardman"
+      ],
+      "sounds": {
+        "attack": 3,
+        "death": 5,
+        "hit": 2
+      },
+      "store_id": 1
+    },
+    "unmomi": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "cflight02"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cflight01"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Octopus 10",
+        "LMP Octopus 12",
+        "LMP Unique Octopus Magister 15",
+        "OctopusHadaganM13",
+        "OctopusHadaganM14",
+        "OctopusHadaganM15",
+        "OctopusHadaganM17",
+        "OctopusKaniaM11",
+        "OctopusKaniaM12",
+        "OctopusKaniaM15"
+      ],
+      "name": "mindflayer",
+      "npcs": [],
+      "races": [
+        "LMP Octopus",
+        "Octopus"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Mindflyer"
+      ],
+      "sounds": {
+        "attack": 6,
+        "death": 6,
+        "hit": 4
+      },
+      "store_id": 1
+    },
+    "unmomu1": {
+      "actions": {},
+      "animations_count": 0,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "static"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": null,
+      "npcs": [],
+      "races": [
+        "Fungus"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Fungus00"
+      ],
+      "sounds": {
+        "attack": 1
+      },
+      "store_id": 1
+    },
+    "unmomu2": {
+      "actions": {},
+      "animations_count": 0,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "static"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": null,
+      "npcs": [],
+      "races": [
+        "Fungus 2"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Fungus01"
+      ],
+      "sounds": {
+        "death": 1
+      },
+      "store_id": 1
+    },
+    "unmoog": {
+      "actions": {
+        "unknown": [
+          "cattack01",
+          "cattack02",
+          "chit",
+          "cidle",
+          "crun",
+          "cwalk",
+          "udeath"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": null,
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 1
+    },
+    "unmoog1": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 13,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "OgreGipatF5",
+        "OgreGipatF5S",
+        "OgreGipatF6S",
+        "OgreGipatF7",
+        "OgreGipatF7S",
+        "OgreGipatF9",
+        "OgreTutor",
+        "OgreTutorStealer"
+      ],
+      "name": "ogre",
+      "npcs": [],
+      "races": [
+        "LMP Ogre Gipath",
+        "Ogre"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/ogre"
+      ],
+      "sounds": {
+        "attack": 6,
+        "death": 3,
+        "hit": 4,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unmoog2": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 13,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Ogre Hadagan 14",
+        "LMP Ogre Hadagan 16",
+        "OgreHadaganF13",
+        "OgreHadaganF15",
+        "OgreHadaganF17"
+      ],
+      "name": "ogre",
+      "npcs": [],
+      "races": [
+        "LMP Ogre Hadagan",
+        "OgreHadagan"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Ogre"
+      ],
+      "sounds": {
+        "attack": 6,
+        "death": 3,
+        "hit": 4,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unmori": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "special": [
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03",
+          "ubriefing04",
+          "ubriefing05",
+          "ubriefing06"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 11,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "Rick"
+      ],
+      "name": "rick",
+      "npcs": [],
+      "races": [
+        "Rick"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "heroes/human/male"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 4,
+        "hit": 4
+      },
+      "store_id": 1
+    },
+    "unmosh": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Shadow 21",
+        "LMP Shadow 25",
+        "LMP Shadow 29",
+        "ShadowM13",
+        "ShadowM15",
+        "ShadowM17",
+        "ShadowM20"
+      ],
+      "name": "shadow00",
+      "npcs": [],
+      "races": [
+        "LMP Shadow",
+        "Shadow"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Shadow"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1
+      },
+      "store_id": 1
+    },
+    "unmosk": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02",
+          "uattack03"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 9,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Skeleton 7",
+        "LMP Skeleton 8",
+        "SkeletonF2",
+        "SkeletonF3",
+        "SkeletonF4",
+        "SkeletonWarriorF7"
+      ],
+      "name": "skeleton00",
+      "npcs": [],
+      "races": [
+        "LMP Skeleton Dark",
+        "LMP Skeleton Light",
+        "Skeleton"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Skeleton"
+      ],
+      "sounds": {
+        "attack": 3,
+        "death": 4,
+        "hit": 2
+      },
+      "store_id": 1
+    },
+    "unmosp": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Spider 13",
+        "LMP Spider 15",
+        "SpiderF10",
+        "SpiderF13",
+        "SpiderF14",
+        "SpiderF15",
+        "SpiderF15Canyon"
+      ],
+      "name": "spider",
+      "npcs": [],
+      "races": [
+        "LMP Spider",
+        "Spider"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Spider"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 4,
+        "hit": 4
+      },
+      "store_id": 1
+    },
+    "unmosu": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "cflight02",
+          "scross02"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cflight01",
+          "scross01"
+        ]
+      },
+      "animations_count": 8,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Succubus Hadagan 13",
+        "LMP Succubus Hadagan 15",
+        "SuccubBlueM10",
+        "SuccubBlueM11",
+        "SuccubBlueM17",
+        "SuccubGreyM13",
+        "SuccubGreyM13Canyon",
+        "SuccubGreyM15",
+        "SuccubGreyM17",
+        "SuccubGreyM20",
+        "SuccubGreyRuneM15",
+        "SuccubRedM10",
+        "SuccubRedM11",
+        "SuccubRedM9",
+        "SuccubRedRuneM9"
+      ],
+      "name": "succubus",
+      "npcs": [],
+      "races": [
+        "LMP Succubus Hadagan",
+        "Succub"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Succubus"
+      ],
+      "sounds": {
+        "attack": 5,
+        "death": 3,
+        "hit": 4,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unmoto": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Toad 1",
+        "LMP Toad 3",
+        "LMP Toad 5",
+        "LMP Toad 7",
+        "LMP Unique Toad Cannibal 5",
+        "ToadM1",
+        "ToadM2",
+        "ToadM4",
+        "ToadM6",
+        "ToadTutor"
+      ],
+      "name": "toad",
+      "npcs": [],
+      "races": [
+        "LMP Toad",
+        "Toad"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Toad"
+      ],
+      "sounds": {
+        "attack": 2,
+        "death": 1,
+        "hit": 1,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unmotr": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 8,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Troll Black 14",
+        "LMP Troll Black 16",
+        "LMP Troll Blue 10",
+        "LMP Troll Blue 12",
+        "TrollBlackSlowF16",
+        "TrollBlueF11",
+        "TrollBlueF12",
+        "TrollBlueF9",
+        "TrollGreenF10"
+      ],
+      "name": "troll",
+      "npcs": [],
+      "races": [
+        "LMP Troll Black",
+        "LMP Troll Blue",
+        "LMP Troll Green",
+        "Troll",
+        "Troll Slow"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/troll"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1,
+        "hit": 4,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unmoun": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "cidle03"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 9,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Unique Unicorn Corrupted 13",
+        "UnicornBlackM15",
+        "UnicornWhiteM15"
+      ],
+      "name": "unicorn",
+      "npcs": [],
+      "races": [
+        "LMP Unicorn Black",
+        "LMP Unicorn White",
+        "Unicorn"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Unikorn"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1,
+        "hit": 3,
+        "idle": 1
+      },
+      "store_id": 1
+    },
+    "unmowi": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "cflight02"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cflight01"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Unique Willowisp Mother 11",
+        "LMP Willowisp 1",
+        "LMP Willowisp 3",
+        "LMP Willowisp 5",
+        "LMP Willowisp 7",
+        "WillowispM1",
+        "WillowispM3",
+        "WillowispM5"
+      ],
+      "name": "willowisp",
+      "npcs": [],
+      "races": [
+        "LMP Willowisp",
+        "Willowisp"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Willowisp"
+      ],
+      "sounds": {
+        "death": 1,
+        "hit": 1
+      },
+      "store_id": 1
+    },
+    "unmozo0": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Zombie Male 20",
+        "LMP Zombie Male 24",
+        "LMP Zombie Male 28",
+        "ZombieMaleF10",
+        "ZombieMaleF12",
+        "ZombieMaleF14",
+        "ZombieMaleF16"
+      ],
+      "name": "zombie00",
+      "npcs": [],
+      "races": [
+        "LMP Zombie Male",
+        "Zombie Male"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Zombie/Male"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 3,
+        "hit": 3
+      },
+      "store_id": 1
+    },
+    "unmozo1": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Zombie Female 20",
+        "LMP Zombie Female 24",
+        "LMP Zombie Female 28",
+        "ZombieFemaleF10",
+        "ZombieFemaleF12",
+        "ZombieFemaleF14",
+        "ZombieFemaleF16"
+      ],
+      "name": "zombie01",
+      "npcs": [],
+      "races": [
+        "LMP Zombie Female",
+        "Zombie Female"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Zombie/Female"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 4,
+        "hit": 4
+      },
+      "store_id": 1
+    },
+    "unmozozo": {
+      "actions": {
+        "attack": [
+          "cattack"
+        ],
+        "unk0": [
+          "\u0002\u001d\u0006",
+          "\u0003y\u0452",
+          "\u0004\u0015\u0452\u0002\u0016",
+          "\n\f\u0002\u2039>",
+          "\f\u0012",
+          "\u0011\u0452\u0002\u0016\u00a4p\u001d?",
+          "th01\u0001"
+        ]
+      },
+      "animations_count": 8,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "zombie00",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 1
+    },
+    "unorfe": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02",
+          "uattack03",
+          "uattack04",
+          "uattack05",
+          "uattack06",
+          "uattack07",
+          "uattack08",
+          "uattack09"
+        ],
+        "cast": [
+          "ucast01",
+          "ucast02",
+          "ucast03",
+          "ucast04"
+        ],
+        "cross": [
+          "scross28",
+          "scross29",
+          "ucross01",
+          "ucross02",
+          "ucross03",
+          "ucross04",
+          "ucross05",
+          "ucross06",
+          "ucross07",
+          "ucross08",
+          "ucross09",
+          "ucross10",
+          "ucross11",
+          "ucross12"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03",
+          "udeath04",
+          "udeath05",
+          "udeath06",
+          "udeath07",
+          "udeath08",
+          "udeath09",
+          "udeath10",
+          "udeath11",
+          "udeath12",
+          "udeath13",
+          "udeath14",
+          "udeath15",
+          "udeath16",
+          "udeath17",
+          "udeath18",
+          "udeath20",
+          "udeath21",
+          "udeath22",
+          "udeath23",
+          "udeath24",
+          "udeath25",
+          "udeath26",
+          "udeath27",
+          "udeath28",
+          "udeath29",
+          "udeath30",
+          "udeath31"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "cidle03",
+          "cidle04",
+          "cidle05",
+          "cidle06",
+          "cidle07",
+          "cidle08",
+          "cidle09",
+          "crest"
+        ],
+        "run": [
+          "crun01",
+          "crun02",
+          "scross14",
+          "scross16",
+          "scross24"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02",
+          "uhit06",
+          "uhit13",
+          "uhit14",
+          "uhit18",
+          "uhit20",
+          "uhit21"
+        ],
+        "walk": [
+          "ccrawl01",
+          "cwalk01",
+          "cwalk02",
+          "cwalk03",
+          "cwalk06",
+          "cwalk07",
+          "cwalk08",
+          "cwalk09",
+          "scrawl01",
+          "scross20",
+          "scross22",
+          "scross23",
+          "scross25"
+        ]
+      },
+      "animations_count": 93,
+      "attack_weapons": [
+        "axe",
+        "bow",
+        "dagger",
+        "hammer",
+        "spear",
+        "sword"
+      ],
+      "can_shoot": true,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Orc Archer 2",
+        "LMP Orc Archer 4",
+        "LMP Orc Archer 6",
+        "LMP Orc Archer 8",
+        "LMP Orc Mage 2",
+        "LMP Orc Mage 4",
+        "LMP Orc Mage 6",
+        "LMP Orc Mage 8",
+        "LMP Unique Orc Enchanted Shaman 7",
+        "OrcFemaleA3",
+        "OrcFemaleA5",
+        "OrcFemaleA7",
+        "OrcFemaleBowA3",
+        "OrcFemaleM3",
+        "OrcFemaleM5",
+        "OrcFemaleM7",
+        "OrcFemaleRuneAM3",
+        "OrcFemaleRuneEM3",
+        "OrcFemaleRuneMM5",
+        "OrcFemaleRuneTM3",
+        "OrcFemaleRuneTM5",
+        "OrcFemaleShaivarA7",
+        "OrcFemaleShaivarM7",
+        "OrcFemaleTribeLA5",
+        "OrcFemaleTribeLA7",
+        "OrcFemaleTribeLM5",
+        "OrcFemaleTribeLM7",
+        "OrcFemaleTribeRA5",
+        "OrcFemaleTribeRA7",
+        "OrcFemaleTribeRM5",
+        "OrcFemaleTribeRM7"
+      ],
+      "name": "female",
+      "npcs": [],
+      "races": [
+        "LMP Orc Female Dressed",
+        "LMP Orc Female Naked",
+        "LMP Orc Female Tatoo",
+        "Orc Female"
+      ],
+      "redress": [
+        "axe",
+        "bow",
+        "crossbow",
+        "dagger",
+        "hammer",
+        "spear",
+        "sword"
+      ],
+      "sfx_paths": [
+        "heroes/orc/female"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 4,
+        "hit": 4
+      },
+      "store_id": 1
+    },
+    "unorma": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02",
+          "uattack03",
+          "uattack04",
+          "uattack05",
+          "uattack06",
+          "uattack07",
+          "uattack08",
+          "uattack09"
+        ],
+        "cast": [
+          "ucast01",
+          "ucast02",
+          "ucast03",
+          "ucast04"
+        ],
+        "cross": [
+          "scross28",
+          "scross29",
+          "ucross01",
+          "ucross02",
+          "ucross03",
+          "ucross04",
+          "ucross05",
+          "ucross06",
+          "ucross07",
+          "ucross08",
+          "ucross09",
+          "ucross10",
+          "ucross11",
+          "ucross12"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03",
+          "udeath04",
+          "udeath05",
+          "udeath06",
+          "udeath07",
+          "udeath08",
+          "udeath09",
+          "udeath10",
+          "udeath11",
+          "udeath12",
+          "udeath13",
+          "udeath14",
+          "udeath15",
+          "udeath16",
+          "udeath17",
+          "udeath18",
+          "udeath19",
+          "udeath20",
+          "udeath21",
+          "udeath22",
+          "udeath23",
+          "udeath24",
+          "udeath25",
+          "udeath26",
+          "udeath27",
+          "udeath28",
+          "udeath29",
+          "udeath30",
+          "udeath31"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "cidle03",
+          "cidle04",
+          "cidle05",
+          "cidle06",
+          "cidle07",
+          "cidle08",
+          "cidle09",
+          "crest"
+        ],
+        "run": [
+          "crun01",
+          "crun03",
+          "scross14",
+          "scross16",
+          "scross24"
+        ],
+        "special": [
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03",
+          "ubriefing04",
+          "ubriefing05",
+          "ubriefing06",
+          "ubriefing07",
+          "ubriefing08",
+          "ubriefing09"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02",
+          "uhit06",
+          "uhit13",
+          "uhit14",
+          "uhit18",
+          "uhit20",
+          "uhit21"
+        ],
+        "walk": [
+          "ccrawl01",
+          "cwalk01",
+          "cwalk02",
+          "cwalk03",
+          "cwalk06",
+          "cwalk07",
+          "cwalk08",
+          "cwalk09",
+          "scross20",
+          "scross22",
+          "scross23",
+          "scross25"
+        ]
+      },
+      "animations_count": 102,
+      "attack_weapons": [
+        "axe",
+        "bow",
+        "dagger",
+        "hammer",
+        "spear",
+        "sword"
+      ],
+      "can_shoot": true,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "LMP Orc Fighter 2",
+        "LMP Orc Fighter 4",
+        "LMP Orc Fighter 6",
+        "LMP Orc Fighter 8",
+        "LMP Unique Orc Enchanted Followers 4",
+        "OrcMaleF3",
+        "OrcMaleF5",
+        "OrcMaleF7",
+        "OrcMaleShaivarF7",
+        "OrcMaleShaivarKeykeeperF7",
+        "OrcMaleTribeLF5",
+        "OrcMaleTribeLF7",
+        "OrcMaleTribeRF5",
+        "OrcMaleTribeRF7"
+      ],
+      "name": "male",
+      "npcs": [],
+      "races": [
+        "LMP Orc Male Dressed",
+        "LMP Orc Male Naked",
+        "LMP Orc Male Tatoo",
+        "Orc Male"
+      ],
+      "redress": [
+        "axe",
+        "bow",
+        "crossbow",
+        "dagger",
+        "hammer",
+        "spear",
+        "sword"
+      ],
+      "sfx_paths": [
+        "heroes/orc/male"
+      ],
+      "sounds": {
+        "attack": 7,
+        "death": 8,
+        "hit": 8
+      },
+      "store_id": 1
+    }
+  },
+  "2": {
+    "unanhoco": {
+      "actions": {
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "cidle03"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "Cow"
+      ],
+      "name": "cow",
+      "npcs": [],
+      "races": [
+        "Cow"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/cow"
+      ],
+      "sounds": {
+        "death": 2,
+        "hit": 1,
+        "idle": 3
+      },
+      "store_id": 2
+    },
+    "unanhodo": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "cdeath02",
+          "udeath01"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 12,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz11g Dog",
+        "fq15 Dog",
+        "zone10 Dog",
+        "zone15 Dog",
+        "zone21 Dog1",
+        "zone22 Dog1",
+        "zone23 Dog1",
+        "zone25 Dog1",
+        "zone31 Dog",
+        "zone31 Fox1",
+        "zone31 Fox2",
+        "zone32 Fox1",
+        "zone32 Fox2"
+      ],
+      "name": "dog",
+      "npcs": [],
+      "races": [
+        "Dog",
+        "Fox"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/dog"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 2,
+        "hit": 3
+      },
+      "store_id": 2
+    },
+    "unanhoha": {
+      "actions": {
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 5,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "Hare",
+        "zone32 Popper"
+      ],
+      "name": "hare",
+      "npcs": [],
+      "races": [
+        "Hare",
+        "Popper"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/Hare"
+      ],
+      "sounds": {
+        "death": 1,
+        "hit": 1
+      },
+      "store_id": 2
+    },
+    "unanhoho": {
+      "actions": {
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "cidle03"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 8,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "Horse Red",
+        "Horse Wild",
+        "Zebra"
+      ],
+      "name": "horse",
+      "npcs": [],
+      "races": [
+        "Horse Red",
+        "Horse Wild",
+        "Zebra"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/Horse"
+      ],
+      "sounds": {
+        "death": 1,
+        "hit": 4,
+        "idle": 1
+      },
+      "store_id": 2
+    },
+    "unanhopi": {
+      "actions": {
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 5,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "Pig"
+      ],
+      "name": "pig",
+      "npcs": [],
+      "races": [
+        "Pig"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/pig"
+      ],
+      "sounds": {
+        "death": 4,
+        "hit": 4,
+        "idle": 3
+      },
+      "store_id": 2
+    },
+    "unanwiba": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "cflight01"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cflight02"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air",
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz8g BatRed",
+        "q6g BatRed",
+        "zone1 Bat",
+        "zone1 Fly",
+        "zone1 JunEvil",
+        "zone10 BatRed",
+        "zone11 BatRed",
+        "zone12 BatRed",
+        "zone16 BatRed",
+        "zone1dun2 Bat",
+        "zone22dun1 Bat",
+        "zone24 Bat",
+        "zone26 Bat",
+        "zone7 BatRed1",
+        "zone9 BatRed"
+      ],
+      "name": "bat",
+      "npcs": [],
+      "races": [
+        "Bat Gipath",
+        "Bat Hadagan",
+        "Bat Ingos",
+        "Evil",
+        "Fly"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/Bat",
+        "monsters/Curse"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 1,
+        "hit": 4,
+        "idle": 4
+      },
+      "store_id": 2
+    },
+    "unanwibo": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02",
+          "uattack03"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 9,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "zone10 BoarDark1",
+        "zone10 BoarDark2",
+        "zone11 BoarRed1",
+        "zone11 BoarRed2",
+        "zone13 BoarDark",
+        "zone15 BoarRed1",
+        "zone15 Pyatak",
+        "zone16 BoarRed1",
+        "zone16 BoarRed2",
+        "zone31 BoarDark",
+        "zone7 BoarRed1",
+        "zone7 BoarRed2",
+        "zone9 BoarDark1",
+        "zone9 BoarDark2",
+        "zone9 BoarRed1",
+        "zone9 BoarRed2"
+      ],
+      "name": "boar",
+      "npcs": [],
+      "races": [
+        "Boar Black",
+        "Boar Red"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/boar"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 3,
+        "hit": 3,
+        "idle": 3
+      },
+      "store_id": 2
+    },
+    "unanwicr": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "unk0": [
+          "ucross02"
+        ],
+        "walk": [
+          "cwalk",
+          "ucross01"
+        ]
+      },
+      "animations_count": 10,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "zone12 Scrab",
+        "zone31 Scrab",
+        "zone31 Scrab0",
+        "zone33 Scrab",
+        "zone33 Scrab0",
+        "zone34 Scrab",
+        "zone34 Scrab0",
+        "zonezero Scrab"
+      ],
+      "name": "crab",
+      "npcs": [],
+      "races": [
+        "Scrab Cave",
+        "Scrab Swamp"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/Scrab"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1,
+        "hit": 2,
+        "idle": 1
+      },
+      "store_id": 2
+    },
+    "unanwide": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "Antilopa",
+        "Deer",
+        "zone32 DeadDeer",
+        "zone34 DeadDeer",
+        "zone35 DeadDeer"
+      ],
+      "name": "deer",
+      "npcs": [],
+      "races": [
+        "Antilopa",
+        "Dead Deer",
+        "Deer"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/Deer"
+      ],
+      "sounds": {
+        "death": 1,
+        "hit": 3,
+        "idle": 1
+      },
+      "store_id": 2
+    },
+    "unanwigi": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "giantrat",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 2
+    },
+    "unanwihy": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 13,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "fq8 EvilBush",
+        "zone1 Hyena",
+        "zone1 Wall",
+        "zone2 Hyena",
+        "zone3 Hyena",
+        "zone5 Hyena"
+      ],
+      "name": "hyena",
+      "npcs": [],
+      "races": [
+        "Hyena",
+        "Wall"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/Hyena"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 2,
+        "hit": 3
+      },
+      "store_id": 2
+    },
+    "unanwira": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz3h RatSmall",
+        "q2h Rat",
+        "zone1dun1 Rat",
+        "zone1dun2 Rat",
+        "zone22dun1 Rat",
+        "zone3dun1 Rat1",
+        "zone3dun1 Rat2",
+        "zone4 Rat1",
+        "zone4 Rat2",
+        "zonezero Rat"
+      ],
+      "name": "rat",
+      "npcs": [],
+      "races": [
+        "Rat"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/rat"
+      ],
+      "sounds": {
+        "attack": 2,
+        "death": 2,
+        "hit": 2
+      },
+      "store_id": 2
+    },
+    "unanwiti": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "cdeath02",
+          "udeath01",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 13,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "q2k TigerWhite",
+        "q8k TigerWhite",
+        "zone1 Leopard1",
+        "zone1 Leopard2",
+        "zone11 TigerRed1",
+        "zone11 TigerRed2",
+        "zone16 TigerRed1",
+        "zone16 TigerRed2",
+        "zone2 Leopard1",
+        "zone2 Leopard2",
+        "zone21 TigerWhite1",
+        "zone21 TigerWhite2",
+        "zone22 TigerWhite1",
+        "zone22 TigerWhite2",
+        "zone23 TigerWhite1",
+        "zone23 TigerWhite2",
+        "zone3 Leopard1",
+        "zone3 Leopard2",
+        "zone31 Tiger",
+        "zone33 Tiger",
+        "zone5 Leopard1",
+        "zone5 Leopard2",
+        "zone7 TigerRed1",
+        "zone7 TigerRed2"
+      ],
+      "name": "tiger",
+      "npcs": [],
+      "races": [
+        "Leopard",
+        "Tiger Red",
+        "Tiger White"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/Tiger"
+      ],
+      "sounds": {
+        "attack": 8,
+        "cross": 2,
+        "death": 4,
+        "hit": 4,
+        "idle": 2
+      },
+      "store_id": 2
+    },
+    "unanwiwo": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "cdeath02",
+          "udeath01",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 13,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz8g WolfWhite",
+        "zone10 WolfWhite1",
+        "zone10 WolfWhite2",
+        "zone11 WolfGrey1",
+        "zone11 WolfGrey2",
+        "zone13 WolfWhite",
+        "zone15 WolfGrey1",
+        "zone16 WolfGrey1",
+        "zone16 WolfGrey2",
+        "zone31 WolfBraun",
+        "zone32 WolfBraun",
+        "zone33 WolfBraun",
+        "zone34 WolfBlack",
+        "zone35 WolfBlack",
+        "zone7 WolfGrey1",
+        "zone7 WolfGrey2",
+        "zone9 WolfGrey1",
+        "zone9 WolfGrey2",
+        "zone9 WolfWhite1",
+        "zone9 WolfWhite2"
+      ],
+      "name": "wolf",
+      "npcs": [],
+      "races": [
+        "Wolf Black",
+        "Wolf Braun",
+        "Wolf Gray",
+        "Wolf White"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "animals/wolf"
+      ],
+      "sounds": {
+        "attack": 3,
+        "death": 2,
+        "hit": 3,
+        "idle": 1
+      },
+      "store_id": 2
+    },
+    "unhufe": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02",
+          "uattack03",
+          "uattack04",
+          "uattack05",
+          "uattack06",
+          "uattack07",
+          "uattack08",
+          "uattack09",
+          "uattack10",
+          "uattack11",
+          "uattack12",
+          "uattack13",
+          "uattack14",
+          "uattack15",
+          "uattack16"
+        ],
+        "cast": [
+          "ucast01",
+          "ucast02",
+          "ucast03",
+          "ucast04",
+          "ucast05"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02",
+          "ucross03",
+          "ucross04",
+          "ucross05",
+          "ucross06",
+          "ucross07",
+          "ucross08",
+          "ucross09",
+          "ucross10",
+          "ucross11",
+          "ucross12",
+          "ucross28",
+          "ucross29"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03",
+          "udeath04",
+          "udeath05",
+          "udeath06",
+          "udeath07",
+          "udeath08",
+          "udeath09",
+          "udeath10",
+          "udeath11",
+          "udeath12",
+          "udeath13",
+          "udeath14",
+          "udeath15",
+          "udeath17",
+          "udeath18",
+          "udeath19",
+          "udeath20",
+          "udeath21",
+          "udeath22",
+          "udeath23",
+          "udeath24",
+          "udeath25",
+          "udeath26",
+          "udeath27"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "cidle03",
+          "cidle04",
+          "cidle05",
+          "cidle06",
+          "cidle07",
+          "cidle08",
+          "cidle09",
+          "cidle10",
+          "cidle11",
+          "cidle12",
+          "cidle13",
+          "cidle14",
+          "cidle15",
+          "cidle16",
+          "cidle17",
+          "cidle18",
+          "cidle19",
+          "cidle20",
+          "cidle21",
+          "cidle22",
+          "crest"
+        ],
+        "run": [
+          "crun01",
+          "crun02",
+          "crun04",
+          "crun05",
+          "scross13",
+          "scross14",
+          "scross16",
+          "scross18",
+          "scross24",
+          "scross27"
+        ],
+        "special": [
+          "cspecial14",
+          "cspecial28",
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03",
+          "ubriefing05",
+          "ubriefing06",
+          "ubriefing07",
+          "ubriefing08",
+          "ubriefing09",
+          "ubriefing10",
+          "ubriefing11",
+          "ubriefing12",
+          "ubriefing13",
+          "ubriefing14",
+          "ubriefing15",
+          "ubriefing16",
+          "ubriefing17",
+          "ubriefing18",
+          "ubriefing19",
+          "ubriefing20",
+          "ubriefing21",
+          "ubriefing22",
+          "ubriefing23",
+          "ubriefing33",
+          "ubriefing34",
+          "ubriefing35",
+          "ubriefing36",
+          "ubriefing37",
+          "ubriefing38",
+          "ubriefing39",
+          "ubriefing40",
+          "ubriefing41",
+          "ubriefing42",
+          "ubriefing43",
+          "ubriefing44",
+          "ubriefing45",
+          "uspecial01",
+          "uspecial02",
+          "uspecial03",
+          "uspecial04",
+          "uspecial05",
+          "uspecial06",
+          "uspecial07",
+          "uspecial08",
+          "uspecial17",
+          "uspecial22",
+          "uspecial23",
+          "uspecial24",
+          "uspecial26"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02",
+          "uhit06",
+          "uhit13",
+          "uhit14",
+          "uhit18",
+          "uhit20",
+          "uhit21"
+        ],
+        "walk": [
+          "ccrawl01",
+          "cwalk01",
+          "cwalk02",
+          "cwalk03",
+          "cwalk04",
+          "cwalk05",
+          "cwalk06",
+          "cwalk07",
+          "cwalk08",
+          "cwalk09",
+          "cwalk10",
+          "cwalk11",
+          "scross19",
+          "scross20",
+          "scross21",
+          "scross22",
+          "scross23",
+          "scross25"
+        ]
+      },
+      "animations_count": 170,
+      "attack_weapons": [
+        "axe",
+        "bow",
+        "crossbow",
+        "dagger",
+        "hammer",
+        "none",
+        "spear",
+        "sword"
+      ],
+      "can_shoot": true,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz11g Human Archer F",
+        "bz11g Human Mage F",
+        "bz11g Human Shava F",
+        "bz11g Human Talker1 F",
+        "bz11g Human Talker2 F",
+        "bz11g Human Talker3 F",
+        "bz12g Human Daughter F",
+        "bz12g Human Witch F",
+        "bz14g Jun Girl F",
+        "bz21k Human Archer1 F",
+        "bz21k Human Talker1 F",
+        "bz21k Human Talker2 F",
+        "bz21k Human Talker3 F",
+        "bz21k Human Talker4 F",
+        "bz22k Human Archer1 F",
+        "bz22k Human Fireman F",
+        "bz22k Human Leader F",
+        "bz22k Human Talker1 F",
+        "bz22k Human Talker2 F",
+        "bz22k Human Talker3 F",
+        "bz22k Human Talker4 F",
+        "bz2h Human Alija F",
+        "bz2h Human Citizen F",
+        "bz2h Human Krrasta F",
+        "bz2h Human Peasants F",
+        "bz2h Human Sahilja F",
+        "bz2h Human Shaina F",
+        "bz31j Human Archer1 F",
+        "bz31j Human Talker1 F",
+        "bz31j Human Talker2 F",
+        "bz31j Human Talker3 F",
+        "bz31j Human Talker4 F",
+        "bz31j Jun Deva F",
+        "bz3h Human Cookie F",
+        "bz3h Human Peasants F",
+        "bz3h Human Sahilja F",
+        "bz5h Human ClothesT F",
+        "bz5h Human FruitT F",
+        "bz5h Human Jug F",
+        "bz5h Human Peasants F",
+        "bz5h Human TalkerF F",
+        "bz5h Human TalkerV F",
+        "bz7h Human FireGirl F",
+        "bz7h Human Slave F",
+        "bz7h Human Student1 F",
+        "bz7h Human Student2 F",
+        "merc2",
+        "merc2g",
+        "q10k Human Archer F",
+        "q12j Human Archer1 F",
+        "q13g Human Archer F",
+        "q13h Human Sahilja F",
+        "q13h Human Vor F",
+        "q13k Human Leader F",
+        "q14h Human Vor F",
+        "q15g Human Archer F",
+        "q15h Human Sahilja F",
+        "q17j Jun Deva F",
+        "q18h Human Archer F",
+        "q18h Human Mage F",
+        "q21g Human Witch F",
+        "q21h Human Lab F",
+        "q21j Human Archer1 F",
+        "q23g Human Archer F",
+        "q23g Human Mage F",
+        "q25g Human Archer F",
+        "q25g Human Mage F",
+        "q2h Human Peasants F",
+        "q3h Human Shaina F",
+        "zone1 Human Archer1 F",
+        "zone1 Human Archer2 F",
+        "zone1 Human Citizen F",
+        "zone1 Human Mage1 F",
+        "zone1 Human Mage2 F",
+        "zone1 Human Peasants F",
+        "zone10 Human Archer1 F",
+        "zone10 Human Archer2 F",
+        "zone10 Human Mage1 F",
+        "zone10 Human Mage2 F",
+        "zone15 Human Archer1 F",
+        "zone15 Human Archer2 F",
+        "zone15 Human Citizen F",
+        "zone15 Human Mage1 F",
+        "zone2 Human Archer1 F",
+        "zone2 Human Archer2 F",
+        "zone2 Human Citizen F",
+        "zone2 Human Mage1 F",
+        "zone2 Human Mage2 F",
+        "zone2 Human Mage3 F",
+        "zone21 Human Archer1 F",
+        "zone21 Human Doctor F",
+        "zone21 Human Hunter F",
+        "zone21 Human Mage1 F",
+        "zone21 Human Peasant F",
+        "zone22 Human Archer1 F",
+        "zone22 Human Mage1 F",
+        "zone22 Human Peasant F",
+        "zone23 Human Archer1 F",
+        "zone23 Human Archer2 F",
+        "zone23 Human Doctor F",
+        "zone23 Human Mage1 F",
+        "zone23 Human Peasant F",
+        "zone24 Human Doctor F",
+        "zone25 Human Doctor F",
+        "zone25 Human Hunter F",
+        "zone25 Human Peasant F",
+        "zone3 Human Archer1 F",
+        "zone3 Human Citizen F",
+        "zone3 Human Mage1 F",
+        "zone3 Human Mage2 F",
+        "zone3 Human Peasants F",
+        "zone31 Human Peasant F",
+        "zone33 Human Mage1 F",
+        "zone34 Human Mage1 F",
+        "zone3dun1 Sahilia F",
+        "zone5 Human Archer1 F",
+        "zone5 Human Mage1 F",
+        "zone9 Human Archer1 F",
+        "zone9 Human Mage1 F"
+      ],
+      "name": "female",
+      "npcs": [
+        "merc2",
+        "merc2g",
+        "zone3dun1 Sahilia F"
+      ],
+      "races": [
+        "Human Female",
+        "Human Female merc2",
+        "Human Female1",
+        "Human Female2",
+        "Human Female3",
+        "Human Female4",
+        "Human Female5",
+        "Undead Female"
+      ],
+      "redress": [
+        "axe",
+        "boots",
+        "bow",
+        "crossbow",
+        "dagger",
+        "gloves",
+        "hammer",
+        "helm",
+        "leggings",
+        "pants",
+        "plate",
+        "shirt",
+        "spear",
+        "sword"
+      ],
+      "sfx_paths": [
+        "Screams/m2",
+        "heroes/BrigandA3",
+        "heroes/CitizenA7",
+        "heroes/GangA10",
+        "heroes/GangA12",
+        "heroes/GuardsM17",
+        "heroes/human/female",
+        "monsters/Zombie/Female"
+      ],
+      "sounds": {
+        "attack": 6,
+        "death": 9,
+        "hit": 9
+      },
+      "store_id": 2
+    },
+    "unhuma": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02",
+          "uattack03",
+          "uattack04",
+          "uattack05",
+          "uattack06",
+          "uattack07",
+          "uattack08",
+          "uattack09",
+          "uattack10",
+          "uattack11",
+          "uattack12",
+          "uattack13",
+          "uattack14",
+          "uattack15",
+          "uattack16"
+        ],
+        "cast": [
+          "ucast01",
+          "ucast02",
+          "ucast03",
+          "ucast04",
+          "ucast05"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02",
+          "ucross03",
+          "ucross04",
+          "ucross05",
+          "ucross06",
+          "ucross07",
+          "ucross08",
+          "ucross09",
+          "ucross10",
+          "ucross11",
+          "ucross12",
+          "ucross28",
+          "ucross29"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03",
+          "udeath04",
+          "udeath05",
+          "udeath06",
+          "udeath07",
+          "udeath08",
+          "udeath09",
+          "udeath10",
+          "udeath11",
+          "udeath12",
+          "udeath13",
+          "udeath14",
+          "udeath15",
+          "udeath17",
+          "udeath19",
+          "udeath20",
+          "udeath21",
+          "udeath22",
+          "udeath23",
+          "udeath24",
+          "udeath25",
+          "udeath26",
+          "udeath27"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "cidle03",
+          "cidle04",
+          "cidle05",
+          "cidle06",
+          "cidle07",
+          "cidle08",
+          "cidle09",
+          "cidle10",
+          "cidle11",
+          "cidle12",
+          "cidle13",
+          "cidle14",
+          "cidle15",
+          "cidle16",
+          "cidle18",
+          "cidle19",
+          "cidle20",
+          "cidle21",
+          "cidle22",
+          "crest"
+        ],
+        "run": [
+          "crun01",
+          "crun02",
+          "crun04",
+          "crun05",
+          "scross13",
+          "scross15",
+          "scross17",
+          "scross18",
+          "scross24",
+          "scross27"
+        ],
+        "special": [
+          "cspecial14",
+          "cspecial28",
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03",
+          "ubriefing05",
+          "ubriefing06",
+          "ubriefing07",
+          "ubriefing08",
+          "ubriefing09",
+          "ubriefing10",
+          "ubriefing11",
+          "ubriefing12",
+          "ubriefing13",
+          "ubriefing14",
+          "ubriefing15",
+          "ubriefing16",
+          "ubriefing17",
+          "ubriefing18",
+          "ubriefing19",
+          "ubriefing20",
+          "ubriefing21",
+          "ubriefing22",
+          "ubriefing23",
+          "ubriefing24",
+          "ubriefing25",
+          "ubriefing26",
+          "ubriefing27",
+          "ubriefing28",
+          "ubriefing29",
+          "ubriefing30",
+          "ubriefing31",
+          "ubriefing32",
+          "ubriefing33",
+          "ubriefing34",
+          "ubriefing35",
+          "uspecial01",
+          "uspecial02",
+          "uspecial03",
+          "uspecial04",
+          "uspecial05",
+          "uspecial06",
+          "uspecial07",
+          "uspecial08",
+          "uspecial09",
+          "uspecial10",
+          "uspecial11",
+          "uspecial12",
+          "uspecial13",
+          "uspecial15",
+          "uspecial16",
+          "uspecial17",
+          "uspecial18",
+          "uspecial19",
+          "uspecial20",
+          "uspecial22",
+          "uspecial23",
+          "uspecial24",
+          "uspecial25",
+          "uspecial26",
+          "uspecial27"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02",
+          "uhit06",
+          "uhit13",
+          "uhit14",
+          "uhit18",
+          "uhit20",
+          "uhit21"
+        ],
+        "walk": [
+          "ccrawl01",
+          "cwalk01",
+          "cwalk02",
+          "cwalk03",
+          "cwalk04",
+          "cwalk05",
+          "cwalk06",
+          "cwalk07",
+          "cwalk08",
+          "cwalk09",
+          "cwalk10",
+          "cwalk11",
+          "scross19",
+          "scross20",
+          "scross21",
+          "scross22",
+          "scross23",
+          "scross25"
+        ]
+      },
+      "animations_count": 179,
+      "attack_weapons": [
+        "axe",
+        "bow",
+        "crossbow",
+        "dagger",
+        "hammer",
+        "none",
+        "spear",
+        "sword"
+      ],
+      "can_shoot": true,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "Hero1",
+        "Hero2",
+        "Hero3",
+        "Hero4",
+        "Human Hero",
+        "Jun Male Hero",
+        "bz11g Human Chieftan M",
+        "bz11g Human Fighter1 M",
+        "bz11g Human Fighter2 M",
+        "bz11g Human Fighter3 M",
+        "bz11g Human Fireman M",
+        "bz11g Human Master M",
+        "bz11g Human Sheriff M",
+        "bz11g Human Talker1 M",
+        "bz11g Human Talker2 M",
+        "bz11g Human Talker3 M",
+        "bz11g Human Talker4 M",
+        "bz11g Human Talker5 M",
+        "bz11g Human Warrior M",
+        "bz1h Human Clerk M",
+        "bz1r Human Fighter M",
+        "bz21k Human Fighter1 M",
+        "bz21k Human Fighter2 M",
+        "bz21k Human Fighter3 M",
+        "bz21k Human Fireman M",
+        "bz21k Human Governor M",
+        "bz21k Human Guard M",
+        "bz21k Human His M",
+        "bz21k Human Talker1 M",
+        "bz21k Human Talker2 M",
+        "bz21k Human Talker3 M",
+        "bz21k Human Talker4 M",
+        "bz21k Human Trader M",
+        "bz21k Human Trapper M",
+        "bz22k Human Brissen M",
+        "bz22k Human Fighter1 M",
+        "bz22k Human Lovkach M",
+        "bz22k Human Mage M",
+        "bz22k Human Talker1 M",
+        "bz22k Human Talker2 M",
+        "bz22k Human Talker3 M",
+        "bz22k Human Talker4 M",
+        "bz22k Human Thief M",
+        "bz22k Human WoodCuter M",
+        "bz2h Human Arstaik M",
+        "bz2h Human Citizen M",
+        "bz2h Human Feiruz M",
+        "bz2h Human Fireman M",
+        "bz2h Human Karim M",
+        "bz2h Human Krrast M",
+        "bz2h Human Peasants M",
+        "bz2h Human Rindail M",
+        "bz31j Human BSon M",
+        "bz31j Human Baron M",
+        "bz31j Human Fighter1 M",
+        "bz31j Human Fighter2 M",
+        "bz31j Human Fighter3 M",
+        "bz31j Human Necro M",
+        "bz31j Human Stark M",
+        "bz31j Human Talker1 M",
+        "bz31j Human Talker2 M",
+        "bz31j Human Talker3 M",
+        "bz31j Human Talker4 M",
+        "bz31j Junofil M",
+        "bz32j Human Doctor M",
+        "bz3h Human BladeMaster M",
+        "bz3h Human FatBoy M",
+        "bz3h Human Guard M",
+        "bz3h Human Harad M",
+        "bz3h Human Hatul M",
+        "bz3h Human Kehel M",
+        "bz3h Human Kuzn M",
+        "bz3h Human OldKuzn M",
+        "bz3h Human Peasants M",
+        "bz3h Human Sambad M",
+        "bz3h Human Student1 M",
+        "bz3h Human Student2 M",
+        "bz3h Human ThickBoy M",
+        "bz5h Human FireMan M",
+        "bz5h Human Peasants M",
+        "bz5h Human Pod M",
+        "bz5h Human PotionT M",
+        "bz5h Human Sitter M",
+        "bz5h Human SlaveTrader M",
+        "bz5h Human Smith M",
+        "bz5h Human Talker M",
+        "bz5h Human TalkerF M",
+        "bz5h Human TalkerK1 M",
+        "bz5h Human TalkerK2 M",
+        "bz5h Human TalkerV M",
+        "bz5h Human Van1 M",
+        "bz5h Human Van2 M",
+        "bz7h Human Boss M",
+        "bz7h Human Slave M",
+        "bz7h Human Student1 M",
+        "bz7h Human Student2 M",
+        "bz8g Human Thief M",
+        "fq9 Human Clerk M",
+        "merc8",
+        "q10k Human Fighter M",
+        "q11h Human DeadMan M",
+        "q11h Human Guard M",
+        "q12h Human Captain M",
+        "q12h Human Citizen M",
+        "q12h Human Gangster M",
+        "q12j Human Fighter1 M",
+        "q12j Human Fighter2 M",
+        "q12j Human Mage M",
+        "q13g Human Fighter M",
+        "q13h Human Fighter M",
+        "q13h Human Vor M",
+        "q13k Human Fighter M",
+        "q14h Human Fighter M",
+        "q14h Human Vor M",
+        "q15g Human Fighter M",
+        "q15g Human Thief M",
+        "q15j Human Fighter1 M",
+        "q15j Human Fighter2 M",
+        "q15j Human Fighter3 M",
+        "q15j Human Mage M",
+        "q16h Human Fighter M",
+        "q17Oh Human Fighter M",
+        "q17h Human Fighter M",
+        "q17j Human Guard M",
+        "q17j Jun Slave M",
+        "q17j Junofil M",
+        "q17k Human Fighter M",
+        "q17k Human His M",
+        "q18h Human Archer M",
+        "q18h Human Fighter M",
+        "q18h Human PUFighter M",
+        "q18h Human PUFighter1 M",
+        "q18h Human PUFighter2 M",
+        "q18k Human Fighter M",
+        "q1j Human Fighter1 M",
+        "q1j Human Fighter2 M",
+        "q1j Human Fighter3 M",
+        "q1j Human Mage M",
+        "q20h Human Mage M",
+        "q21j Human Baron M",
+        "q21j Human Dartas M",
+        "q21j Human Fighter1 M",
+        "q21j Human Fighter2 M",
+        "q21j Human Fighter3 M",
+        "q21j Human Mage M",
+        "q21j Undead Archer M",
+        "q21j Undead Fighter1 M",
+        "q21j Undead Fighter2 M",
+        "q21j Undead Mage M",
+        "q23g Human Fighter M",
+        "q23h Human Raz1 M",
+        "q23h Human Raz2 M",
+        "q23h Human Raz3 M",
+        "q24h Human Hostage1 M",
+        "q24h Human Hostage2 M",
+        "q24h Human Raz1 M",
+        "q24h Human Raz2 M",
+        "q25g Human Fighter M",
+        "q2h Human Peasants M",
+        "q3j Human Fighter M",
+        "q4j Human Necro M",
+        "q5h Human Kapr M",
+        "q6h Human Letter M",
+        "q6h Human Zasada M",
+        "q7j Human Dartas M",
+        "q9h Human Kapr M",
+        "q9k Human Fighter M",
+        "zone1 Human Citizen M",
+        "zone1 Human CitizenS M",
+        "zone1 Human Expeditor M",
+        "zone1 Human Fighter0 M",
+        "zone1 Human Fighter1 M",
+        "zone1 Human Fighter2 M",
+        "zone1 Human Fighter3 M",
+        "zone1 Human HellMan M",
+        "zone1 Human Map M",
+        "zone1 Human Overseer M",
+        "zone1 Human Peasants M",
+        "zone1 Human PortalKey M",
+        "zone1 Human Raja M",
+        "zone1 Human Trader M",
+        "zone10 Human Fighter1 M",
+        "zone10 Human Fighter2 M",
+        "zone10 Human Fighter3 M",
+        "zone15 Human Boss M",
+        "zone15 Human Citizen M",
+        "zone15 Human Elder M",
+        "zone15 Human Fighter1 M",
+        "zone15 Human Fighter2 M",
+        "zone15 Human Master M",
+        "zone1dun1 Human Thief M",
+        "zone2 Human Citizen M",
+        "zone2 Human CitizenS M",
+        "zone2 Human Fighter1 M",
+        "zone2 Human Fighter2 M",
+        "zone2 Human Fighter3 M",
+        "zone2 Human Peasants M",
+        "zone21 Human Digger M",
+        "zone21 Human Fighter1 M",
+        "zone21 Human Peasant M",
+        "zone21 Human WoodCuter M",
+        "zone22 Human Digger1 M",
+        "zone22 Human Digger2 M",
+        "zone22 Human Fighter1 M",
+        "zone22 Human Fighter2 M",
+        "zone22 Human Peasant M",
+        "zone22 Human WoodCuter M",
+        "zone23 Human Digger M",
+        "zone23 Human Fighter1 M",
+        "zone23 Human Fighter2 M",
+        "zone23 Human Fighter3 M",
+        "zone23 Human Peasant M",
+        "zone23 Human WoodCuter M",
+        "zone24 Human Digger1 M",
+        "zone24 Human Digger2 M",
+        "zone24 Human Fighter1 M",
+        "zone25 Human Peasant M",
+        "zone25 Human WoodCuter M",
+        "zone3 Human Citizen M",
+        "zone3 Human Fighter1 M",
+        "zone3 Human Fighter2 M",
+        "zone3 Human Fighter3 M",
+        "zone3 Human Peasants M",
+        "zone31 Human Gangster M",
+        "zone31 Human Peasant M",
+        "zone33 Human Archer1 M",
+        "zone33 Human Fighter1 M",
+        "zone33 Human Fighter2 M",
+        "zone33 Undead Fighter1 M",
+        "zone33 Undead Fighter2 M",
+        "zone33 Undead Fighter3 M",
+        "zone34 Human Archer1 M",
+        "zone34 Human Fighter1 M",
+        "zone34 Human Fighter2 M",
+        "zone35 Human Archer1 M",
+        "zone35 Human Fighter1 M",
+        "zone35 Undead Archer M",
+        "zone35 Undead Fighter1 M",
+        "zone35 Undead Fighter2 M",
+        "zone35 Undead Mage M",
+        "zone3dun1 Human Fighter M",
+        "zone3dun1 Human Palach0 M",
+        "zone3dun1 Human Palach1 M",
+        "zone3dun1 Human Peasants M",
+        "zone5 Human Fighter1 M",
+        "zone5 Human Fighter2 M",
+        "zone7 Undead Fighter M",
+        "zone7 Undead Mage M",
+        "zone9 Human Fighter1 M",
+        "zone9 Human Fighter2 M",
+        "zonefinal Jun Firez M",
+        "zonezero Human Fighter1 M",
+        "zonezero Human Fighter2 M",
+        "zonezero Human Fighter3 M"
+      ],
+      "name": "male",
+      "npcs": [
+        "Hero1",
+        "Hero2",
+        "Hero3",
+        "Hero4",
+        "Human Hero",
+        "merc8"
+      ],
+      "races": [
+        "Human Male",
+        "Human Male Feiruz",
+        "Human Male Firez",
+        "Human Male Hero",
+        "Human Male1",
+        "Human Male2",
+        "Human Male3",
+        "Human Male4",
+        "Human Male5",
+        "Undead Male"
+      ],
+      "redress": [
+        "axe",
+        "boots",
+        "bow",
+        "crossbow",
+        "dagger",
+        "gloves",
+        "hammer",
+        "helm",
+        "leggings",
+        "pants",
+        "plate",
+        "shirt",
+        "spear",
+        "sword"
+      ],
+      "sfx_paths": [
+        "Screams/HH",
+        "Screams/f",
+        "Screams/m8",
+        "heroes/CitizenF1",
+        "heroes/PLeaderF10",
+        "heroes/StudentsF10",
+        "heroes/WarlordF5",
+        "heroes/WoodcutterF8",
+        "heroes/human/male",
+        "monsters/Zombie/Male"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 4,
+        "hit": 4,
+        "idle": 2
+      },
+      "store_id": 2
+    },
+    "unmoba1": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "zone10 Banshee Mage",
+        "zone13 Banshee Mage",
+        "zone15 Banshee Mage",
+        "zone16 Banshee Mage",
+        "zone2 Banshee Mage1",
+        "zone2 Banshee Mage2",
+        "zone3 Banshee Mage1",
+        "zone31 Banshee Mage1",
+        "zone34 Banshee Mage1",
+        "zone35 Banshee Mage1"
+      ],
+      "name": "banshee00",
+      "npcs": [],
+      "races": [
+        "Banshee Gipath M",
+        "Banshee Hadagan M"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/banshee01"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 4,
+        "hit": 4,
+        "idle": 3
+      },
+      "store_id": 2
+    },
+    "unmoba2": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "zone10 Banshee Fighter",
+        "zone13 Banshee Fighter",
+        "zone15 Banshee Fighter",
+        "zone16 Banshee Fighter",
+        "zone2 Banshee Fighter1",
+        "zone2 Banshee Fighter2",
+        "zone3 Banshee Fighter1",
+        "zone31 Banshee Fighter1",
+        "zone34 Banshee Fighter1",
+        "zone35 Banshee Fighter1"
+      ],
+      "name": "banshee01",
+      "npcs": [],
+      "races": [
+        "Banshee Gipath F",
+        "Banshee Hadagan F"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/banshee00"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 4,
+        "hit": 4,
+        "idle": 3
+      },
+      "store_id": 2
+    },
+    "unmobe0": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz4h Evileye",
+        "zone12 Evileye",
+        "zone22dun1 Evileye",
+        "zone24 Evileye",
+        "zone26 Evileye",
+        "zone3 Evileye",
+        "zone4 Evileye"
+      ],
+      "name": "beholder00",
+      "npcs": [],
+      "races": [
+        "Beholder Gipath",
+        "Beholder Hadagan",
+        "Beholder Ingos"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Beholder00"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1,
+        "hit": 2,
+        "idle": 1
+      },
+      "store_id": 2
+    },
+    "unmobe1": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "beholder01",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 2
+    },
+    "unmobi": {
+      "actions": {
+        "walk": [
+          "cflight"
+        ]
+      },
+      "animations_count": 1,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "bird00",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 2
+    },
+    "unmoco1": {
+      "actions": {
+        "idle": [
+          "cidle"
+        ],
+        "special": [
+          "uspecial01",
+          "uspecial02",
+          "uspecial03",
+          "uspecial04",
+          "uspecial05",
+          "uspecial06",
+          "uspecial07"
+        ]
+      },
+      "animations_count": 8,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "escmenu00",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 2
+    },
+    "unmoco2": {
+      "actions": {
+        "idle": [
+          "cidle"
+        ],
+        "special": [
+          "uspecial01",
+          "uspecial02",
+          "uspecial03",
+          "uspecial04",
+          "uspecial05",
+          "uspecial06",
+          "uspecial07",
+          "uspecial08",
+          "uspecial09",
+          "uspecial10",
+          "uspecial11",
+          "uspecial12",
+          "uspecial13",
+          "uspecial14",
+          "uspecial15",
+          "uspecial16"
+        ]
+      },
+      "animations_count": 17,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "mainmenu00",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 2
+    },
+    "unmoco3": {
+      "actions": {
+        "idle": [
+          "cidle01"
+        ],
+        "unk0": [
+          "01\u0002e",
+          "e02\u0001"
+        ]
+      },
+      "animations_count": 3,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "cursearms00",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 2
+    },
+    "unmoco4": {
+      "actions": {
+        "idle": [
+          "cidle01"
+        ],
+        "unk0": [
+          "01\u0002e",
+          "e02\u0001"
+        ]
+      },
+      "animations_count": 3,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "cursealtar00",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 2
+    },
+    "unmocu": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "cdeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "cflight02",
+          "scross02"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cflight01",
+          "scross01"
+        ]
+      },
+      "animations_count": 8,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "curse",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 2
+    },
+    "unmocy": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun",
+          "srun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk",
+          "swalk"
+        ]
+      },
+      "animations_count": 10,
+      "attack_weapons": [
+        "hammer"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "q20j Cyclop",
+        "zone11 Cyclop"
+      ],
+      "name": "cyclop",
+      "npcs": [],
+      "races": [
+        "Cyclop"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Cyclope"
+      ],
+      "sounds": {
+        "attack": 2,
+        "death": 1,
+        "hit": 3
+      },
+      "store_id": 2
+    },
+    "unmodg": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "cflight02",
+          "scross02"
+        ],
+        "special": [
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03",
+          "ubriefing04",
+          "ubriefing05"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cflight01",
+          "scross01"
+        ]
+      },
+      "animations_count": 13,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz13g DragonBlue",
+        "q20j Dragon",
+        "zone1 DragonBlue",
+        "zone11 DragonBlue",
+        "zone11 DragonGreen",
+        "zone2 DragonBlue",
+        "zone3 DragonBlue",
+        "zone3 DragonBrown",
+        "zone32 DragonBlue",
+        "zone32 DragonRed",
+        "zone33 DragonBlue",
+        "zone35 DragonBlue",
+        "zone9 DragonGreen"
+      ],
+      "name": "dragon",
+      "npcs": [],
+      "races": [
+        "Dragon Black",
+        "Dragon Blue",
+        "Dragon Green",
+        "Dragon Red"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/dragon"
+      ],
+      "sounds": {
+        "attack": 3,
+        "death": 4,
+        "hit": 3,
+        "idle": 1
+      },
+      "store_id": 2
+    },
+    "unmodr": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "crest",
+          "cspecial01"
+        ],
+        "run": [
+          "crun"
+        ],
+        "special": [
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 17,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz23k Driad Green Archer1",
+        "bz23k Driad Green Mage1",
+        "bz23k Driad Leader M",
+        "q3k Driad White Mage",
+        "zone21 Driad White Archer1",
+        "zone21 Driad White Mage1",
+        "zone22 Driad Blue Archer1",
+        "zone22 Driad Blue Mage1"
+      ],
+      "name": "driad",
+      "npcs": [],
+      "races": [
+        "Driad Black A",
+        "Driad Black M",
+        "Driad Blue A",
+        "Driad Blue M",
+        "Driad Green A",
+        "Driad Green M",
+        "Driad White A",
+        "Driad White M"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/driad"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 2,
+        "hit": 3
+      },
+      "store_id": 2
+    },
+    "unmoel0": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 12,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "earth",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 2
+    },
+    "unmoel1": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 12,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "earth",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 2
+    },
+    "unmoel2": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 12,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "q11k Elemental Ice",
+        "q20 ElementalLav",
+        "zone12 Elemental Earth",
+        "zone14 Elemental Earth",
+        "zone14 Elemental Lava",
+        "zone21 Elemental Ice",
+        "zone22dun1 Elemental Ice",
+        "zone23 Elemental Ice",
+        "zone25 Elemental Ice",
+        "zone26 Elemental Ice",
+        "zone4 Elemental Earth",
+        "zone4 Elemental Lava",
+        "zone7 Elemental"
+      ],
+      "name": "earth",
+      "npcs": [],
+      "races": [
+        "ElementalEarth",
+        "ElementalIce",
+        "ElementalLava"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Elemental"
+      ],
+      "sounds": {
+        "attack": 3,
+        "death": 2,
+        "idle": 1
+      },
+      "store_id": 2
+    },
+    "unmogo": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02",
+          "uattack03",
+          "uattack04"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "crest"
+        ],
+        "run": [
+          "crun01"
+        ],
+        "special": [
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk01"
+        ]
+      },
+      "animations_count": 19,
+      "attack_weapons": [
+        "axe",
+        "bow",
+        "spear"
+      ],
+      "can_shoot": true,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "fq10 Goblin Boss",
+        "zone10 Goblin Archer",
+        "zone10 Goblin Fighter",
+        "zone12 Goblin Archer",
+        "zone12 Goblin Fighter",
+        "zone16 Goblin Archer1",
+        "zone16 Goblin Fighter1",
+        "zone7 Goblin Archer",
+        "zone7 Goblin Boss",
+        "zone7 Goblin Fighter",
+        "zone9 Goblin Archer",
+        "zone9 Goblin Fighter"
+      ],
+      "name": "goblin",
+      "npcs": [],
+      "races": [
+        "Goblin A",
+        "Goblin Boss",
+        "Goblin F"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/goblin"
+      ],
+      "sounds": {
+        "attack": 2,
+        "death": 2,
+        "hit": 4
+      },
+      "store_id": 2
+    },
+    "unmogo1": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz14g GolemVertical",
+        "zone14 Golem Vertical"
+      ],
+      "name": "golem00",
+      "npcs": [],
+      "races": [
+        "Golem 1"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Golem00"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1,
+        "idle": 1
+      },
+      "store_id": 2
+    },
+    "unmogo2": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz14g GolemHorizontal",
+        "zone14 Golem Horizontal"
+      ],
+      "name": "golem01",
+      "npcs": [],
+      "races": [
+        "Golem 2"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Golem01"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1,
+        "idle": 1
+      },
+      "store_id": 2
+    },
+    "unmoli": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "special": [
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 16,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz8g LizardBlue",
+        "q9g LizardGreen",
+        "zone11 LizardBlue",
+        "zone11 LizardGreen",
+        "zone11dun1 LizardBlue",
+        "zone11dun1 LizardMonstr",
+        "zone9 LizardBlack",
+        "zone9 LizardGreen1"
+      ],
+      "name": "lizardman",
+      "npcs": [],
+      "races": [
+        "Dragonkin",
+        "Dragonkin2"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Lisardman"
+      ],
+      "sounds": {
+        "attack": 3,
+        "death": 5,
+        "hit": 2
+      },
+      "store_id": 2
+    },
+    "unmomi": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "cflight02"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cflight01"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz4h Octopus",
+        "bz4h Octopus 2",
+        "q22h Octopus",
+        "zone22dun1 Octopus",
+        "zone24 Octopus",
+        "zone4 Octopus"
+      ],
+      "name": "mindflayer",
+      "npcs": [],
+      "races": [
+        "Octopus"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Mindflyer"
+      ],
+      "sounds": {
+        "attack": 6,
+        "death": 6,
+        "hit": 4
+      },
+      "store_id": 2
+    },
+    "unmoog": {
+      "actions": {
+        "unknown": [
+          "cattack01",
+          "cattack02",
+          "chit",
+          "cidle",
+          "crun",
+          "cwalk",
+          "udeath"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": null,
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 2
+    },
+    "unmoog1": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 13,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "fq12 Ogre",
+        "q24g Ogre",
+        "q2g Ogre",
+        "zone10 Ogre",
+        "zone15 Ogre",
+        "zone16 Ogre1",
+        "zone16 Ogre2",
+        "zone31 Ogre",
+        "zone33 Ogre",
+        "zone34 Ogre",
+        "zone35 Ogre",
+        "zone9 Ogre"
+      ],
+      "name": "ogre",
+      "npcs": [],
+      "races": [
+        "Ogre Gipath"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/ogre"
+      ],
+      "sounds": {
+        "attack": 6,
+        "death": 3,
+        "hit": 4,
+        "idle": 1
+      },
+      "store_id": 2
+    },
+    "unmoog2": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02"
+        ],
+        "cross": [
+          "ucross01",
+          "ucross02"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03"
+        ],
+        "idle": [
+          "cidle",
+          "crest"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 13,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "q21Oh Ogre",
+        "zone1 Ogre1",
+        "zone1 Ogre2",
+        "zone2 Ogre",
+        "zone25 Ogre",
+        "zone26 Ogre",
+        "zone3 Ogre1",
+        "zone3 Ogre2",
+        "zone3 Ogre3"
+      ],
+      "name": "ogre",
+      "npcs": [],
+      "races": [
+        "Ogre Hadagan"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Ogre"
+      ],
+      "sounds": {
+        "attack": 6,
+        "death": 3,
+        "hit": 4,
+        "idle": 1
+      },
+      "store_id": 2
+    },
+    "unmori": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "special": [
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03",
+          "ubriefing04",
+          "ubriefing05",
+          "ubriefing06"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 11,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz14g Rick"
+      ],
+      "name": "rick",
+      "npcs": [],
+      "races": [
+        "Rick"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "heroes/human/male"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 4,
+        "hit": 4,
+        "idle": 2
+      },
+      "store_id": 2
+    },
+    "unmosh": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "q21j Shadow",
+        "zone31 Shadow",
+        "zone34 Shadow",
+        "zone35 Shadow"
+      ],
+      "name": "shadow00",
+      "npcs": [],
+      "races": [
+        "Shadow"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Shadow"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1
+      },
+      "store_id": 2
+    },
+    "unmosk": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02",
+          "uattack03"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 9,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "fq11 SkeletonInvalid",
+        "q21j Skeleton",
+        "q5j Skeleton",
+        "zone31 Skeleton",
+        "zone32 Skeleton",
+        "zone33 Skeleton",
+        "zone34 Skeleton",
+        "zone35 Skeleton",
+        "zone7 Skeleton1",
+        "zone7 Skeleton2",
+        "zone7 SkeletonDark",
+        "zone7 SkeletonDarkW",
+        "zonefinal Skeleton",
+        "zonezero Skeleton"
+      ],
+      "name": "skeleton00",
+      "npcs": [],
+      "races": [
+        "Skeleton Dark",
+        "Skeleton Invalid",
+        "Skeleton Light"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Skeleton"
+      ],
+      "sounds": {
+        "attack": 3,
+        "death": 4,
+        "hit": 2
+      },
+      "store_id": 2
+    },
+    "unmosk2": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02",
+          "uattack03"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 9,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "skeleton00",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 2
+    },
+    "unmosp": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "zone1 Spider",
+        "zone2 Spider",
+        "zone3 Spider",
+        "zone5 Spider"
+      ],
+      "name": "spider",
+      "npcs": [],
+      "races": [
+        "Spider"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Spider"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 4,
+        "hit": 4
+      },
+      "store_id": 2
+    },
+    "unmosu": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "cflight02",
+          "scross02"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cflight01",
+          "scross01"
+        ]
+      },
+      "animations_count": 8,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "q22h Succubus",
+        "q6g Succub",
+        "zone22dun1 SuccubBlue",
+        "zone24 SuccubBlue",
+        "zone26 SuccubBlue",
+        "zone31 Succub",
+        "zone34 Succub",
+        "zone9 Succub",
+        "zonezero Succub"
+      ],
+      "name": "succubus",
+      "npcs": [],
+      "races": [
+        "Succubus Gipath",
+        "Succubus Hadagan",
+        "Succubus Ingos"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Succubus"
+      ],
+      "sounds": {
+        "attack": 5,
+        "death": 3,
+        "hit": 4,
+        "idle": 1
+      },
+      "store_id": 2
+    },
+    "unmoto": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "zone10 Toad",
+        "zone11 Toad",
+        "zone15 Toad1",
+        "zone15 Toad2",
+        "zone16 Toad1",
+        "zone16 Toad2",
+        "zone31 Toad1",
+        "zone31 Toad2",
+        "zone32 Toad1",
+        "zone32 Toad2",
+        "zone7 Toad",
+        "zone9 Toad1",
+        "zonezero Toad"
+      ],
+      "name": "toad",
+      "npcs": [],
+      "races": [
+        "Toad"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Toad"
+      ],
+      "sounds": {
+        "attack": 2,
+        "death": 1,
+        "hit": 1,
+        "idle": 1
+      },
+      "store_id": 2
+    },
+    "unmotr": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 8,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "q21Oh Troll Black",
+        "zone10 Trollgreen",
+        "zone11 Trollgreen",
+        "zone13 Trollgreen",
+        "zone16 Trollgreen",
+        "zone2 Troll",
+        "zone21 Trollblue",
+        "zone22 Trollblue",
+        "zone23 Trollblue",
+        "zone33 Troll",
+        "zone34 Troll",
+        "zone9 Trollgreen"
+      ],
+      "name": "troll",
+      "npcs": [],
+      "races": [
+        "Troll Black",
+        "Troll Blue",
+        "Troll Green"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/troll"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1,
+        "hit": 4,
+        "idle": 1
+      },
+      "store_id": 2
+    },
+    "unmoun": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "cidle03"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 9,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz23k Unicorn White",
+        "zone21 Unicorn White",
+        "zone22 Unicorn Black",
+        "zone25 Unicorn White"
+      ],
+      "name": "unicorn",
+      "npcs": [],
+      "races": [
+        "Unicorn Black",
+        "Unicorn White"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Unikorn"
+      ],
+      "sounds": {
+        "attack": 1,
+        "death": 1,
+        "hit": 3,
+        "idle": 1
+      },
+      "store_id": 2
+    },
+    "unmowi": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "cflight02"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cflight01"
+        ]
+      },
+      "animations_count": 6,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": true,
+      "locomotion": [
+        "air"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "zone13 Willowisp",
+        "zone16 Willowisp",
+        "zone7 Willowisp1",
+        "zone9 Willowisp"
+      ],
+      "name": "willowisp",
+      "npcs": [],
+      "races": [
+        "Willowisp"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Willowisp"
+      ],
+      "sounds": {
+        "death": 1,
+        "hit": 1
+      },
+      "store_id": 2
+    },
+    "unmozo0": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "q1j Zombie M",
+        "q21h Zombie1 M",
+        "q21j Zombie M",
+        "q2j Zombie M",
+        "zone1 Zombie M",
+        "zone2 Zombie1 M",
+        "zone2 Zombie2 M",
+        "zone3 Zombie1 M",
+        "zone31 Zombie M",
+        "zone33 Zombie M",
+        "zone34 Zombie M",
+        "zone35 Zombie M"
+      ],
+      "name": "zombie00",
+      "npcs": [],
+      "races": [
+        "Zombie Male"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Zombie/Male"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 4,
+        "hit": 3
+      },
+      "store_id": 2
+    },
+    "unmozo1": {
+      "actions": {
+        "attack": [
+          "uattack"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02"
+        ],
+        "idle": [
+          "cidle"
+        ],
+        "run": [
+          "crun"
+        ],
+        "suffer": [
+          "uhit"
+        ],
+        "walk": [
+          "cwalk"
+        ]
+      },
+      "animations_count": 7,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "q1j Zombie F",
+        "q21j Zombie F",
+        "q2j Zombie F",
+        "zone2 Zombie1 F",
+        "zone2 Zombie2 F",
+        "zone3 Zombie1 F",
+        "zone31 Zombie F",
+        "zone33 Zombie F",
+        "zone34 Zombie F",
+        "zone35 Zombie F"
+      ],
+      "name": "zombie01",
+      "npcs": [],
+      "races": [
+        "Zombie Female"
+      ],
+      "redress": [],
+      "sfx_paths": [
+        "monsters/Zombie/Female"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 4,
+        "hit": 4
+      },
+      "store_id": 2
+    },
+    "unmozozo": {
+      "actions": {
+        "attack": [
+          "cattack"
+        ],
+        "unk0": [
+          "\u0002\u001d\u0006",
+          "\u0003y\u0452",
+          "\u0004\u0015\u0452\u0002\u0016",
+          "\n\f\u0002\u2039>",
+          "\f\u0012",
+          "\u0011\u0452\u0002\u0016\u00a4p\u001d?",
+          "th01\u0001"
+        ]
+      },
+      "animations_count": 8,
+      "attack_weapons": [
+        "none"
+      ],
+      "can_shoot": false,
+      "flying": false,
+      "locomotion": [],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [],
+      "name": "zombie00",
+      "npcs": [],
+      "races": [],
+      "redress": [],
+      "sfx_paths": [],
+      "sounds": {},
+      "store_id": 2
+    },
+    "unorfe": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02",
+          "uattack03",
+          "uattack04",
+          "uattack05",
+          "uattack06",
+          "uattack07",
+          "uattack08",
+          "uattack09"
+        ],
+        "cast": [
+          "ucast01",
+          "ucast02",
+          "ucast03",
+          "ucast04"
+        ],
+        "cross": [
+          "scross28",
+          "scross29",
+          "ucross01",
+          "ucross02",
+          "ucross03",
+          "ucross04",
+          "ucross05",
+          "ucross06",
+          "ucross07",
+          "ucross08",
+          "ucross09",
+          "ucross10",
+          "ucross11",
+          "ucross12"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03",
+          "udeath04",
+          "udeath05",
+          "udeath06",
+          "udeath07",
+          "udeath08",
+          "udeath09",
+          "udeath10",
+          "udeath11",
+          "udeath12",
+          "udeath13",
+          "udeath14",
+          "udeath15",
+          "udeath16",
+          "udeath17",
+          "udeath18",
+          "udeath20",
+          "udeath21",
+          "udeath22",
+          "udeath23",
+          "udeath24",
+          "udeath25",
+          "udeath26",
+          "udeath27",
+          "udeath28",
+          "udeath29",
+          "udeath30",
+          "udeath31"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "cidle03",
+          "cidle04",
+          "cidle05",
+          "cidle06",
+          "cidle07",
+          "cidle08",
+          "cidle09",
+          "crest"
+        ],
+        "run": [
+          "crun01",
+          "crun02",
+          "scross14",
+          "scross16",
+          "scross24"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02",
+          "uhit06",
+          "uhit13",
+          "uhit14",
+          "uhit18",
+          "uhit20",
+          "uhit21"
+        ],
+        "walk": [
+          "ccrawl01",
+          "cwalk01",
+          "cwalk02",
+          "cwalk03",
+          "cwalk06",
+          "cwalk07",
+          "cwalk08",
+          "cwalk09",
+          "scrawl01",
+          "scross20",
+          "scross22",
+          "scross23",
+          "scross25"
+        ]
+      },
+      "animations_count": 93,
+      "attack_weapons": [
+        "axe",
+        "bow",
+        "dagger",
+        "hammer",
+        "spear",
+        "sword"
+      ],
+      "can_shoot": true,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz8g Orc Archer1 F",
+        "bz8g Orc Archer2 F",
+        "bz8g Orc Mage1 F",
+        "q18g Orc Mage F",
+        "q22g Orc Mage F",
+        "q25g Orc Archer F",
+        "q25g Orc Mage F",
+        "q7g Orc Wife F",
+        "q9g Orc Archer F",
+        "q9g Orc Mage F",
+        "zone12 Orc Archer1 F",
+        "zone12 Orc Mage1 F",
+        "zone16 Orc Archer1 F",
+        "zone16 Orc Archer2 F",
+        "zone16 Orc Archer3 F",
+        "zone16 Orc Archer4 F",
+        "zone16 Orc Mage1 F",
+        "zone16 Orc Mage2 F",
+        "zone16 Orc Mage3 F",
+        "zone9 Orc Archer1 F",
+        "zone9 Orc Archer2 F",
+        "zone9 Orc Mage1 F"
+      ],
+      "name": "female",
+      "npcs": [],
+      "races": [
+        "Orc Female Dressed",
+        "Orc Female Naked",
+        "Orc Female Tatoo"
+      ],
+      "redress": [
+        "axe",
+        "bow",
+        "crossbow",
+        "dagger",
+        "hammer",
+        "spear",
+        "sword"
+      ],
+      "sfx_paths": [
+        "heroes/orc/female"
+      ],
+      "sounds": {
+        "attack": 4,
+        "death": 4,
+        "hit": 4
+      },
+      "store_id": 2
+    },
+    "unorma": {
+      "actions": {
+        "attack": [
+          "uattack01",
+          "uattack02",
+          "uattack03",
+          "uattack04",
+          "uattack05",
+          "uattack06",
+          "uattack07",
+          "uattack08",
+          "uattack09"
+        ],
+        "cast": [
+          "ucast01",
+          "ucast02",
+          "ucast03",
+          "ucast04"
+        ],
+        "cross": [
+          "scross28",
+          "scross29",
+          "ucross01",
+          "ucross02",
+          "ucross03",
+          "ucross04",
+          "ucross05",
+          "ucross06",
+          "ucross07",
+          "ucross08",
+          "ucross09",
+          "ucross10",
+          "ucross11",
+          "ucross12"
+        ],
+        "death": [
+          "udeath01",
+          "udeath02",
+          "udeath03",
+          "udeath04",
+          "udeath05",
+          "udeath06",
+          "udeath07",
+          "udeath08",
+          "udeath09",
+          "udeath10",
+          "udeath11",
+          "udeath12",
+          "udeath13",
+          "udeath14",
+          "udeath15",
+          "udeath16",
+          "udeath17",
+          "udeath18",
+          "udeath19",
+          "udeath20",
+          "udeath21",
+          "udeath22",
+          "udeath23",
+          "udeath24",
+          "udeath25",
+          "udeath26",
+          "udeath27",
+          "udeath28",
+          "udeath29",
+          "udeath30",
+          "udeath31"
+        ],
+        "idle": [
+          "cidle01",
+          "cidle02",
+          "cidle03",
+          "cidle04",
+          "cidle05",
+          "cidle06",
+          "cidle07",
+          "cidle08",
+          "cidle09",
+          "crest"
+        ],
+        "run": [
+          "crun01",
+          "crun03",
+          "scross14",
+          "scross16",
+          "scross24"
+        ],
+        "special": [
+          "ubriefing01",
+          "ubriefing02",
+          "ubriefing03",
+          "ubriefing04",
+          "ubriefing05",
+          "ubriefing06",
+          "ubriefing07",
+          "ubriefing08",
+          "ubriefing09"
+        ],
+        "suffer": [
+          "uhit01",
+          "uhit02",
+          "uhit06",
+          "uhit13",
+          "uhit14",
+          "uhit18",
+          "uhit20",
+          "uhit21"
+        ],
+        "walk": [
+          "ccrawl01",
+          "cwalk01",
+          "cwalk02",
+          "cwalk03",
+          "cwalk06",
+          "cwalk07",
+          "cwalk08",
+          "cwalk09",
+          "scross20",
+          "scross22",
+          "scross23",
+          "scross25"
+        ]
+      },
+      "animations_count": 102,
+      "attack_weapons": [
+        "axe",
+        "bow",
+        "dagger",
+        "hammer",
+        "spear",
+        "sword"
+      ],
+      "can_shoot": true,
+      "flying": false,
+      "locomotion": [
+        "ground"
+      ],
+      "map_looks": 0,
+      "map_units": 0,
+      "monsters": [
+        "bz8g Orc Fighter1 M",
+        "bz8g Orc Fighter2 M",
+        "bz8g Orc Tanichey M",
+        "bz8g Shaivar M",
+        "q25g Orc Fighter M",
+        "q6g Orc Fighter M",
+        "q6g UrkTar M",
+        "q9g Orc Fighter M",
+        "zone12 Orc Fighter1 M",
+        "zone16 Orc Fighter1 M",
+        "zone16 Orc Fighter2 M",
+        "zone16 Orc Fighter3 M",
+        "zone9 Orc Fighter1 M",
+        "zone9 Orc Fighter2 M"
+      ],
+      "name": "male",
+      "npcs": [],
+      "races": [
+        "Orc Male Dressed",
+        "Orc Male Naked",
+        "Orc Male Tatoo"
+      ],
+      "redress": [
+        "axe",
+        "boots",
+        "bow",
+        "crossbow",
+        "dagger",
+        "gloves",
+        "hammer",
+        "pants",
+        "shirt",
+        "spear",
+        "sword"
+      ],
+      "sfx_paths": [
+        "heroes/orc/male"
+      ],
+      "sounds": {
+        "attack": 7,
+        "death": 8,
+        "hit": 8
+      },
+      "store_id": 2
+    }
+  }
+}

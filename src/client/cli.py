@@ -645,7 +645,8 @@ class GameClient(object):
         """
         if not speed or not self.scene or not getattr(o, 'animation', None):
             return 1.0
-        natural_speed = figures.natural_speed(self.scene.catalog.animations, o.template.model_name, o.animation, zone.unit_size(o))
+        animations = self.scene.catalog.store_animations(o.template.store_id)
+        natural_speed = figures.natural_speed(animations, o.template.model_name, o.animation, zone.unit_size(o))
         if not natural_speed:
             return 1.0
         rate = abs(speed) / natural_speed

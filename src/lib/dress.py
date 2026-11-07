@@ -18,6 +18,7 @@ import random
 
 from lib import models
 from lib import res
+from lib import stores
 
 #------------------------------------------------------------------------------
 
@@ -255,11 +256,13 @@ class Looks(object):
 
     def __init__(self, catalog_path, store_id=models.DEFAULT_STORE_ID):
         self.store_id = store_id
-        self.figures = self.read(catalog_path, 'figures.json')
-        self.animations = self.read(catalog_path, 'animations.json')
-        self.armors = self.read(catalog_path, 'armors.json')
-        self.weapons = self.read(catalog_path, 'weapons.json')
-        self.materials = self.read(catalog_path, 'materials.json')
+        # the catalog keeps the data of every store, the looks are made of the data of one store, see lib.stores
+        self.figures = self.read_store(catalog_path, 'figures.json')
+        self.animations = self.read_store(catalog_path, 'animations.json')
+        self.armors = self.read_store(catalog_path, 'armors.json')
+        self.weapons = self.read_store(catalog_path, 'weapons.json')
+        self.materials = self.read_store(catalog_path, 'materials.json')
+        # the samples are made of the maps of "Lost in Astral", the figures of all stores have the same constitution
         self.samples = self.read(catalog_path, 'figures_samples.json')
         self.store_textures = self.read(catalog_path, TEXTURES_STORE_FILE_NAME).get(str(store_id), {})
         self.models = self.showcase_models()
@@ -269,6 +272,9 @@ class Looks(object):
     def read(self, catalog_path, file_name):
         with open(os.path.join(catalog_path, file_name), 'rt') as f:
             return json.loads(f.read())
+
+    def read_store(self, catalog_path, file_name):
+        return stores.of(stores.read(os.path.join(catalog_path, file_name)), self.store_id)
 
     def has_texture(self, texture):
         return texture_name(texture) in self.store_textures

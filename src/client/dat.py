@@ -28,6 +28,7 @@ from lib import res
 from lib import dress
 from lib import mth
 from lib import plants
+from lib import stores
 from lib import terrain
 from lib import zone
 
@@ -530,6 +531,8 @@ class ModelData(object):
 class CatalogData(object):
 
     def __init__(self):
+        # store id -> figures.json, animations.json, armors.json, weapons.json and materials.json of the store,
+        # a unit is built of the data of the store of its template, see lib.stores
         self.figures = {}
         self.animations = {}
         self.armors = {}
@@ -549,21 +552,29 @@ class CatalogData(object):
         self.land = json.loads(open(land_file_path, 'rt').read())
 
     def load_figures(self, figures_file_path):
-        self.figures = json.loads(open(figures_file_path, 'rt').read())
+        self.figures = stores.read(figures_file_path)
 
     def load_animations(self, animations_file_path):
-        self.animations = json.loads(open(animations_file_path, 'rt').read())
+        self.animations = stores.read(animations_file_path)
 
     def load_armors(self, armors_file_path):
-        self.armors = json.loads(open(armors_file_path, 'rt').read())
+        self.armors = stores.read(armors_file_path)
 
     def load_weapons(self, weapons_file_path):
-        self.weapons = json.loads(open(weapons_file_path, 'rt').read())
+        self.weapons = stores.read(weapons_file_path)
 
     def load_materials(self, materials_file_path):
-        self.materials = json.loads(open(materials_file_path, 'rt').read())
+        self.materials = stores.read(materials_file_path)
 
-    def build_template_data(self, model_name, skin=0, hair=None, wears=[], weapon=None, texture=None):
+    def store_animations(self, store_id=None):
+        # animations.json of that store, of the default store when store_id is None
+        return stores.of(self.animations, store_id)
+
+    def build_template_data(self, model_name, skin=0, hair=None, wears=[], weapon=None, texture=None, store_id=None):
+        figures = stores.of(self.figures, store_id)
+        armors = stores.of(self.armors, store_id)
+        weapons = stores.of(self.weapons, store_id)
+        materials = stores.of(self.materials, store_id)
         animations = []
         textures = {}
         is_human = model_name in ['unhuma', 'unhufe']
@@ -574,7 +585,7 @@ class CatalogData(object):
             textures['*'] = f'{texture or "default0"}:0'
         if not isinstance(wears, list):
             wears = [wears, ]
-        parts_ordered_tree = self.figures[model_name].copy()
+        parts_ordered_tree = figures[model_name].copy()
         parts_list_flat = res.flat_tree(parts_ordered_tree)
         parts = []
         for part_name in parts_list_flat:
@@ -600,7 +611,7 @@ class CatalogData(object):
         for wear in wears:
             armor_name, material_name = wear.split('.')
             material_name = material_name.strip()
-            armor = self.armors[armor_name]
+            armor = armors[armor_name]
             armor_type = armor['type']
             if armor_type == 'helm':
                 has_helm = True
@@ -613,7 +624,7 @@ class CatalogData(object):
             # elif armor_type == 'boots':
             #     has_boots = True
             armor_id = int(armor['texture_type_1'])
-            material = self.materials[material_name]
+            material = materials[material_name]
             body_parts = dress.armor_body_parts(armor_type, armor_id)
             for body_part in body_parts:
                 body_part_texture = dress.armor_texture_name(model_name, armor_type, armor, material)
@@ -639,10 +650,10 @@ class CatalogData(object):
                 parts.append(f'hr.{hair:02}')
         weapon_type = None
         if weapon:
-            weapon_type, weapon_parts, weapon_textures = dress.weapon_parts(model_name, weapon, self.weapons, self.materials)
+            weapon_type, weapon_parts, weapon_textures = dress.weapon_parts(model_name, weapon, weapons, materials)
             parts.extend(weapon_parts)
             textures.update(weapon_textures)
-        anim = self.animations[model_name]
+        anim = self.store_animations(store_id)[model_name]
         action_types = {}
         for action in anim['actions']:
             action_name = action['action_name']

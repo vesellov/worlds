@@ -1,0 +1,48 @@
+{
+    'north': {
+        'warior': {
+            'model': 'unhuma',
+            'skin': 1,
+            'hair': 0,
+            'wears': [
+                'hadagan brigand pants.thin',
+                'hadagan brigand boots.thin',
+                'hadagan brigand gloves.thin',
+                'hadagan brigand leggins.thick',
+                'hadagan brigand helm.thick',
+                'hadagan brigand plate.thick',
+            ],
+            'weapon': 'cheat dagger.bronze',
+            'coefs': [1.0, 1.0, 1.0],
+            'scale': [1.0, 1.0, 1.0],
+            'store_id': 2,
+        },
+        'archer': 'unmodr#driad01',
+        'mage': 'unhuma#'
+    },
+    'south': {
+        'warior': 'unhuma#',
+        'archer': 'unhufe#',
+        'mage': 'unhuma#'
+    },
+    'east': {
+        'warior': 'unhuma#',
+        'archer': 'unhufe#',
+        'mage': 'unhuma#'
+    },
+    'undead': {
+        'warior': 'unmozo0#zombiemale00',
+        'archer': 'unmosk#skeleton00',
+        'mage': 'unmoba1#banshee01'
+    },
+    'magic': {
+        'warior': 'unmoel1#earth03',
+        'archer': 'unmobe0#beholder00',
+        'mage': 'unmomi#mindflayer00'
+    },
+    'orc': {
+        'warior': 'unorma#',
+        'archer': 'unmogo#goblin00',
+        'mage': 'unorfe#'
+    }
+}
