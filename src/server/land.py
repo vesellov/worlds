@@ -55,6 +55,9 @@ ZONE_MAX_DEPTH = 0.9
 # closed spots and open holes of the land smaller than that are removed from zonemap.png, in segments
 ZONE_MIN_SPOT = 0.5
 
+# values of the pixels of heightmap.png
+HEIGHTMAP_VALUES = 256
+
 #------------------------------------------------------------------------------
 
 min_x = 0
@@ -682,7 +685,8 @@ def map_buildings(data, heightmap_image):
     Buildings given by the map itself, a map made of a zone of the original game has the houses, fences, bridges
     and other objects of the zone, see tools/ei_map.py. The positions go into pixels of the land the same way
     as the cells, the circles "a" where units can not walk are kept around the building: [dx, dy, radius]
-    in segments, see lib.zone.solid_objects().
+    in segments, see lib.zone.solid_objects(). The points of the deck of a bridge are kept the same way:
+    [dx, dy, dz], see build_walk_heights().
     """
     scale = draw_scale()
     result = []
@@ -700,8 +704,73 @@ def map_buildings(data, heightmap_image):
             'h': heightmap_image.getpixel((int(x) % heightmap_image.width, int(y) % heightmap_image.height))[0],
             'a': areas,
         })
+        if 'deck' in building:
+            deck = []
+            for deck_x, deck_y, deck_z in building['deck']:
+                dx, dy = xy2draw(deck_x, deck_y)
+                deck.append([round(dx - x, 3), round(dy - y, 3), deck_z])
+            record['deck'] = deck
         result.append(record)
     return result
+
+
+def land_elevation_at(elevations, x, y):
+    """
+    Elevation of the land at the point (x, y) in segments, elevations are of the corners of the segments, rows go along y.
+    The segment is made of two triangles, the same way the client renders it, see scen.Scene.calculate_elevation().
+    """
+    height, width = elevations.shape
+    w = int(math.floor(x))
+    h = int(math.floor(y))
+    u = x - w
+    v = y - h
+    e00 = elevations[h % height, w % width]
+    e10 = elevations[h % height, (w + 1) % width]
+    e01 = elevations[(h + 1) % height, w % width]
+    e11 = elevations[(h + 1) % height, (w + 1) % width]
+    if u + v < 1.0:
+        return e00 + (e10 - e00) * u + (e01 - e00) * v
+    return e11 + (e01 - e11) * (1.0 - u) + (e10 - e11) * (1.0 - v)
+
+
+def build_walk_heights(heightmap_image, buildings):
+    """
+    Values of heightmap.png where units walk: the same as the land, but over a bridge they are raised up to
+    the top of its deck, so units walk on the bridge and the land under it stays as it is. The deck of a bridge
+    is a list of points [dx, dy, dz] around the building, dz is how high the point is over the bottom of the model
+    in the units of the world, see tools/ei_map.py. Every corner of a segment with a point of a deck goes up
+    to the highest of those points. Returns the values, rows go along y, and the points of the decks
+    (x, y) in segments, those are open in zonemap.png, see build_zonemap().
+    """
+    values = np.array(heightmap_image.convert('RGB'))[:, :, 0]
+    height, width = values.shape
+    levels = unpack_elevation(np.arange(HEIGHTMAP_VALUES)) * const.ELEVATION_FACTOR
+    elevations = levels[values]
+    walk_elevations = elevations.copy()
+    deck_points = []
+    for building in buildings:
+        if not building.get('deck'):
+            continue
+        x = float(building['x'])
+        y = float(building['y'])
+        # the client puts the model "e" lower than the land, see scen.Scene.coords_map2xyz()
+        bottom = land_elevation_at(elevations, x, y) - float(building.get('e', 0.0))
+        for dx, dy, dz in building['deck']:
+            px = x + dx
+            py = y + dy
+            deck_points.append((px, py))
+            w = int(math.floor(px))
+            h = int(math.floor(py))
+            for cw, ch in ((w, h), (w + 1, h), (w, h + 1), (w + 1, h + 1)):
+                walk_elevations[ch % height, cw % width] = max(walk_elevations[ch % height, cw % width], bottom + dz)
+    raised = walk_elevations > elevations
+    walk_values = values.copy()
+    if raised.any():
+        nearest = np.abs(levels[None, :] - walk_elevations[raised][:, None]).argmin(axis=1)
+        walk_values[raised] = np.maximum(nearest, values[raised])
+    if _Debug:
+        print(f'{len(deck_points)} points of the decks of the bridges, {int((walk_values > values).sum())} corners are raised')
+    return walk_values.astype(np.uint8), deck_points
 
 
 def map_plants(data):
@@ -715,7 +784,7 @@ def map_plants(data):
         x_text = plants.coordinate_string(*divmod(round(x * 100), 100))
         y_text = plants.coordinate_string(*divmod(round(y * 100), 100))
         key = f"{plant['m']}#{plant['t']}#{plant['p'] or 'null'}"
-        result.setdefault(key, []).append(f"{plant['c']} {x_text} {y_text} {int(plant['d'])} {plant['n']} {key}")
+        result.setdefault(key, []).append(plants.join(plant['c'], x_text, y_text, int(plant['d']), plant['n'], key, material=plant.get('material', True)))
     return result
 
 
@@ -1648,18 +1717,29 @@ def build_zone_land(heightmap_image, scale):
     return closed, int(steep.sum()), int(deep.sum())
 
 
-def build_zonemap(heightmap_image, scale=zone.SCALE):
+def build_zonemap(heightmap_image, scale=zone.SCALE, open_points=None):
     """
     zonemap.png says where units can walk, see lib.zone: black pixels are steep mountains and deep water,
     scale pixels along a segment of the map. Built from the final heightmap, the one the client renders,
     so the closed area matches the land the player sees. Trees and buildings are not drawn here: the server
     and the client add them when the biome is loaded, see zone.ZoneMap.build().
+    open_points (x, y) in segments are always open, those are the decks of the bridges, see build_walk_heights().
     Returns the black and white image and counts of the closed pixels.
     """
     closed, steep_count, deep_count = build_zone_land(heightmap_image, scale)
+    opened = 0
+    if open_points:
+        deck = np.zeros(closed.shape, dtype=np.uint8)
+        for x, y in open_points:
+            deck[int(math.floor(y * scale)) % closed.shape[0], int(math.floor(x * scale)) % closed.shape[1]] = 1
+        # the points are about one pixel from each other, the holes between them are filled
+        deck = cv2.morphologyEx(deck, cv2.MORPH_CLOSE, np.ones((3, 3), dtype=np.uint8))
+        opened = int((closed & deck).sum())
+        closed[deck > 0] = 0
     stats = {
         'steep': steep_count,
         'deep': deep_count,
+        'bridges': opened,
         'land': int(closed.sum()),
     }
     return Image.fromarray(closed == 0).convert('1'), stats
@@ -1822,6 +1902,9 @@ def main():
         buildings.extend(flags)
         land_buildings = buildings
         print(f"Total {len(buildings)} buildings generated")
+    # units can not walk through a building which is material, see lib.zone.solid_objects()
+    for building in buildings:
+        building.setdefault('material', True)
     open('assets/buildings.json', 'w').write(json.dumps(buildings, indent=2))
 
     roads_of_map = map_roads(data) if 'roads' in map_land else None
@@ -1948,8 +2031,16 @@ def main():
     changes = update_buildings_elevation(heightmap_image, land_buildings, min_building_elevation=BUILDINGS_MIN_ELEVATION_LEVEL)
     print(f"Updated buildings elevation second time with {changes} changes")
 
-    # all channels of the heightmap are the same, only one is kept
-    heightmap_image.convert('L').save('assets/heightmap.png', optimize=True)
+    # the red channel is where units walk, the green and the blue ones are the land the client draws:
+    # they differ only over the bridges, without bridges all channels are the same and only one is kept
+    walk_values, deck_points = build_walk_heights(heightmap_image, buildings)
+    land_values = np.array(heightmap_image.convert('RGB'))[:, :, 0]
+    if deck_points:
+        Image.fromarray(np.dstack([walk_values, land_values, land_values]), 'RGB').save('assets/heightmap.png', optimize=True)
+        if _Debug:
+            print(f"{int((walk_values != land_values).sum())} corners of the heightmap are raised up to the bridges")
+    else:
+        heightmap_image.convert('L').save('assets/heightmap.png', optimize=True)
     print(f"Generated heightmap image, elevations are from {min_elevation} to {max_elevation}")
 
     # the client builds the same tiles from terrain.bin, see lib.terrain
@@ -1969,7 +2060,7 @@ def main():
     open('assets/plants.bin', 'wb').write(plants.encode(plants_data))
     print(f"Generated plants data with {len(plants_data)} kinds of plants")
 
-    zonemap_image, zonemap_stats = build_zonemap(heightmap_image)
+    zonemap_image, zonemap_stats = build_zonemap(heightmap_image, open_points=deck_points)
     zonemap_image.save('assets/zonemap.png', optimize=True)
     print(f"Generated zonemap {zonemap_image.width}x{zonemap_image.height}, closed: {zonemap_stats}")
 

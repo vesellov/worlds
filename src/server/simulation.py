@@ -230,6 +230,7 @@ class Simulation(object):
         e_min_unpacked = self.elevation_unpack(1)
         e_max_unpacked = self.elevation_unpack(100)
         unpacked_delta = e_max_unpacked - e_min_unpacked
+        # the red channel is where units walk: over the bridges it is higher than the land, see server.land.build_walk_heights()
         im = Image.open(io.BytesIO(heightmap_data)).convert('RGB')
         self.width, self.height = im.size
         pixels = im.load()
@@ -253,7 +254,7 @@ class Simulation(object):
     def find_start_position(self, buildings_data):
         capitals = sorted((b for b in buildings_data if b['k'] == 'capital'), key=lambda b: b['i'])
         if not capitals:
-            return self.width // 2, self.height // 2
+            return random.randint(self.width // 4, self.width - self.width // 4), random.randint(self.height // 4, self.height - self.height // 4)
         return (int(capitals[0]['x']) + HERO_START_SHIFT[0]) % self.width, (int(capitals[0]['y']) + HERO_START_SHIFT[1]) % self.height
 
     def nearest_capital(self, x, y):

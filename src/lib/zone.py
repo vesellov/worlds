@@ -33,6 +33,7 @@ from PIL import Image
 
 from lib import const
 from lib import mth
+from lib import plants as plants_codec
 
 #------------------------------------------------------------------------------
 
@@ -183,6 +184,7 @@ def solid_objects(plants, buildings):
     """
     (x, y, radius) in segments of the trees and the buildings, plants and buildings are the data of plants.bin
     and buildings.json. Also returns the templates of the solid plants which were not measured.
+    A plant or a building which is not material, a bridge for example, is left out: units walk through it.
     """
     objects = []
     unknown = set()
@@ -190,7 +192,9 @@ def solid_objects(plants, buildings):
     for plant_key, plants_list in (plants or {}).items():
         template = plant_key.split('#')[0].lower()
         for plant_coded in plants_list:
-            coefs, x, y, _, plant_name, _ = plant_coded.split(' ')
+            coefs, x, y, _, plant_name, _, material = plants_codec.split(plant_coded)
+            if not material:
+                continue
             if not plant_name.endswith(SOLID_PLANT_NAME_SUFFIXES):
                 continue
             radius = trunk_radius(template, coefs)
@@ -199,6 +203,8 @@ def solid_objects(plants, buildings):
                 radius = (DEFAULT_TRUNK_RADIUS + TRUNK_GAP) / const.SEGMENT_SIZE
             objects.append((float(x), float(y), radius))
     for building in (buildings or []):
+        if not building.get('material', True):
+            continue
         x = float(building['x'])
         y = float(building['y'])
         # a building of a zone of the original game says which circles around it units can not walk:

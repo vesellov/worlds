@@ -83,7 +83,7 @@ class Unit(object):
         self.h = h
         self.shift_w = shift_w
         self.shift_h = shift_h
-        shift_vector = scene.coords_map2xyz(self.w, self.h, self.shift_w, self.shift_h, elevation_correction=self.elevation_correction)
+        shift_vector = scene.coords_map2xyz(self.w, self.h, self.shift_w, self.shift_h, elevation_correction=self.elevation_correction, walk=True)
         self.translate_shift.xyz = shift_vector
         if w_diff != 0 or h_diff != 0:
             self.area_w, self.area_h = scene.area_shift(self.w, self.h)

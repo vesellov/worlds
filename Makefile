@@ -58,28 +58,17 @@ PORT ?= 8280
 server: venv_server
 	@PYTHONPATH=src $(PYTHON_SERVER) -m server.main --host $(HOST) --port $(PORT)
 
-# names of the figures and their textures of the maps of the game: figures_names.json and textures.json
 ei_models_scan:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
 	@cp -v tools/scan_models.py repack/EIrepack/
 	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:." ../../venv_tools/bin/python3 scan_models.py ${SRC_DIR}/Maps/
-# 	@mv -v repack/EIrepack/figures_names.json catalog/
-# 	@mv -v repack/EIrepack/textures.json catalog/
 
-# unpacks all archives of the game into UNPACK_DIR, writes figures_parts.json, figures_samples.json, buildings.json
-# and plants.json of the maps, figures.json of the catalog is made by "make ei_registry" for every store
 ei_res_unpack:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
 	@cp -v tools/unpack_all.py repack/EIrepack/Converters/
 	@cp -v tools/convert_model.py repack/EIrepack/Converters/
 	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:." ../../venv_tools/bin/python3 Converters/unpack_all.py ${SRC_DIR} ${UNPACK_DIR} --verbose
-# 	@mv -v repack/EIrepack/figures_parts.json catalog/
-# 	@mv -v repack/EIrepack/figures_samples.json catalog/
-# 	@mv -v repack/EIrepack/buildings.json catalog/
-# 	@mv -v repack/EIrepack/plants.json catalog/
 
-# tables of the database unpacked by "make ei_res_unpack" as JSON files in repack/EIrepack/ to look at them,
-# the catalog is made of the database by "make ei_registry"
 ei_db_scan:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
 	@cp -v tools/extract_db_data.py repack/EIrepack/
@@ -93,14 +82,9 @@ ei_registry:
 
 FIGURES_RES ?= $(HOME)/.worlds/data/figures.res
 FIGURES_OUT ?= ./figures/
-# split big figures.res into one .res file per model, those are downloaded by the client one by one
 ei_figures_repack: venv
 	@PYTHONPATH=src $(PYTHON) tools/split_figures.py $(FIGURES_RES) $(FIGURES_OUT)
 
-# map.json of a zone of the original game for "make land_build" instead of "make fmg_generate": the land of the .mpr,
-# the buildings and the plants of the .mob, no capitals, flags or roads are made then
-EI_GAME_DIR ?= /run/media/veselin/STUFF/evil_islands/EvilIslands/ENG/game_info/data
-EI_ZONE ?= zone1
 ei_map:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
 	@cp -v tools/ei_map.py repack/EIrepack/

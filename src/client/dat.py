@@ -693,7 +693,10 @@ class LandData(object):
         self.height = None
         self.catalog = catalog
         self.tiles_textures_dir_path = None
+        # elevation of the land at the corners of the segments, the land is drawn with it
         self.elevation_map_data = {}
+        # elevation where units walk, higher than the land where a bridge goes over it
+        self.walk_elevation_map_data = {}
         self.tiles_map_data = {}
         self.tiles_files = {}
         self.plants_map_data = {}
@@ -768,16 +771,20 @@ class LandData(object):
         e_min_unpacked = self.elevation_unpack(1)
         e_max_unpacked = self.elevation_unpack(100)
         unpacked_delta = e_max_unpacked - e_min_unpacked
-        # read the same way as on the server, see server.simulation.Simulation.load_heightmap()
-        im = PILImage.open(heightmap_file_path).convert('L')
+        # the red channel is where units walk, read the same way as on the server, see
+        # server.simulation.Simulation.load_heightmap(), the green one is the land, see server.land.build_walk_heights()
+        im = PILImage.open(heightmap_file_path).convert('RGB')
         self.width, self.height = im.size
         pixels = im.load()
+        scaled = {}
         for w in range(self.width):
             for h in range(self.height):
-                e = float(pixels[w, h])
-                e_unpacked = self.elevation_unpack(e)
-                e_scaled = (float(e_unpacked - e_min_unpacked) / unpacked_delta)
-                self.elevation_map_data[(w, h)] = e_scaled
+                walk_value, land_value, _ = pixels[w, h]
+                for value in (walk_value, land_value):
+                    if value not in scaled:
+                        scaled[value] = float(self.elevation_unpack(float(value)) - e_min_unpacked) / unpacked_delta
+                self.walk_elevation_map_data[(w, h)] = scaled[walk_value]
+                self.elevation_map_data[(w, h)] = scaled[land_value]
         return self.width, self.height
 
     # def load_heightmap_file(self, heightmap_file_name):
@@ -817,7 +824,7 @@ class LandData(object):
             template, texture, parts = plant_key.split('#')
             plants_list = plants_data[plant_key]
             for plant_coded in plants_list:
-                coefs, w, h, direction, plant_name, plant_template = plant_coded.split(' ')
+                coefs, w, h, direction, plant_name, plant_template, _ = plants.split(plant_coded)
                 w = float(w)
                 h = float(h)
                 c1, c2, c3 = coefs.split(':')
@@ -872,6 +879,14 @@ class LandData(object):
         _w = w % self.width
         _h = h % self.height
         return self.elevation_map_data[(_w, _h)]
+
+    def get_walk_elevation(self, w, h):
+        """
+        Elevation where units walk at the corner of a segment: on a bridge it is higher than the land under it.
+        """
+        _w = w % self.width
+        _h = h % self.height
+        return self.walk_elevation_map_data[(_w, _h)]
 
     def get_texture(self, w, h):
         # positions are not limited by the size of the map, it is repeated around itself

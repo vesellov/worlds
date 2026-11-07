@@ -23,12 +23,15 @@ server.land reads only a part of the map of the Fantasy Map Generator, this tool
   the zone has a few: the sea and the rivers higher up, so the land is measured from the water nearest to it;
 - the tiles: water where the land is under the water of the zone, the rocks get the "cliff2" tile, the ground gets
   the biome with the closest color of the tile, the grass gets a biome by the number of trees of the zone around it;
-- the biome has no bridges to walk on, the water around the bridges of the zone is shallow, so the units cross
-  the rivers there;
+- units walk over the decks of the bridges, see "deck" below; the water around the bridges of the zone
+  is also shallow, so the units cross the rivers there;
 - no capitals, routes or rivers of the Fantasy Map Generator, instead "land" has:
   "exact_heights": true, so server.land keeps the heights as they are;
   "buildings": the objects of the zone which are not plants, as in buildings.json, the positions are in cells
   of the map, "a" are the circles (x, y, radius) which cover the model, units can not walk there, see lib.zone;
+  "material" is false for the bridges and the gates, units walk through them; a bridge has "deck": the points
+  (x, y, dz) of the top of its deck, dz is how high it is over the bottom of the model in the units of the world,
+  units walk on it, see server.land.build_walk_heights();
   "plants": the trees and bushes of the zone, the name of every plant is from catalog/plants.json.
 
 usage: ei_map.py <game data folder> <zone> <output map.json> [--size 128] [--vertical 1.0] [--catalog catalog/]
@@ -130,8 +133,8 @@ DENSE_FOREST_DENSITY = 0.12
 TREE_MODELS = ('nafltr', )
 BUSH_MODELS = ('naflbu', )
 
-# units cross the rivers of the zone by the bridges, the biome has no bridges: the water around a bridge
-# is that shallow instead, in the units of the world, so the units can walk there, see server.land.ZONE_MAX_DEPTH
+# the water around a bridge is that shallow, in the units of the world, so the units can walk there too,
+# see server.land.ZONE_MAX_DEPTH
 BRIDGE_MODELS = ('stbr', )
 FORD_RADIUS = 4.0
 FORD_DEPTH = 0.4
@@ -179,8 +182,32 @@ OBJECT_KINDS = (
 )
 DEFAULT_OBJECT_KIND = 'object'
 
-# units walk over the bridges and through the gates, those do not close the land
-OPEN_KINDS = ('bridge', 'gate')
+# kind of an object of a model of a bridge which has no deck: a column, a gear, a gate ...
+STRUCTURE_KIND = 'structure'
+
+# objects of these kinds are not material, units walk over the bridges and through the gates, see lib.zone
+PASSABLE_KINDS = ('bridge', 'gate')
+
+# parts of the models of the bridges where units walk, the other parts are the railings, the supports, the posts:
+# an object of such a model without these parts is not a bridge, the models of "stbr" which are not here
+# are not bridges either (columns, gears, gates ...)
+BRIDGE_DECKS = {
+    'stbr1': ('base0', ),
+    'stbr2': ('base0', ),
+    'stbr3': ('base1', ),
+    'stbr4': ('base2', ),
+    'stbr5': ('base', ),
+    'stbr6': ('base', ),
+    'stbr9': ('base', ),
+    'stbr11': ('base', ),
+    'stbr13': ('base1', ),
+    'stbr17': ('bridge', 'base1', 'base2', 'base3'),
+    'stbr18': ('base', ),
+    'stbr19': ('base', ),
+}
+
+# the top of the deck of a bridge is measured that often along it and across it, in squares of the zone
+DECK_STEP = 0.5
 
 # smallest circle which covers a part of a model where units can not walk, in squares of the zone:
 # a fence is thin, a row of such circles goes along it
@@ -307,10 +334,11 @@ def collect_objects(nodes, result):
 
 def read_models(game_dir_path, model_names, temp_dir_path):
     """
-    Parts of the models from res/figures.res: model name -> list of (part name, parent part name or None,
-    offsets, centers, half sizes), every one of the three is 8 x 3: the variants of the model by its coefficients,
-    see lib.mth.trilinear(). The offset of a part is from its parent, see .bon, the center and the half size
-    are of the box around the part, see the header of .fig.
+    Parts of the models from res/figures.res: model name -> list of parts, every part is a dict:
+    "name", "parent" (None for the root part), "offsets", "centers", "halves", every one of the three is 8 x 3:
+    the variants of the model by its coefficients, see lib.mth.trilinear(). The offset of a part is from its parent,
+    see .bon, the center and the half size are of the box around the part, see the header of .fig.
+    The mesh of the part: "blocks" of the vertices (blocks x 3 x 8 x 4), "components" and "triangles", see Formats/fig.py.
     """
     names = set(model_name + suffix for model_name in model_names for suffix in ('.mod', '.bon'))
     files = read_archive(os.path.join(game_dir_path, 'res', 'figures.res'), names=names)
@@ -338,7 +366,16 @@ def read_models(game_dir_path, model_names, temp_dir_path):
             offsets = np.zeros((8, 3))
             if part_name_lower in bones and len(bones[part_name_lower]) >= 96:
                 offsets = np.frombuffer(bones[part_name_lower][:96], dtype='<f4').reshape(8, 3).astype(float)
-            parts.append((part_name_lower, parent_name.lower() if parent_name else None, offsets, np.array(info[9]), np.array(info[11])))
+            parts.append({
+                'name': part_name_lower,
+                'parent': parent_name.lower() if parent_name else None,
+                'offsets': offsets,
+                'centers': np.array(info[9]),
+                'halves': np.array(info[11]),
+                'blocks': np.array(info[13], dtype=float),
+                'components': info[17],
+                'triangles': info[16],
+            })
         result[model_name] = parts
     return result
 
@@ -356,6 +393,24 @@ def collect_parents(tree, parent_name, parents):
     return parents
 
 
+def part_positions(model_parts, coefs):
+    """
+    Position of every part of the model with those coefficients in squares: the offsets of the part
+    and of all its parents summed up.
+    """
+    offsets = dict((part['name'], mth.trilinear(part['offsets'], coefs)) for part in model_parts)
+    parents = dict((part['name'], part['parent']) for part in model_parts)
+    positions = {}
+    for name in offsets:
+        position = np.zeros(3)
+        part_name = name
+        while part_name is not None:
+            position = position + offsets.get(part_name, np.zeros(3))
+            part_name = parents.get(part_name)
+        positions[name] = position
+    return positions
+
+
 def model_box(model_parts, coefs, selected_parts):
     """
     Box around the model with those coefficients from above: min x, min y, max x, max y in squares,
@@ -363,19 +418,13 @@ def model_box(model_parts, coefs, selected_parts):
     """
     if not model_parts:
         return None
-    offsets = dict((name, mth.trilinear(part_offsets, coefs)) for name, _, part_offsets, _, _ in model_parts)
-    parents = dict((name, parent_name) for name, parent_name, _, _, _ in model_parts)
+    positions = part_positions(model_parts, coefs)
     box = None
-    for name, _, _, centers, halves in model_parts:
-        if selected_parts and name not in selected_parts:
+    for part in model_parts:
+        if selected_parts and part['name'] not in selected_parts:
             continue
-        position = np.zeros(3)
-        part_name = name
-        while part_name is not None:
-            position = position + offsets.get(part_name, np.zeros(3))
-            part_name = parents.get(part_name)
-        center = position + mth.trilinear(centers, coefs)
-        half = np.abs(mth.trilinear(halves, coefs))
+        center = positions[part['name']] + mth.trilinear(part['centers'], coefs)
+        half = np.abs(mth.trilinear(part['halves'], coefs))
         # some parts have no box, their header is garbage
         if not np.all(np.isfinite(center)) or not np.all(np.isfinite(half)) or half.max() > MAX_PART_SIZE:
             continue
@@ -401,14 +450,67 @@ def box_circles(box, x, y, yaw):
     length = max(half_x, half_y)
     count = max(1, int(round(length / radius)))
     along = np.linspace(-(length - radius), length - radius, count) if count > 1 else [0.0]
-    cos_yaw = math.cos(yaw)
-    sin_yaw = math.sin(yaw)
     circles = []
     for a in along:
         local_x = center_x + (a if half_x >= half_y else 0.0)
         local_y = center_y + (0.0 if half_x >= half_y else a)
-        circles.append((x + local_x * cos_yaw - local_y * sin_yaw, y + local_x * sin_yaw + local_y * cos_yaw, radius))
+        circles.append(turn(local_x, local_y, x, y, yaw) + (radius, ))
     return circles
+
+
+def turn(local_x, local_y, x, y, yaw):
+    """
+    Point of an object at (x, y) turned by yaw, local_x and local_y are in the squares of the model.
+    """
+    cos_yaw = math.cos(yaw)
+    sin_yaw = math.sin(yaw)
+    return x + local_x * cos_yaw - local_y * sin_yaw, y + local_x * sin_yaw + local_y * cos_yaw
+
+
+def deck_parts(obj):
+    """
+    Parts of the deck of a bridge the object has, empty when the object is not a bridge, see BRIDGE_DECKS.
+    """
+    return [name for name in BRIDGE_DECKS.get(obj['model'], ()) if not obj['parts'] or name in obj['parts']]
+
+
+def deck_surface(model_parts, coefs, selected_parts):
+    """
+    Top of the deck of a bridge made of the selected parts of the model: (x, y, z) in the squares of the model
+    before it is turned, every DECK_STEP squares along x and y, where the deck is.
+    """
+    positions = part_positions(model_parts, coefs)
+    triangles = []
+    for part in model_parts:
+        if part['name'] not in selected_parts:
+            continue
+        # blocks x 3 x 8 x 4 -> 8 variants of blocks x 3 x 4, a vertex is a corner of a block
+        vertices = mth.trilinear(np.moveaxis(part['blocks'], 2, 0), coefs).transpose(0, 2, 1).reshape(-1, 3) + positions[part['name']]
+        components = part['components']
+        for triangle in part['triangles']:
+            triangles.append([vertices[components[k][0] * 4 + components[k][1]] for k in triangle])
+    triangles = np.array(triangles, dtype=float).reshape(-1, 3, 3)
+    triangles = triangles[np.all(np.isfinite(triangles), axis=(1, 2)) & np.all(np.abs(triangles) < MAX_PART_SIZE, axis=(1, 2))]
+    if not len(triangles):
+        return []
+    low = triangles[:, :, :2].min(axis=(0, 1))
+    high = triangles[:, :, :2].max(axis=(0, 1))
+    grid_x, grid_y = np.meshgrid(np.arange(low[0] + DECK_STEP / 2.0, high[0], DECK_STEP), np.arange(low[1] + DECK_STEP / 2.0, high[1], DECK_STEP))
+    px = grid_x.ravel()
+    py = grid_y.ravel()
+    top = np.full(px.shape, -np.inf)
+    for a, b, c in triangles:
+        area = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1])
+        # a wall of the deck is not where units walk
+        if abs(area) < 1e-9:
+            continue
+        wa = ((b[1] - c[1]) * (px - c[0]) + (c[0] - b[0]) * (py - c[1])) / area
+        wb = ((c[1] - a[1]) * (px - c[0]) + (a[0] - c[0]) * (py - c[1])) / area
+        wc = 1.0 - wa - wb
+        inside = (wa >= -1e-6) & (wb >= -1e-6) & (wc >= -1e-6)
+        top = np.where(inside, np.maximum(top, wa * a[2] + wb * b[2] + wc * c[2]), top)
+    found = np.isfinite(top)
+    return list(zip(px[found].tolist(), py[found].tolist(), top[found].tolist()))
 
 
 def object_kind(model_name):
@@ -682,17 +784,21 @@ def build_map(zone, objects, models, plants_names, size, vertical):
                 'd': int(round(direction)) % 360,
                 'x': x,
                 'y': y,
+                'material': True,
             })
             continue
         kind = object_kind(obj['model'])
+        deck = deck_parts(obj)
+        if kind == 'bridge' and not deck:
+            kind = STRUCTURE_KIND
         row = min(max(int(obj['y'] / 2.0), 0), tile_rows - 1)
         col = min(max(int(obj['x'] / 2.0), 0), tile_cols - 1)
         areas = []
         box = model_box(models.get(obj['model']), obj['coefs'], obj['parts'])
-        if box and kind not in OPEN_KINDS:
+        if box:
             for area_x, area_y, radius in box_circles(box, obj['x'], obj['y'], obj['yaw']):
                 areas.append(list(_map_xy(area_x, area_y)) + [round(radius / (2.0 * factor), 3)])
-        buildings.append({
+        building = {
             'k': kind,
             'n': f'{obj["model"]}#{obj["texture"]}',
             'm': obj['model'],
@@ -706,7 +812,15 @@ def build_map(zone, objects, models, plants_names, size, vertical):
             'x': x,
             'y': y,
             'a': areas,
-        })
+            'material': kind not in PASSABLE_KINDS,
+        }
+        if deck and models.get(obj['model']):
+            points = []
+            for local_x, local_y, local_z in deck_surface(models[obj['model']], obj['coefs'], deck):
+                # the model is drawn that big, see "s"
+                points.append(list(_map_xy(*turn(local_x, local_y, obj['x'], obj['y'], obj['yaw']))) + [round(local_z * scale * const.MODELS_SCALE_FACTOR, 3)])
+            building['deck'] = points
+        buildings.append(building)
     if _Debug:
         print(f'{side} x {side} cells of {factor} x {factor} tiles, one cell is {cell_size:.2f} units of the world, '
               f'heights are {height_scale:.2f} units for one square')

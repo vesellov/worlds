@@ -82,6 +82,23 @@ def build_segments_batch(positions, tex_coords, angles_x, angles_z):
 def segments_batch_indices(n):
     return (np.arange(n, dtype=np.int64)[:, None] * 4 + _SegmentQuadIndices[None, :]).ravel().tolist()
 
+
+def model_texture(file_path):
+    """
+    Texture of a model which repeats past its edges, None when there is no such file. The texture coordinates
+    of some models of the game go past 1.0 (the stones, for example) and the game repeats the texture there,
+    while Kivy stretches the last row and column of the texture over the rest of the model by default.
+    """
+    texture = Cache.get('kv.texture', file_path)
+    if not texture:
+        source_file_path = resource_find(file_path)
+        if not source_file_path:
+            return None
+        texture = CoreImage(source_file_path).texture
+        Cache.append('kv.texture', file_path, texture)
+    texture.wrap = 'repeat'
+    return texture
+
 #------------------------------------------------------------------------------
 
 
@@ -162,8 +179,11 @@ class Scene(object):
         angle_x = mth.h2lon_degrees(float(h), const.PLANET_EQUATOR_SEGMENTS)
         return angle_x, angle_z
 
-    def coords_map2xyz(self, map_w, map_h, shift_w, shift_h, elevation_correction=None):
-        e, _, _ = self.calculate_elevation(map_w, map_h, shift_w, shift_h)
+    def coords_map2xyz(self, map_w, map_h, shift_w, shift_h, elevation_correction=None, walk=False):
+        """
+        Position of an object on the land, walk is True for a unit: it goes over the bridges instead of under them.
+        """
+        e, _, _ = self.calculate_elevation(map_w, map_h, shift_w, shift_h, walk=walk)
         c = e * const.SEGMENT_SIN
         e_correction = 0
         if elevation_correction is not None:
@@ -203,7 +223,7 @@ class Scene(object):
         w = int(self.area_center_w)
         h = int(self.area_center_h)
         camera_shift_angle_x, camera_shift_angle_z = self.coords_area2angles(0.5-self.segment_shift_w, 0.5-self.segment_shift_h)
-        elevation_at_center = self.land.get_elevation(w, h)
+        elevation_at_center = self.land.get_walk_elevation(w, h)
         # elevation_at_center = 0.25
         planet_shift_y = const.PLANET_RADIUS + elevation_at_center * const.ELEVATION_FACTOR + const.ELEVATION_CORRECTION
         self.global_translate_before = Translate(0, -planet_shift_y, 0, group='land')
@@ -339,11 +359,15 @@ class Scene(object):
             key += f'_{scale[0]}_{scale[1]}_{scale[2]}'
         return key
 
-    def get_segment_elevation(self, map_w, map_h):
-        e00 = const.PLANET_RADIUS + self.land.get_elevation(map_w, map_h) * const.ELEVATION_FACTOR
-        e01 = const.PLANET_RADIUS + self.land.get_elevation(map_w, map_h + 1) * const.ELEVATION_FACTOR
-        e10 = const.PLANET_RADIUS + self.land.get_elevation(map_w + 1, map_h) * const.ELEVATION_FACTOR
-        e11 = const.PLANET_RADIUS + self.land.get_elevation(map_w + 1, map_h + 1) * const.ELEVATION_FACTOR
+    def get_segment_elevation(self, map_w, map_h, walk=False):
+        """
+        Elevations of the corners of the segment: of the land, or where units walk when walk is True, see dat.LandData.
+        """
+        get_elevation = self.land.get_walk_elevation if walk else self.land.get_elevation
+        e00 = const.PLANET_RADIUS + get_elevation(map_w, map_h) * const.ELEVATION_FACTOR
+        e01 = const.PLANET_RADIUS + get_elevation(map_w, map_h + 1) * const.ELEVATION_FACTOR
+        e10 = const.PLANET_RADIUS + get_elevation(map_w + 1, map_h) * const.ELEVATION_FACTOR
+        e11 = const.PLANET_RADIUS + get_elevation(map_w + 1, map_h + 1) * const.ELEVATION_FACTOR
         return e00, e01, e10, e11
 
     def calculate_unpacked_elevation(self, h):
@@ -357,8 +381,8 @@ class Scene(object):
             return -1 * (const.INPUT_WATER_LEVEL - 1) * const.ELEVATION_UNPACK_UNDERWATER_FACTOR
         return (float(h - const.INPUT_WATER_LEVEL) / h) * float(const.ELEVATION_UNPACK_UNDERWATER_FACTOR)
 
-    def calculate_elevation(self, w_i, h_i, shift_w, shift_h):
-        e00, e01, e10, e11 = self.get_segment_elevation(w_i, h_i)
+    def calculate_elevation(self, w_i, h_i, shift_w, shift_h, walk=False):
+        e00, e01, e10, e11 = self.get_segment_elevation(w_i, h_i, walk=walk)
         e_min = min(e00, e01, e10, e11)
         e_max = max(e00, e01, e10, e11)
         a = const.SEGMENT_ANGLE
@@ -837,7 +861,11 @@ class Scene(object):
             unit.container_unit.add(mesh_transform.part_rotate)
             # if _Debug:
             #     print(f'        adding mesh {mesh.name} of part {part_name} to unit {unit.name} with material {mesh.material}')
-            unit.container_unit.add(BindTexture(source=mesh.material['map_Kd'], index=1, group=unit.name))
+            texture = model_texture(mesh.material['map_Kd'])
+            if texture:
+                unit.container_unit.add(BindTexture(texture=texture, index=1, group=unit.name))
+            else:
+                unit.container_unit.add(BindTexture(source=mesh.material['map_Kd'], index=1, group=unit.name))
             unit.container_unit.add(Mesh(
                 vertices=mesh.vertices,
                 indices=mesh.indices,
@@ -963,7 +991,7 @@ class Scene(object):
             hd = h_i - h0
         self.area_center_w = w_i
         self.area_center_h = h_i
-        e, _, _ = self.calculate_elevation(self.area_center_w, self.area_center_h, self.segment_shift_w, self.segment_shift_h)
+        e, _, _ = self.calculate_elevation(self.area_center_w, self.area_center_h, self.segment_shift_w, self.segment_shift_h, walk=True)
         if e < const.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * const.ELEVATION_FACTOR:
             e = const.WATER_LEVEL_ELEVATION + (2.0 / 100.0) * const.ELEVATION_FACTOR
         # e = const.PLANET_RADIUS + 0.25 * const.ELEVATION_FACTOR
@@ -1368,7 +1396,7 @@ class Scene(object):
         # if ao.root_mesh_center:
         #     e_correction = ao.root_mesh_center[0][2] * const.MODELS_SCALE_FACTOR
         segment_angle_x, segment_angle_z = self.coords_area2angles(area_w, area_h)
-        shift_vector = self.coords_map2xyz(map_w, map_h, shift_w, shift_h, elevation_correction=elevation_correction)
+        shift_vector = self.coords_map2xyz(map_w, map_h, shift_w, shift_h, elevation_correction=elevation_correction, walk=True)
         unit = self.construct_unit_from_object_data(
             container=self.container_animated_objects,
             object_name=ao.name,
