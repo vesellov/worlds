@@ -196,6 +196,8 @@ def main():
     for archive in archives:
         world = simulation.Simulation(biome=archive, catalog_path=os.path.join(ROOT_PATH, 'catalog'))
         world.load()
+        # one unit of every figure walks on the roads of the biome, so all figures can be seen there
+        world.add_showcase_units()
         worlds[archive.id] = world
     server = GameServer(name, worlds)
     server.start(port=args.port, host=args.host)

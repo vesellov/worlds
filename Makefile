@@ -62,26 +62,26 @@ ei_models_scan:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
 	@cp -v tools/scan_models.py repack/EIrepack/
 	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:." ../../venv_tools/bin/python3 scan_models.py ${SRC_DIR}/Maps/
-	@mv -v repack/EIrepack/figures_names.json catalog/
-	@mv -v repack/EIrepack/textures.json catalog/
+# 	@mv -v repack/EIrepack/figures_names.json catalog/
+# 	@mv -v repack/EIrepack/textures.json catalog/
 
 ei_res_unpack:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
 	@cp -v tools/unpack_all.py repack/EIrepack/Converters/
 	@cp -v tools/convert_model.py repack/EIrepack/Converters/
 	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:." ../../venv_tools/bin/python3 Converters/unpack_all.py ${SRC_DIR} ${UNPACK_DIR} --verbose
-	@mv -v repack/EIrepack/figures.json catalog/
-	@mv -v repack/EIrepack/figures_parts.json catalog/
-	@mv -v repack/EIrepack/figures_samples.json catalog/
-	@mv -v repack/EIrepack/buildings.json catalog/
-	@mv -v repack/EIrepack/plants.json catalog/
+# 	@mv -v repack/EIrepack/figures.json catalog/
+# 	@mv -v repack/EIrepack/figures_parts.json catalog/
+# 	@mv -v repack/EIrepack/figures_samples.json catalog/
+# 	@mv -v repack/EIrepack/buildings.json catalog/
+# 	@mv -v repack/EIrepack/plants.json catalog/
 
 ei_figures_scan:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
 	@cp -v tools/scan_figures.py repack/EIrepack/
 	@cp -v catalog/figures.json repack/EIrepack/
 	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv_tools/bin/python3 scan_figures.py ${UNPACK_DIR}/Res/figures/
-	@mv -v repack/EIrepack/figures.json catalog/
+# 	@mv -v repack/EIrepack/figures.json catalog/
 
 ei_db_scan:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
@@ -92,10 +92,10 @@ ei_compile:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
 	@cp -v tools/compile_data.py repack/EIrepack/
 	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv_tools/bin/python3 compile_data.py
-	@mv -v repack/EIrepack/armors.json catalog/
-	@mv -v repack/EIrepack/weapons.json catalog/
-	@mv -v repack/EIrepack/materials.json catalog/
-	@mv -v repack/EIrepack/animations.json catalog/
+# 	@mv -v repack/EIrepack/armors.json catalog/
+# 	@mv -v repack/EIrepack/weapons.json catalog/
+# 	@mv -v repack/EIrepack/materials.json catalog/
+# 	@mv -v repack/EIrepack/animations.json catalog/
 
 FIGURES_RES ?= $(HOME)/.worlds/data/figures.res
 FIGURES_OUT ?= ./figures/

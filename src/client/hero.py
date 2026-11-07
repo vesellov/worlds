@@ -104,7 +104,7 @@ class Hero(object):
         """
         texture = self.texture or self.build_template()['textures'].get('*') or ''
         # the layer of the texture after ":" is not interesting
-        return f'{self.model_name} {texture.split(":")[0]}'.strip()
+        return f'{self.model_name}\n{texture.split(":")[0]}'.strip()
 
     def label_height(self):
         """

@@ -70,6 +70,12 @@ NEUTRAL_UNIT_DISTANCE = 2.0
 NEUTRAL_UNIT_ANGLE = 60.0
 NEUTRAL_CIRCLE_RADIUS = 1.5
 
+# when the server starts one unit of every figure is added to every biome, see Simulation.add_showcase_units():
+# they stand at equal distances along all roads of the biome, or in rows that many segments apart around the place
+# where the heroes appear when the biome has no roads, and walk around in a small circle of SHOWCASE_CIRCLE_RADIUS segments
+SHOWCASE_SPACING = 3.0
+SHOWCASE_CIRCLE_RADIUS = 1.0
+
 # two moving units which are going to touch each other in less than that many ticks turn aside and slow down,
 # see Simulation.avoidance()
 AVOID_HORIZON = 12.0
@@ -396,6 +402,77 @@ class Simulation(object):
             self.looks = dress.Looks(self.catalog_path)
         model_name = self.looks.models[self.next_figure_index % len(self.looks.models)]
         self.next_figure_index += 1
+        capital_numbers = sorted(self.capitals.keys())
+        if len(capital_numbers) >= 2 and self.roads:
+            x, y = self.capitals[capital_numbers[0]]
+            unit = self.create_neutral_unit(model_name, x, y)
+            self.behaviors[unit.id] = behavior.UnitRoadToCapitalWalk(capital_numbers[1])
+        else:
+            angle = math.radians(near.direction + random.uniform(-NEUTRAL_UNIT_ANGLE, NEUTRAL_UNIT_ANGLE))
+            x = near.w + near.shift_w + NEUTRAL_UNIT_DISTANCE * math.cos(angle)
+            y = near.h + near.shift_h + NEUTRAL_UNIT_DISTANCE * math.sin(angle)
+            unit = self.create_neutral_unit(model_name, x, y)
+            self.behaviors[unit.id] = self.walk_in_circle(unit, NEUTRAL_CIRCLE_RADIUS)
+        return unit
+
+    def add_showcase_units(self):
+        """
+        Adds one unit of every figure, so all of them can be seen in the biome. They stand at equal distances
+        along all roads of the biome, see showcase_positions(), and walk around in a small circle there.
+        """
+        if self.looks is None:
+            self.looks = dress.Looks(self.catalog_path)
+        positions = self.showcase_positions(len(self.looks.models))
+        for model_name, (x, y) in zip(self.looks.models, positions):
+            unit = self.create_neutral_unit(model_name, x, y)
+            self.behaviors[unit.id] = self.walk_in_circle(unit, SHOWCASE_CIRCLE_RADIUS)
+        if _Debug:
+            print(f'added {len(positions)} showcase units in biome {self.biome.id}')
+
+    def showcase_positions(self, count):
+        """
+        Points (x, y) at equal distances along all roads of the biome, one after another.
+        A biome without roads gets rows SHOWCASE_SPACING segments apart around the place where the heroes appear.
+        """
+        if count <= 0:
+            return []
+        # pieces of all roads between their neighbour points: (x, y, dx, dy, length)
+        pieces = []
+        if self.roads:
+            for road_id in sorted(self.roads.roads.keys()):
+                points = self.roads.points(road_id)
+                for (ax, ay), (bx, by) in zip(points[:-1], points[1:]):
+                    dx, dy = self.roads.shift(ax, ay, bx, by)
+                    length = math.sqrt(dx * dx + dy * dy)
+                    if length > 0.0:
+                        pieces.append((ax, ay, dx, dy, length))
+        total = sum(piece[4] for piece in pieces)
+        if total <= 0.0:
+            columns = int(math.ceil(math.sqrt(count)))
+            start_w, start_h = self.start_position
+            return [(
+                start_w + 0.5 + SHOWCASE_SPACING * (n % columns - (columns - 1) / 2.0),
+                start_h + 0.5 + SHOWCASE_SPACING * (n // columns - (columns - 1) / 2.0),
+            ) for n in range(count)]
+        step = total / count
+        positions = []
+        piece_index = 0
+        piece_start = 0.0
+        for n in range(count):
+            # in the middle of its part of the roads, so the units do not stand at the very ends of the roads
+            distance = step * (n + 0.5)
+            while piece_index < len(pieces) - 1 and piece_start + pieces[piece_index][4] < distance:
+                piece_start += pieces[piece_index][4]
+                piece_index += 1
+            ax, ay, dx, dy, length = pieces[piece_index]
+            t = min(1.0, (distance - piece_start) / length)
+            positions.append((ax + dx * t, ay + dy * t))
+        return positions
+
+    def create_neutral_unit(self, model_name, x, y):
+        """
+        Adds a unit with a random look of that figure at the open cell nearest to (x, y), see find_free_position().
+        """
         self.next_id += 1
         unit = models.Unit(
             id=self.next_id,
@@ -405,31 +482,27 @@ class Simulation(object):
             h=0,
             direction=float(random.randint(0, 359)),
         )
-        capital_numbers = sorted(self.capitals.keys())
-        if len(capital_numbers) >= 2 and self.roads:
-            x, y = self.capitals[capital_numbers[0]]
-            unit.w, unit.h = self.find_free_position(int(math.floor(x)) % self.width, int(math.floor(y)) % self.height, size=zone.unit_size(unit))
-            self.behaviors[unit.id] = behavior.UnitRoadToCapitalWalk(capital_numbers[1])
-        else:
-            angle = math.radians(near.direction + random.uniform(-NEUTRAL_UNIT_ANGLE, NEUTRAL_UNIT_ANGLE))
-            x = near.w + near.shift_w + NEUTRAL_UNIT_DISTANCE * math.cos(angle)
-            y = near.h + near.shift_h + NEUTRAL_UNIT_DISTANCE * math.sin(angle)
-            unit.w, unit.h = self.find_free_position(int(math.floor(x)) % self.width, int(math.floor(y)) % self.height, size=zone.unit_size(unit))
-            # the unit stands on the circle, the point it follows goes around from there
-            angle = random.uniform(0.0, 2.0 * math.pi)
-            self.behaviors[unit.id] = behavior.UnitWalkInCircle(
-                unit.w + unit.shift_w - NEUTRAL_CIRCLE_RADIUS * math.cos(angle),
-                unit.h + unit.shift_h - NEUTRAL_CIRCLE_RADIUS * math.sin(angle),
-                NEUTRAL_CIRCLE_RADIUS,
-                angle=angle,
-                clockwise=random.choice((True, False)),
-            )
+        unit.w, unit.h = self.find_free_position(int(math.floor(x)) % self.width, int(math.floor(y)) % self.height, size=zone.unit_size(unit))
         unit.animation = self.animation_for(unit)
         self.objects[unit.id] = unit
         self.neutral_units_count += 1
         if _Debug:
             print(f'added neutral {unit.name} {unit.template.model_name} at {unit.w},{unit.h}, {self.neutral_units_count} in biome {self.biome.id}')
         return unit
+
+    def walk_in_circle(self, unit, radius):
+        """
+        The unit walks around in a circle of that radius from where it stands, see behavior.UnitWalkInCircle.
+        """
+        # the unit stands on the circle, the point it follows goes around from there
+        angle = random.uniform(0.0, 2.0 * math.pi)
+        return behavior.UnitWalkInCircle(
+            unit.w + unit.shift_w - radius * math.cos(angle),
+            unit.h + unit.shift_h - radius * math.sin(angle),
+            radius,
+            angle=angle,
+            clockwise=random.choice((True, False)),
+        )
 
     def remove_object(self, object_id):
         self.pending_controls.pop(object_id, None)
