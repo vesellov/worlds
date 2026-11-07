@@ -199,8 +199,15 @@ def solid_objects(plants, buildings):
                 radius = (DEFAULT_TRUNK_RADIUS + TRUNK_GAP) / const.SEGMENT_SIZE
             objects.append((float(x), float(y), radius))
     for building in (buildings or []):
-        # buildings are placed at the corner of the segment, see scen.Scene.add_land_segment()
-        objects.append((float(building['x']), float(building['y']), BUILDING_RADIUS.get(building['k'], DEFAULT_BUILDING_RADIUS)))
+        x = float(building['x'])
+        y = float(building['y'])
+        # a building of a zone of the original game says which circles around it units can not walk:
+        # [dx, dy, radius] in segments, an empty list when units walk through it, see server.land.map_buildings()
+        if 'a' in building:
+            for dx, dy, radius in building['a']:
+                objects.append((x + float(dx), y + float(dy), float(radius)))
+            continue
+        objects.append((x, y, BUILDING_RADIUS.get(building['k'], DEFAULT_BUILDING_RADIUS)))
     return objects, sorted(unknown)
 
 #------------------------------------------------------------------------------

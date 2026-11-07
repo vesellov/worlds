@@ -898,8 +898,11 @@ folder anymore".format(count))
     for model_name in models.keys():
         if model_name in figures:
             continue
-        fig_tree = lnk.read_info(os.path.join(args.dst_dir_path, 'Res', 'figures', model_name, model_name + ".lnk"))
-        figures[model_name] = fig_tree
+        try:
+            fig_tree = lnk.read_info(os.path.join(args.dst_dir_path, 'Res', 'figures', model_name, model_name + ".lnk"))
+            figures[model_name] = fig_tree
+        except Exception as exc:
+            print(model_name, exc)
 
     figures_parts = {}
     for model_name, fig_tree in figures.items():

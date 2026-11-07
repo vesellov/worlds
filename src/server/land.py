@@ -480,6 +480,14 @@ def detect_bounds(data):
     return min_x, max_x, min_y, max_y
 
 
+def exact_heights(data):
+    """
+    A map made of a zone of the original game has the real heights of the land and the depths of the water,
+    those are kept as they are, see tools/ei_map.py.
+    """
+    return data.get('land', {}).get('exact_heights', False)
+
+
 def detect_elevation_bounds(data):
     cells = data['pack']['cells']
     min_elevation = min(filter(None, [c['h'] for c in cells]))
@@ -494,7 +502,8 @@ def enrich_data_with_tiles_mapping(data):
         cell = data['pack']['cells'][i]
         h = cell['h']
         best_biome = biomes_names[cell['biome']]
-        biome_tile = None
+        # a map made of a zone of the original game gives the tiles of the rocks itself, see tools/ei_map.py
+        biome_tile = cell.get('tile')
         cell_feature = data['pack']['features'][cell['f']]
         if cell_feature['type'] == 'lake':
             h = round(cell_feature['height'])
@@ -661,6 +670,73 @@ def build_roads_data(data):
     return roads
 
 
+def draw_scale():
+    """
+    How many pixels of the land one unit of the input map takes, see xy2draw().
+    """
+    return float(width) * GLOBAL_SCALE / float(input_width)
+
+
+def map_buildings(data, heightmap_image):
+    """
+    Buildings given by the map itself, a map made of a zone of the original game has the houses, fences, bridges
+    and other objects of the zone, see tools/ei_map.py. The positions go into pixels of the land the same way
+    as the cells, the circles "a" where units can not walk are kept around the building: [dx, dy, radius]
+    in segments, see lib.zone.solid_objects().
+    """
+    scale = draw_scale()
+    result = []
+    for building in data['land']['buildings']:
+        x, y = xy2draw(building['x'], building['y'])
+        areas = []
+        for area_x, area_y, radius in building.get('a') or []:
+            ax, ay = xy2draw(area_x, area_y)
+            areas.append([round(ax - x, 3), round(ay - y, 3), round(radius * scale, 3)])
+        record = dict(building)
+        record.update({
+            'i': len(result) + 1,
+            'x': round(x, 2),
+            'y': round(y, 2),
+            'h': heightmap_image.getpixel((int(x) % heightmap_image.width, int(y) % heightmap_image.height))[0],
+            'a': areas,
+        })
+        result.append(record)
+    return result
+
+
+def map_plants(data):
+    """
+    Plants given by the map itself, the trees and bushes of a zone of the original game, see tools/ei_map.py,
+    in the same form as build_plants() makes them.
+    """
+    result = {}
+    for plant in data['land']['plants']:
+        x, y = xy2draw(plant['x'], plant['y'])
+        x_text = plants.coordinate_string(*divmod(round(x * 100), 100))
+        y_text = plants.coordinate_string(*divmod(round(y * 100), 100))
+        key = f"{plant['m']}#{plant['t']}#{plant['p'] or 'null'}"
+        result.setdefault(key, []).append(f"{plant['c']} {x_text} {y_text} {int(plant['d'])} {plant['n']} {key}")
+    return result
+
+
+def map_roads(data):
+    """
+    Roads given by the map itself, the paths of a zone of the original game, see tools/ei_map.py,
+    in the same form as build_roads_data() makes them.
+    """
+    roads = []
+    for road in data['land']['roads']:
+        points = []
+        for x, y in road['p']:
+            x, y = xy2draw(x, y)
+            point = [round(x, 2), round(y, 2)]
+            if not points or points[-1] != point:
+                points.append(point)
+        if len(points) >= 2:
+            roads.append({'i': road['i'], 'p': points})
+    return roads
+
+
 def capture_routes_data(routes_image):
     routes_map = {}
     for x in range(routes_image.width):
@@ -793,6 +869,7 @@ def build_heightmap(data, draw, packed_draw):
     biomes_names = data['biomesData']['name']
     cells = data['pack']['cells']
     vertices = data['pack']['vertices']
+    exact = exact_heights(data)
     bellow_water_count = 0
     above_cliffs_count = 0
     for cell in cells:
@@ -803,7 +880,9 @@ def build_heightmap(data, draw, packed_draw):
             points.append(xy2draw(x, y))
         h = cell['h']
         cell_feature = data['pack']['features'][cell['f']]
-        if cell_feature['type'] == 'lake':
+        if exact:
+            pass
+        elif cell_feature['type'] == 'lake':
             # h = round(cell_feature['height']) - 2
             if round(cell_feature['height']) > LAKES_MAX_ELEVATION_LEVEL:
                 h = LAKES_MAX_ELEVATION_LEVEL
@@ -813,7 +892,7 @@ def build_heightmap(data, draw, packed_draw):
                 if h < INPUT_WATER_LEVEL:
                     h = 1
         packed_draw.polygon(points, fill=(h, h, h))
-        if True:
+        if not exact:
             if h > CLIFFS_HEIGHT_MARGIN - CLIFFS_HEIGHT_DROP and h <= CLIFFS_HEIGHT_MARGIN:
                 h = CLIFFS_HEIGHT_MARGIN - CLIFFS_HEIGHT_DROP
         if False:
@@ -852,7 +931,8 @@ def build_capitals(data, heightmap_image):
                 if coldest_temp is None or temp_cell < coldest_temp:
                     coldest_temp = temp_cell
                     coldest_burg = burg
-    print(f"  coldest burg is {coldest_burg['name']} with temp={coldest_temp}")
+    if coldest_burg:
+        print(f"  coldest burg is {coldest_burg['name']} with temp={coldest_temp}")
     selected_races = set()
     for burg in data['pack']['burgs']:
         if isinstance(burg, dict):
@@ -1585,9 +1665,15 @@ def build_zonemap(heightmap_image, scale=zone.SCALE):
     return Image.fromarray(closed == 0).convert('1'), stats
 
 
-def build_minimap(data, buildings, minimap_image):
+def build_minimap(data, buildings, minimap_image, roads_of_map=None):
     minimap_draw = ImageDraw.Draw(minimap_image)
     build_routes(data, minimap_draw, highlight_routes=True)
+    # the roads and the buildings given by the map itself, see map_roads() and map_buildings()
+    if roads_of_map is not None:
+        for road in roads_of_map:
+            minimap_draw.line([tuple(p) for p in road['p']], fill=(255, 0, 0), width=1)
+        for building in buildings:
+            minimap_draw.point((building['x'], building['y']), fill='black')
     for building in buildings:
         x = building['x']
         y = building['y']
@@ -1716,20 +1802,30 @@ def main():
     rivers_map = capture_rivers_data(rivers_image)
     print(f'Captured rivers data with {len(rivers_map)} tiles')
 
-    capitals, flags = build_capitals(data, heightmap_image)
-    print(f"Placed {len(capitals)} capitals")
+    # a map made of a zone of the original game gives its buildings, plants and roads, see tools/ei_map.py,
+    # those stand on the land as they are: the land under them is not changed
+    map_land = data.get('land', {})
+    if 'buildings' in map_land:
+        buildings = map_buildings(data, heightmap_image)
+        land_buildings = []
+        print(f"Placed {len(buildings)} buildings of the map")
+    else:
+        capitals, flags = build_capitals(data, heightmap_image)
+        print(f"Placed {len(capitals)} capitals")
 
-    towers = build_towers(data, capitals, flags, heightmap_image)
-    print(f"Placed {len(towers)} towers")
+        towers = build_towers(data, capitals, flags, heightmap_image)
+        print(f"Placed {len(towers)} towers")
 
-    buildings = []
-    buildings.extend(capitals)
-    buildings.extend(towers)
-    buildings.extend(flags)
-    print(f"Total {len(buildings)} buildings generated")
+        buildings = []
+        buildings.extend(capitals)
+        buildings.extend(towers)
+        buildings.extend(flags)
+        land_buildings = buildings
+        print(f"Total {len(buildings)} buildings generated")
     open('assets/buildings.json', 'w').write(json.dumps(buildings, indent=2))
 
-    roads = build_roads_data(data)
+    roads_of_map = map_roads(data) if 'roads' in map_land else None
+    roads = build_roads_data(data) if roads_of_map is None else roads_of_map
     open('assets/roads.json', 'w').write(json.dumps(roads))
     if _Debug:
         print(f"Saved {len(roads)} roads")
@@ -1748,7 +1844,7 @@ def main():
         tiles_image_output = tiles_image.convert('RGB')
 
     else:
-        buildings_map = build_buildings_tiles(tiles_image, buildings)
+        buildings_map = build_buildings_tiles(tiles_image, land_buildings)
         print(f'Updated {len(buildings_map)} tiles under buildings')
 
         tiles_map = capture_tiles_data(tiles_image)
@@ -1835,11 +1931,13 @@ def main():
     changes = update_routes_elevation(heightmap_image, routes_map, min_route_elevation=ROUTES_MIN_ELEVATION_LEVEL)
     print(f"Updated routes elevation with {changes} changes")
 
-    changes = update_buildings_elevation(heightmap_image, buildings, min_building_elevation=BUILDINGS_MIN_ELEVATION_LEVEL)
+    changes = update_buildings_elevation(heightmap_image, land_buildings, min_building_elevation=BUILDINGS_MIN_ELEVATION_LEVEL)
     print(f"Updated buildings elevation with {changes} changes")
 
     heightmap_image.save('assets/heightmap_raw.png')
-    heightmap_image = heightmap_image.filter(ImageFilter.BoxBlur(radius=1))
+    # the heights of a map made of a zone of the original game are smooth already, the blur would fill its narrow rivers
+    if not exact_heights(data):
+        heightmap_image = heightmap_image.filter(ImageFilter.BoxBlur(radius=1))
 
     changes = update_rivers_elevation(heightmap_image, rivers_map, max_river_elevation=RIVERS_MAX_ELEVATION_LEVEL)
     print(f"Updated rivers elevation second time with {changes} changes")
@@ -1847,7 +1945,7 @@ def main():
     changes = update_routes_elevation(heightmap_image, routes_map, min_route_elevation=ROUTES_MIN_ELEVATION_LEVEL)
     print(f"Updated routes elevation second time with {changes} changes")
 
-    changes = update_buildings_elevation(heightmap_image, buildings, min_building_elevation=BUILDINGS_MIN_ELEVATION_LEVEL)
+    changes = update_buildings_elevation(heightmap_image, land_buildings, min_building_elevation=BUILDINGS_MIN_ELEVATION_LEVEL)
     print(f"Updated buildings elevation second time with {changes} changes")
 
     # all channels of the heightmap are the same, only one is kept
@@ -1864,7 +1962,10 @@ def main():
     open('assets/terrain.bin', 'wb').write(terrain.encode(tiles_map, tiles_image.width, tiles_image.height))
     print(f"Generated terrain data")
 
-    plants_data = build_plants(data, buildings, tiles_image, tiles_map, cell_index_map, catalog_plants, heightmap_image)
+    if 'plants' in map_land:
+        plants_data = map_plants(data)
+    else:
+        plants_data = build_plants(data, buildings, tiles_image, tiles_map, cell_index_map, catalog_plants, heightmap_image)
     open('assets/plants.bin', 'wb').write(plants.encode(plants_data))
     print(f"Generated plants data with {len(plants_data)} kinds of plants")
 
@@ -1873,7 +1974,7 @@ def main():
     print(f"Generated zonemap {zonemap_image.width}x{zonemap_image.height}, closed: {zonemap_stats}")
 
     minimap_image = tiles_image_output.copy()
-    build_minimap(data, buildings, minimap_image)
+    build_minimap(data, buildings, minimap_image, roads_of_map=roads_of_map)
     minimap_image.save('assets/minimap.png')
     print(f"Generated minimap image")
 

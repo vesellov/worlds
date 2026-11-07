@@ -425,7 +425,11 @@ class Simulation(object):
         for store_id in sorted(self.animations_catalog.keys()):
             showcase.extend((store_id, model_name) for model_name in self.store_looks(store_id).models)
         positions = self.showcase_positions(len(showcase))
+        count = 0
         for (store_id, model_name), (x, y) in zip(showcase, positions):
+            count += 1
+            if count > 50:
+                break
             unit = self.create_neutral_unit(model_name, x, y, store_id=store_id)
             self.behaviors[unit.id] = self.walk_in_circle(unit, SHOWCASE_CIRCLE_RADIUS)
         if _Debug:

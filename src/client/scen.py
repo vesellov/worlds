@@ -1127,7 +1127,11 @@ class Scene(object):
                     selected_parts=building['p'].split(':') if building['p'] not in ['null', None, 'None', ''] else None,
                     textures=textures,
                 )
-                shift_vector = self.coords_map2xyz(w_t, h_t, 0.0, 0.0, elevation_correction=building['e'])
+                # the buildings of a zone of the original game stand anywhere in the segment, the generated ones
+                # stand at its corner, see server.land.map_buildings()
+                building_shift_w = float(building['x']) - int(building['x'])
+                building_shift_h = float(building['y']) - int(building['y'])
+                shift_vector = self.coords_map2xyz(w_t, h_t, building_shift_w, building_shift_h, elevation_correction=building['e'])
                 building_unit = self.construct_unit_from_object_data(
                     container=self.container_static_objects,
                     object_name=building_so.name,
@@ -1141,8 +1145,8 @@ class Scene(object):
                     onstage=True,
                     w=map_w,
                     h=map_h,
-                    shift_w=0.0,
-                    shift_h=0.0,
+                    shift_w=building_shift_w,
+                    shift_h=building_shift_h,
                     area_w=area_w,
                     area_h=area_h,
                 )

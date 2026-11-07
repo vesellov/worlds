@@ -267,14 +267,14 @@ class WorldsApp(App):
         gc.collect()
 
     def on_biome_progress(self, done, total):
-        self.show_models_popup(title=f'downloading the land... {done}/{total}', maximum=total)
+        self.show_models_popup(title=f'downloading ... {done}/{total}', maximum=total)
         self.models_progress_bar.value = done
 
     def on_biome(self, location_id, biome_dir_path, error):
         if error or not biome_dir_path:
             self.show_models_popup(title=f'failed to receive the land: {error}')
             return
-        self.show_models_popup(title='loading the land...')
+        self.show_models_popup(title='loading...')
         # let the popup be drawn before the land is loaded
         Clock.schedule_once(lambda dt: self.load_land(biome_dir_path))
 

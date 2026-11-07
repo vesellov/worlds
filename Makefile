@@ -19,7 +19,7 @@ PYTHON_SERVER="venv_server/bin/python3"
 
 .DEFAULT_GOAL := venv
 
-.PHONY: clean pyclean run server ei_models_scan ei_res_unpack ei_db_scan ei_registry ei_figures_repack
+.PHONY: clean pyclean run server ei_models_scan ei_res_unpack ei_db_scan ei_registry ei_figures_repack ei_map land_build
 
 pyclean:
 	@find src tools -name '*.pyc' -exec rm -f {} +
@@ -85,14 +85,6 @@ ei_db_scan:
 	@cp -v tools/extract_db_data.py repack/EIrepack/
 	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:Converters:." ../../venv_tools/bin/python3 extract_db_data.py ${UNPACK_DIR}/Res/database/
 
-# catalog of the units of the game for catalog/: races, monsters, NPCs, items, spells, animations and sounds of the figures,
-# units of the maps, and figures.json, animations.json, armors.json, weapons.json, materials.json of the server and the client.
-# The archives are read right from the game folders, nothing is unpacked. Every version of the game is a store, see lib.models:
-# EI1_DIR is store 1 "Evil Islands" and EI2_DIR is store 2 "Lost in Astral", every file of the catalog has both of them.
-# EI1_MOD_DIRS and EI2_MOD_DIRS are the folders of the mods which go over the game, for example
-# EI2_DIR=.../ei2rebirth_unpacked EI2_MOD_DIRS=.../ei2rebirth_unpacked/Starter/Mods/LostInAstral
-EI1_DIR ?= /run/media/veselin/STUFF/evil_islands/ei-1
-EI2_DIR ?= /run/media/veselin/STUFF/evil_islands/ei-2
 REGISTRY_DIR ?= catalog
 ei_registry:
 	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
@@ -104,6 +96,15 @@ FIGURES_OUT ?= ./figures/
 # split big figures.res into one .res file per model, those are downloaded by the client one by one
 ei_figures_repack: venv
 	@PYTHONPATH=src $(PYTHON) tools/split_figures.py $(FIGURES_RES) $(FIGURES_OUT)
+
+# map.json of a zone of the original game for "make land_build" instead of "make fmg_generate": the land of the .mpr,
+# the buildings and the plants of the .mob, no capitals, flags or roads are made then
+EI_GAME_DIR ?= /run/media/veselin/STUFF/evil_islands/EvilIslands/ENG/game_info/data
+EI_ZONE ?= zone1
+ei_map:
+	@if [ ! -d "./repack/EIrepack" ]; then git clone --depth=1 https://github.com/aspadm/EIrepack.git ./repack/EIrepack; fi
+	@cp -v tools/ei_map.py repack/EIrepack/
+	@cd repack/EIrepack/ && PYTHONPATH="${PYTHONPATH}:Formats:$(CURDIR)/src:." ../../venv_tools/bin/python3 ei_map.py ${EI_GAME_DIR} ${EI_ZONE} $(CURDIR)/${MAP_JSON} --size ${LAND_SIZE}
 
 tiles_build:
 	@rm -rf ${RES_DIR}/merged_hq/*
@@ -129,7 +130,10 @@ fmg_generate:
 	@mv -v fmg/Fantasy-Map-Generator/map.json assets/
 	@cat assets/map.json | python3 -m json.tool > assets/map_formatted.json
 
+LAND_SIZE ?= 128
+MAP_JSON ?= assets/map.json
 land_build:
+	# the land of the biome in assets/ from the map of the Fantasy Map Generator or the one of "make ei_map"
 	@rm -rfv assets/tiles.png
-	@PYTHONPATH=src venv_tools/bin/python -m server.land assets/map.json 128 128
+	@PYTHONPATH=src venv_tools/bin/python -m server.land ${MAP_JSON} ${LAND_SIZE} ${LAND_SIZE}
 	@open assets/minimap.png
