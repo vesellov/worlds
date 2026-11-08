@@ -184,28 +184,56 @@ def read_cstr(file, code="cp1251"):
             buf += b.decode(code)
 
 
+def floats_list(data, offset, shape):
+    """
+    Little-endian 4b floats from the bytes at the offset as nested lists of the given shape and the offset after them.
+    All numbers are converted at once, reading them one by one is many times slower.
+    """
+    count = 1
+    for size in shape:
+        count *= size
+    values = np.frombuffer(data, dtype='<f4', count=count, offset=offset).reshape(shape).tolist()
+    return values, offset + 4 * count
+
+
+def ushorts_array(data, offset, shape):
+    count = 1
+    for size in shape:
+        count *= size
+    values = np.frombuffer(data, dtype='<u2', count=count, offset=offset).reshape(shape)
+    return values, offset + 2 * count
+
+
 def read_bon_info(file_path):
-    info = []
     if not os.path.isfile(file_path):
         return None
     with open(file_path, "rb") as file:
-        file.seek(0)
-        for _ in range(os.path.getsize(file_path) // 12):
-            info.append(read_float(file, 3))
-    return info
+        return parse_bon_info(file.read())
+
+
+def parse_bon_info(data):
+    # 8 shifts of the part, one for every body variant
+    return floats_list(data, 0, (len(data) // 12, 3))[0]
 
 
 def read_anm_info(file_path):
-    info = []
     with open(file_path, "rb") as file:
-        info.append(read_uint(file))
-        info.append([read_float(file, 4) for _ in range(info[0])])
-        info.append(read_uint(file))
-        info.append([read_float(file, 3) for _ in range(info[2])])
-        info.extend(read_uint(file, 2))
-        if info[4] != 0 and info[5] != 0:
-            info.append([[
-                read_float(file, 3) for _ in range(info[5])] for _ in range(info[4])])
+        return parse_anm_info(file.read())
+
+
+def parse_anm_info(data):
+    info = []
+    rotations_count = struct.unpack_from('<I', data, 0)[0]
+    info.append(rotations_count)
+    rotations, offset = floats_list(data, 4, (rotations_count, 4))
+    info.append(rotations)
+    shifts_count = struct.unpack_from('<I', data, offset)[0]
+    info.append(shifts_count)
+    shifts, offset = floats_list(data, offset + 4, (shifts_count, 3))
+    info.append(shifts)
+    info.extend(struct.unpack_from('<II', data, offset))
+    if info[4] != 0 and info[5] != 0:
+        info.append(floats_list(data, offset + 8, (info[4], info[5], 3))[0])
     return info
 
 
@@ -222,36 +250,48 @@ def read_anm_first_shift(file_path):
 
 
 def read_fig_info(file_path):
-    info = []
     if not os.path.isfile(file_path):
         return None
     with open(file_path, "rb") as file:
-        if file.read(3) != b'\x46\x49\x47':
-            raise Exception("Incorrect magic!")
-        n = read_byte(file) - 48
-        info.append(n)
-        info.extend(read_uint(file, 6))
-        read_uint(file)
-        info.extend(read_uint(file, 2))
-        info[4] //= 3
-        for _ in range(3):
-            info.append([read_float(file, 3) for _ in range(n)])
-        info.append(read_float(file, n))
-        # Vertex blocks
-        info.append([[[read_float(file, 4) for _ in range(n)] for _ in range(3)] for _ in range(info[1])])
-        # Normals
-        info.append([[read_float(file, 4) for _ in range(4)] for _ in range(info[2])])
-        # UV
-        info.append([read_float(file, 2) for _ in range(info[3])])
-        # Indices
-        info.append([read_ushort(file, 3) for _ in range(info[4])])
-        # Vertex components
-        info.append([])
-        for _ in range(info[5]):
-            buf = read_ushort(file, 3)
-            info[-1].append([buf[0] >> 2, buf[0] & 3, buf[1] >> 2, buf[1] & 3, buf[2]])
-        # Deformation
-        info.append([read_ushort(file, 2) for _ in range(info[6])])
+        return parse_fig_info(file.read())
+
+
+def parse_fig_info(data):
+    if data[:3] != b'\x46\x49\x47':
+        raise Exception("Incorrect magic!")
+    n = data[3] - 48
+    info = [n]
+    info.extend(struct.unpack_from('<6I', data, 4))
+    # one number is skipped
+    info.extend(struct.unpack_from('<2I', data, 32))
+    info[4] //= 3
+    offset = 40
+    # center, min and max
+    for _ in range(3):
+        values, offset = floats_list(data, offset, (n, 3))
+        info.append(values)
+    # radius
+    values, offset = floats_list(data, offset, (n, ))
+    info.append(values if n != 1 else values[0])
+    # Vertex blocks
+    values, offset = floats_list(data, offset, (info[1], 3, n, 4))
+    info.append(values)
+    # Normals
+    values, offset = floats_list(data, offset, (info[2], 4, 4))
+    info.append(values)
+    # UV
+    values, offset = floats_list(data, offset, (info[3], 2))
+    info.append(values)
+    # Indices
+    values, offset = ushorts_array(data, offset, (info[4], 3))
+    info.append(values.tolist())
+    # Vertex components
+    values, offset = ushorts_array(data, offset, (info[5], 3))
+    values = values.astype(np.int64)
+    info.append(np.stack([values[:, 0] >> 2, values[:, 0] & 3, values[:, 1] >> 2, values[:, 1] & 3, values[:, 2]], axis=1).tolist())
+    # Deformation
+    values, offset = ushorts_array(data, offset, (info[6], 2))
+    info.append(values.tolist())
     return info
 
 
