@@ -35,6 +35,15 @@ ROTATE_VERTICAL_MAX = 85.0
 
 ROTATE_VERTICAL_INITIAL = 45
 
+# in the free camera mode the camera moves while the screen is held that close to its edge, a part of the window size
+CAMERA_PAN_EDGE = 0.25
+
+# segments per second at the initial distance of the camera, the camera moves faster when it is further
+CAMERA_PAN_SPEED = 8.0
+
+# seconds to reach the full speed after the edge is held and to stop after it is released
+CAMERA_PAN_RAMP = 0.4
+
 #--- PLANET ---
 SEGMENT_SIZE = 5.0
 

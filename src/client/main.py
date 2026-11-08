@@ -80,6 +80,8 @@ if not system.is_android():
     Config.set('graphics', 'left', f'{int(display_height/4)}')
     Config.set('graphics', 'width', f'{int(display_width/2)}')
     Config.set('graphics', 'height', f'{int(display_width/4)}')
+    # the right button of the mouse moves the free camera, by default Kivy turns it into a red dot of the multitouch emulation
+    Config.set('input', 'mouse', 'mouse,disable_multitouch')
 
 #------------------------------------------------------------------------------
 
@@ -92,6 +94,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
+from kivy.uix.togglebutton import ToggleButton
 
 #------------------------------------------------------------------------------
 
@@ -412,6 +415,17 @@ class WorldsApp(App):
         )
         add_unit_button.bind(on_release=lambda *args: self.game_client.add_unit())
         self.root.add_widget(add_unit_button)
+        # the camera follows the hero, pressed button frees it: it moves while the screen is held near the edge
+        camera_button = ToggleButton(
+            text='free camera',
+            size_hint=(None, None),
+            size=(dp(120), dp(44)),
+            pos_hint={'right': 0.99},
+        )
+        camera_button.bind(state=lambda button, state: self.renderer.set_camera_free(state == 'down'))
+        # right under the button above
+        add_unit_button.bind(y=lambda button, y: setattr(camera_button, 'top', y - dp(5)))
+        self.root.add_widget(camera_button)
         # the whole map in the top left corner of the screen with the dots of all units of the world
         self.minimap = scr.MiniMap(
             image_file_path=os.path.join(self.biome_dir_path, 'minimap.png'),

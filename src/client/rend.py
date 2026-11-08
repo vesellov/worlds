@@ -193,6 +193,14 @@ class Renderer(Widget):
         self.camera_speed = 0.0
         self.camera_unit_lock = None
         self.camera_capital_lock = 0
+        # in the free mode the camera does not follow the hero and moves while the screen is held near its edge,
+        # see set_camera_free() and update_camera_pan()
+        self.camera_free = False
+        self.pan_touch_id = None
+        # where the held edge is: the direction from the center of the screen to the touch, (right, up)
+        self.pan_target = (0.0, 0.0)
+        # the speed of the camera in segments per second along the same axes of the screen
+        self.pan_velocity = [0.0, 0.0]
         # scr.UnitLabels with the names of the units, see update_unit_labels()
         self.unit_labels = None
         # matrices of the camera of the last frame, see update_canvas()
@@ -877,6 +885,17 @@ class Renderer(Widget):
             p1 = Vector(positions[0])
             p2 = Vector(positions[1])
             self.initial_double_touch_dist = p1.distance(p2)
+        if self.camera_free and self.pan_touch_id is None and not touch.is_mouse_scrolling:
+            direction = self.pan_direction_at(touch.pos)
+            if touch.device == 'mouse':
+                # on the desktop the camera is moved with the right button, the left one only rotates it,
+                # the right button held away from the edge waits for the mouse to come to the edge
+                if touch.button == 'right':
+                    self.pan_touch_id = touch.id
+                    self.pan_target = direction or (0.0, 0.0)
+            elif direction:
+                self.pan_touch_id = touch.id
+                self.pan_target = direction
         if 'button' in touch.profile and touch.button in ('scrollup', 'scrolldown'):
             factor = self.camera_distance_scale_factor
             if touch.button == "scrolldown":
@@ -897,6 +916,9 @@ class Renderer(Widget):
     def on_touch_up(self, touch):
         if touch.grab_current is self:
             touch.ungrab(self)
+            if touch.id == self.pan_touch_id:
+                self.pan_touch_id = None
+                self.pan_target = (0.0, 0.0)
             if touch.id in self.active_touches:
                 del self.active_touches[touch.id]
             if touch in self.touches:
@@ -908,6 +930,10 @@ class Renderer(Widget):
     def on_touch_move(self, touch):
         if touch in self.touches and touch.grab_current == self:
             self.active_touches[touch.id] = touch.pos
+            if touch.id == self.pan_touch_id:
+                # the held touch moves the camera and does not rotate it, it stops when the touch leaves the edge
+                self.pan_target = self.pan_direction_at(touch.pos) or (0.0, 0.0)
+                return True
             if len(self.active_touches) == 2:
                 positions = list(self.active_touches.values())
                 p1 = Vector(positions[0])
@@ -980,12 +1006,67 @@ class Renderer(Widget):
         # in the same frame, otherwise hero and land move at different moments and the hero shakes
         if self.game_client:
             self.game_client.interpolate(time.perf_counter())
-        if self.camera_unit_lock:
+        if self.camera_free:
+            self.update_camera_pan(delta)
+        elif self.camera_unit_lock:
             u = self.scene.units.get(self.camera_unit_lock)
             if u:
                 self.scene.update_land(new_position=(u.w, u.h, u.shift_w, u.shift_h))
         self.update_canvas()
         self.update_unit_labels()
+
+    def set_camera_free(self, free):
+        """
+        In the free mode the camera stays where it is and moves while the screen is held near its edge,
+        out of it the camera follows the hero again, see on_update_glsl().
+        """
+        self.camera_free = bool(free)
+        self.pan_touch_id = None
+        self.pan_target = (0.0, 0.0)
+        self.pan_velocity = [0.0, 0.0]
+        if _Debug:
+            print(f'camera is free: {self.camera_free}')
+
+    def pan_direction_at(self, pos):
+        """
+        The direction from the center of the window to the point (right, up) of the length 1
+        when the point is near the edge of the window, otherwise None.
+        """
+        x, y = pos
+        width = float(Window.width)
+        height = float(Window.height)
+        edge_w = width * const.CAMERA_PAN_EDGE
+        edge_h = height * const.CAMERA_PAN_EDGE
+        if edge_w < x < width - edge_w and edge_h < y < height - edge_h:
+            return None
+        dx = x - width / 2.0
+        dy = y - height / 2.0
+        length = math.hypot(dx, dy)
+        if length == 0:
+            return None
+        return dx / length, dy / length
+
+    def update_camera_pan(self, delta):
+        # the speed changes smoothly to the one of the held edge, so the camera starts and stops softly,
+        # long frames are cut, otherwise the camera jumps after a freeze
+        delta = min(delta, 0.1)
+        max_speed = const.CAMERA_PAN_SPEED * self.camera_distance_scale_factor / const.SCALE_INITIAL
+        step = max_speed * delta / const.CAMERA_PAN_RAMP
+        for i in range(2):
+            target = self.pan_target[i] * max_speed
+            v = self.pan_velocity[i]
+            if v < target:
+                v = min(v + step, target)
+            elif v > target:
+                v = max(v - step, target)
+            self.pan_velocity[i] = v
+        right = self.pan_velocity[0] * delta
+        up = self.pan_velocity[1] * delta
+        distance = math.hypot(right, up)
+        if distance == 0:
+            return
+        # the top of the screen is the direction of the camera on the map, see the keys of camera_move_mode 3
+        self.scene.land_move(self.camera_angle_z + math.degrees(math.atan2(-right, up)), distance)
 
     def screen_position(self, unit, height):
         """
@@ -1037,7 +1118,7 @@ class Renderer(Widget):
         self.send_controls()
         # land segments are loaded and unloaded at this pace, camera itself follows the hero every frame
         self.scene.update_segments()
-        if self.camera_unit_lock:
+        if self.camera_free or self.camera_unit_lock:
             pass
         elif self.camera_capital_lock > 0:
             capital = self.scene.land.capitals.get(self.camera_capital_lock, None)
