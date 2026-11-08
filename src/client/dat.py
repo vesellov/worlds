@@ -197,13 +197,66 @@ class ObjectData(object):
 #------------------------------------------------------------------------------
 
 
+class LazyMap(object):
+    """
+    Name -> value which is read from its source when it is used for the first time. A model has hundreds of parts
+    and thousands of animations of the parts, but a unit uses only few of them, see ModelData.
+    peek(source) reads the first shift of the root of an animation without reading all of it, see ModelData.first_shift().
+    """
+
+    def __init__(self, sources=None, load=None, peek=None):
+        self.sources = sources or {}
+        self.load = load
+        self.peek = peek
+        self.loaded = {}
+
+    def __contains__(self, name):
+        return name in self.sources
+
+    def __getitem__(self, name):
+        if name not in self.loaded:
+            self.loaded[name] = self.load(self.sources[name])
+        return self.loaded[name]
+
+    def __iter__(self):
+        return iter(self.sources)
+
+    def __len__(self):
+        return len(self.sources)
+
+    def get(self, name, default=None):
+        if name not in self.sources:
+            return default
+        return self[name]
+
+    def keys(self):
+        return self.sources.keys()
+
+    def items(self):
+        return [(name, self[name]) for name in self.sources]
+
+    def values(self):
+        return [self[name] for name in self.sources]
+
+#------------------------------------------------------------------------------
+
+
 class ModelData(object):
+    """
+    Figures, bones and animations of all parts of one model. Only links of the parts are read right away,
+    everything else is read from the files of the model when it is used, see LazyMap.
+    """
 
     def __init__(self, **kwargs):
         self.links = {}
-        self.figures = {}
-        self.bones = {}
-        self.animations = {}
+        # names of all parts of the model, see load_figure_data()
+        self.part_names = set()
+        # part name -> figure, see res.read_fig_info()
+        self.figures = LazyMap()
+        # part name -> 8 shifts of the part from its parent, one for every body variant
+        self.bones = LazyMap()
+        # animation name -> LazyMap: part name -> frames of the part, see res.read_anm_info()
+        self.animations = LazyMap()
         # template -> coefs of the body variant the animations were recorded for
         self.animations_coefs = {}
         # (template, part names, coefs) -> height of the root part above the lowest point of the body
@@ -256,14 +309,20 @@ class ModelData(object):
             return self.animations_coefs[template]
         parents = self.part_parents(template)
         votes = [0] * 8
-        for animation in self.animations.values():
+        for animation_name in self.animations.keys():
+            animation = self.animations[animation_name]
             errors = [0.0] * 8
             found = False
-            for part_name, anm_info in animation.items():
-                bone = self.bones.get(part_name)
-                if not parents.get(part_name) or not bone or len(bone) != 8 or not anm_info[3]:
+            for part_name in animation.keys():
+                if not parents.get(part_name):
                     continue
-                shift_len = mth.vec3len(anm_info[3][0])
+                bone = self.bones.get(part_name)
+                if not bone or len(bone) != 8:
+                    continue
+                shift = self.first_shift(animation, part_name)
+                if shift is None:
+                    continue
+                shift_len = mth.vec3len(shift)
                 for v in range(8):
                     errors[v] += abs(shift_len - mth.vec3len(bone[v]))
                 found = True
@@ -276,6 +335,16 @@ class ModelData(object):
             coefs = [float((v >> 1) & 1), float(v & 1), float(v >> 2)]
         self.animations_coefs[template] = coefs
         return coefs
+
+    def first_shift(self, animation, part_name):
+        """
+        Shift of the part in the first frame of the animation or None, the frames of all parts in all animations
+        are compared in find_animations_coefs(), so only the beginning of not loaded animations is read.
+        """
+        if part_name in animation.loaded:
+            anm_info = animation[part_name]
+            return anm_info[3][0] if anm_info[3] else None
+        return animation.peek(animation.sources[part_name])
 
     def root_height(self, template, part_names, coefs):
         """
@@ -327,179 +396,108 @@ class ModelData(object):
         return self.root_height(template, part_names, coefs) / recorded_height
 
     def load_figure_data(self, figure_dir_path, template):
+        """
+        Reads the links of the parts of the model unpacked into the folder, see unpack_figure_data(),
+        figures, bones and animations are read from their files when they are used.
+        """
         lnk_file_path = os.path.join(figure_dir_path, template + '.lnk')
         if not os.path.isfile(lnk_file_path):
             return None
-        lnk_list, lnk_tree, lnk_parents, _ = res.read_lnk_info(lnk_file_path)
+        lnk_list, _, _, _ = res.read_lnk_info(lnk_file_path)
         self.links[template] = {
             'ordered': lnk_list,
-            # 'tree': lnk_tree,
-            # 'parents': lnk_parents,
         }
-        this_model_links = res.flat_tree(lnk_list)
-        anm_count = 0
-        for file_name in os.listdir(figure_dir_path):
-            file_name = file_name.lower()
-            sub_path = os.path.join(figure_dir_path, file_name)
-            if os.path.isfile(sub_path):
-                if file_name.endswith('.fig'):
-                    if file_name[:-4] not in this_model_links:
-                        continue
-                    fig_file_path = os.path.join(figure_dir_path, file_name)
-                    # try:
-                    fig_info = res.read_fig_info(fig_file_path)
-                    # except Exception as exc:
-                    #     if _Debug:
-                    #         print(f'error reading figure file {fig_file_path}: {exc}')
-                    #     continue
-                    self.figures[file_name[:-4]] = fig_info
-                elif file_name.endswith('.bon'):
-                    if file_name[:-4] not in this_model_links:
-                        continue
-                    bon_file_path = os.path.join(figure_dir_path, file_name)
-                    self.bones[file_name[:-4]] = res.read_bon_info(bon_file_path)
-                    # if file_name[:-4] == 'rh3':
-                    #     print('bon_file_path', bon_file_path, file_name[:-4])
-                    #     self.bones['rh3.arrow00'] = self.bones['rh3'].copy()
-            elif os.path.isdir(sub_path):
-                if file_name not in self.animations:
-                    self.animations[file_name] = {}
-                for sub_file_name in os.listdir(sub_path):
-                    sub_file_name = sub_file_name.lower()
-                    if sub_file_name.endswith('.anm'):
-                        anm_file_path = os.path.join(sub_path, sub_file_name)
-                        self.animations[file_name][sub_file_name[:-4]] = res.read_anm_info(anm_file_path)
-                        anm_count += 1
+        this_model_links = set(res.flat_tree(lnk_list))
+        self.part_names = this_model_links
+        figures = {}
+        bones = {}
+        animations = {}
+        for entry in os.scandir(figure_dir_path):
+            name = entry.name.lower()
+            if entry.is_dir():
+                animations[name] = entry.path
+            elif name.endswith('.fig') and name[:-4] in this_model_links:
+                figures[name[:-4]] = entry.path
+            elif name.endswith('.bon') and name[:-4] in this_model_links:
+                bones[name[:-4]] = entry.path
+        self.figures = LazyMap(figures, res.read_fig_info)
+        self.bones = LazyMap(bones, res.read_bon_info)
+        self.animations = LazyMap(animations, self.load_animation_dir)
         if _Debug:
-            print(f'      for model {{{template}}} loaded {len(self.links)} links, {len(self.figures)} figures, {len(self.bones)} bones and {anm_count} animations')
+            print(f'      for model {{{template}}} found {len(figures)} figures, {len(bones)} bones and {len(animations)} animations')
 
-    def unpack_figure_data(self, figures_res_file_path, destination_dir_path, template, selected_parts=[], selected_animations=[], save_json=False):
+    def load_animation_dir(self, animation_dir_path):
+        parts = {}
+        for entry in os.scandir(animation_dir_path):
+            name = entry.name.lower()
+            # animations keep frames of some parts which the model does not have
+            if name.endswith('.anm') and name[:-4] in self.part_names:
+                parts[name[:-4]] = entry.path
+        return LazyMap(parts, res.read_anm_info, peek=res.read_anm_first_shift)
+
+    def unpack_figure_data(self, figures_res_file_path, destination_dir_path, template, save_json=False):
+        """
+        Unpacks the files of the model from its .res file into <destination>/<template>/ and reads the links of the parts,
+        see load_figure_data().
+        """
         destination_sub_dir_path = os.path.join(destination_dir_path, template)
         if not os.path.isdir(destination_sub_dir_path):
             os.makedirs(destination_sub_dir_path)
-        lnk_count = 0
-        fig_count = 0
-        bon_count = 0
-        anm_count = 0
         with open(figures_res_file_path, 'rb') as figures_file:
             res_filetree_dict = res.read_res_filetree(figures_file, return_dict=True)
-            lnk_file_name = template + '.lnk'
-            mod_file_name = template + '.mod'
-            anm_file_name = template + '.anm'
-            lnk_element = res_filetree_dict.get(lnk_file_name)
-            this_model_links = None
+            lnk_element = res_filetree_dict.get(template + '.lnk')
             if lnk_element:
-                res.unpack_res_element(figures_file, lnk_element, dest_file_path=os.path.join(destination_sub_dir_path, lnk_file_name))
-                lnk_file_path = os.path.join(destination_sub_dir_path, lnk_file_name)
-                lnk_list, lnk_tree, lnk_parents, _ = res.read_lnk_info(lnk_file_path)
-                lnk_count += 1
-                self.links[lnk_file_name[:-4]] = {
-                    'ordered': lnk_list,
-                    # 'tree': lnk_tree,
-                    # 'parents': lnk_parents,
-                }
-                this_model_links = res.flat_tree(lnk_list)
-            res_mod_element = res_filetree_dict.get(mod_file_name)
+                res.unpack_res_element(figures_file, lnk_element, dest_file_path=os.path.join(destination_sub_dir_path, template + '.lnk'))
+            res_mod_element = res_filetree_dict.get(template + '.mod')
             if res_mod_element:
-                mod_file_path = res.unpack_res_element(figures_file, res_mod_element, dest_file_path=os.path.join(destination_sub_dir_path, mod_file_name))
-                mod_filetree = res.unpack_mod_info(mod_file_path, destination_dir_path=destination_sub_dir_path)
-                if this_model_links is None:
-                    for mod_element in sorted(mod_filetree):
-                        el = mod_element[0][:-4]
-                        if mod_element[0].lower().endswith('.lnk'):
-                            lnk_file_name = mod_element[0].lower()
-                            lnk_file_path = os.path.join(destination_sub_dir_path, lnk_file_name)
-                            lnk_list, lnk_tree, lnk_parents, _ = res.read_lnk_info(lnk_file_path)
-                            lnk_count += 1
-                            self.links[lnk_file_name[:-4]] = {
-                                'ordered': lnk_list,
-                                # 'tree': lnk_tree,
-                                # 'parents': lnk_parents,
-                            }
-                            if template == lnk_file_name[:-4]:
-                                this_model_links = res.flat_tree(lnk_list)
-                for mod_element in sorted(mod_filetree):
-                    if mod_element[0].lower().endswith('.fig'):
-                        fig_element = mod_element[0][:-4].lower()
-                        if fig_element not in this_model_links:
-                            continue
-                        if not selected_parts or fig_element in selected_parts:
-                            fig_file_path = os.path.join(destination_sub_dir_path, mod_element[0])
-                            fig_info = res.read_fig_info(fig_file_path)
-                            self.figures[mod_element[0][:-4]] = fig_info
-                            fig_count += 1
+                # figures of the parts and the links of the model
+                mod_file_path = res.unpack_res_element(figures_file, res_mod_element, dest_file_path=os.path.join(destination_sub_dir_path, template + '.mod'))
+                res.unpack_mod_info(mod_file_path, destination_dir_path=destination_sub_dir_path)
             else:
-                if this_model_links is not None:
-                    for part_name in this_model_links:
-                        part_name = part_name.lower()
-                        fig_element = part_name + '.fig'
-                        bon_element = part_name + '.bon'
-                        if not selected_parts or part_name in selected_parts:
-                            res_fig_element = res_filetree_dict.get(template + fig_element)
-                            if res_fig_element:
-                                fig_file_path = res.unpack_res_element(figures_file, res_fig_element, dest_file_path=os.path.join(destination_sub_dir_path, fig_element))
-                                fig_info = res.read_fig_info(fig_file_path)
-                                self.figures[part_name] = fig_info
-                                fig_count += 1
-                            res_bon_element = res_filetree_dict.get(template + bon_element)
-                            if res_bon_element:
-                                bon_file_path = res.unpack_res_element(figures_file, res_bon_element, dest_file_path=os.path.join(destination_sub_dir_path, bon_element))
-                                bon_info = res.read_bon_info(bon_file_path)
-                                self.bones[part_name] = bon_info
-                                bon_count += 1
-            res_anm_element = res_filetree_dict.get(anm_file_name)
+                # figures and bones of the parts are kept apart: <template><part>.fig and <template><part>.bon
+                for element_name, element in res_filetree_dict.items():
+                    name = element_name.lower()
+                    if name.startswith(template) and name[-4:] in ('.fig', '.bon') and name not in (template + '.fig', template + '.bon'):
+                        res.unpack_res_element(figures_file, element, dest_file_path=os.path.join(destination_sub_dir_path, name[len(template):]))
+            res_anm_element = res_filetree_dict.get(template + '.anm')
             if res_anm_element:
-                anm_file_path = res.unpack_res_element(figures_file, res_anm_element, dest_file_path=os.path.join(destination_sub_dir_path, anm_file_name))
+                # one .res for every animation with one .anm for every part
+                anm_file_path = res.unpack_res_element(figures_file, res_anm_element, dest_file_path=os.path.join(destination_sub_dir_path, template + '.anm'))
                 with open(anm_file_path, 'rb') as anm_file:
                     anm_filetree = res.read_res_filetree(anm_file)
                     for anm_element in anm_filetree:
-                        if not os.path.isdir(os.path.join(destination_sub_dir_path, anm_element[0])):
-                            os.makedirs(os.path.join(destination_sub_dir_path, anm_element[0]))
                         anm_element[0] += '.anm'
                     res.unpack_res(anm_file, anm_filetree, destination_dir_path=destination_sub_dir_path)
-                    for anm_element in anm_filetree:
-                        el = anm_element[0][:-4]
-                        if not selected_animations or el in selected_animations:
-                            one_anm_file_path = os.path.join(destination_sub_dir_path, anm_element[0])
-                            with open(one_anm_file_path, 'rb') as one_anm_file:
-                                one_anm_filetree = res.read_res_filetree(one_anm_file)
-                                self.animations[anm_element[0][:-4]] = {}
-                                for one_anm_element in one_anm_filetree:
-                                    el_part = one_anm_element[0]
-                                    if this_model_links and el_part not in this_model_links:
-                                        continue
-                                    if not selected_parts or el_part in selected_parts:
-                                        one_anm_dest_file_path = os.path.join(destination_sub_dir_path, anm_element[0][:-4], one_anm_element[0] + '.anm')
-                                        res.unpack_res_element(one_anm_file, one_anm_element, dest_file_path=one_anm_dest_file_path)
-                                        self.animations[anm_element[0][:-4]][one_anm_element[0]] = res.read_anm_info(one_anm_dest_file_path)
-                                        anm_count += 1
+                for anm_element in anm_filetree:
+                    animation_dir_path = os.path.join(destination_sub_dir_path, anm_element[0][:-4])
+                    if not os.path.isdir(animation_dir_path):
+                        os.makedirs(animation_dir_path)
+                    with open(os.path.join(destination_sub_dir_path, anm_element[0]), 'rb') as one_anm_file:
+                        one_anm_filetree = res.read_res_filetree(one_anm_file)
+                        for one_anm_element in one_anm_filetree:
+                            one_anm_element[0] += '.anm'
+                        res.unpack_res(one_anm_file, one_anm_filetree, destination_dir_path=animation_dir_path)
             res_bon_element = res_filetree_dict.get(template + '.bon')
             if res_bon_element:
+                # one .bon for every part
                 bon_file_path = res.unpack_res_element(figures_file, res_bon_element, dest_file_path=os.path.join(destination_sub_dir_path, template + '.bon'))
                 with open(bon_file_path, 'rb') as bon_file:
                     bon_filetree = res.read_res_filetree(bon_file)
                     for bon_element in bon_filetree:
                         bon_element[0] += '.bon'
                     res.unpack_res(bon_file, bon_filetree, destination_dir_path=destination_sub_dir_path)
-                    for bon_element in bon_filetree:
-                        if this_model_links and bon_element[0][:-4] not in this_model_links:
-                            continue
-                        one_bon_file_path = os.path.join(destination_sub_dir_path, bon_element[0])
-                        self.bones[bon_element[0][:-4]] = res.read_bon_info(one_bon_file_path)
-                        bon_count += 1
-        if _Debug:
-            print(f'      for model {{{template}}} unpacked {lnk_count} links, {fig_count} figures, {bon_count} bones and {anm_count} animations')
+        self.load_figure_data(destination_sub_dir_path, template)
         if save_json:
             dest_json_file_path = os.path.join(destination_dir_path, template + '.json')
             open(dest_json_file_path, 'wt').write(json.dumps({
                 'template': template,
-                'figures': self.figures,
+                'figures': dict(self.figures.items()),
                 'links': self.links,
-                'animations': self.animations,
-                'bones': self.bones,
+                'animations': {name: dict(animation.items()) for name, animation in self.animations.items()},
+                'bones': dict(self.bones.items()),
             }, indent=2))
             if _Debug:
-                print(f'      for model {{{template}}} saved {lnk_count} links, {fig_count} figures, {bon_count} bones and {anm_count} animations to {dest_json_file_path}')
+                print(f'      for model {{{template}}} saved to {dest_json_file_path}')
 
 #------------------------------------------------------------------------------
 

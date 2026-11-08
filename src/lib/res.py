@@ -209,6 +209,18 @@ def read_anm_info(file_path):
     return info
 
 
+def read_anm_first_shift(file_path):
+    """
+    Shift of the part in the first frame of the animation without reading all frames, None when there are no shifts.
+    """
+    with open(file_path, "rb") as file:
+        rotations_count = read_uint(file)
+        file.seek(4 + 16 * rotations_count)
+        if read_uint(file) == 0:
+            return None
+        return read_float(file, 3)
+
+
 def read_fig_info(file_path):
     info = []
     if not os.path.isfile(file_path):
