@@ -759,35 +759,12 @@ class Scene(object):
                 if part_name == o.root_part_name:
                     o.root_mesh_name = mesh.name
                     o.root_mesh_center = mesh.center
-            for anim_name in o.animations_loaded:
-                if part_name not in m.animations[anim_name]:
-                    continue
-                animation_info = m.animations[anim_name][part_name]
-                if anim_name not in o.animations:
-                    o.animations[anim_name] = dat.ObjectAnimationData(template, anim_name)
-                a = dat.ObjectPartAnimationData()
-                a.rotation_frames_input = [mth.ei2quad_list(quad) for quad in animation_info[1]]
-                if part_name == o.root_part_name:
-                    a.translation_frames_input = [mth.ei2xyz_list([
-                        coord[0] * root_scale * scale[0],
-                        coord[1] * root_scale * scale[1],
-                        coord[2] * root_scale * scale[2],
-                    ]) for coord in animation_info[3]]
-                else:
-                    a.translation_frames_input = [mth.ei2xyz_list(coord) for coord in animation_info[3]]
-                morphing_frames = []
-                if animation_info[4] != 0 and animation_info[5] != 0:
-                    for value in animation_info[6]:
-                        morphing_frames.append([])
-                        for i in range(animation_info[5]):
-                            morphing_frames[0].append(mth.ei2xyz_list(value[i]))
-                    a.morphing_frames_input = morphing_frames
-                a.frames = len(a.rotation_frames_input)
-                o.animations[anim_name].parts[part_name] = a
+        o.model = m
+        o.root_scale = root_scale
+        o.scale = scale
         if static:
             self.static_objects[o.name] = o
         else:
-            o.calculate_animations()
             o.ground_offset, o.top_offset = self.figure_height_range(o, m, coefs, scale, store_id=store_id)
             self.animated_objects[o.name] = o
         # t2 = time.time()

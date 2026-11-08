@@ -63,26 +63,14 @@ class MeshTransformData(object):
 
 
 class ObjectPartAnimationData(object):
+    """
+    Frames of one part in one animation: rotation and position of the part relative to the root of the unit.
+    """
 
     def __init__(self):
         self.frames = 0
-        self.rotation_frames_input = []
-        self.translation_frames_input = []
-        self.morphing_frames_input = []
         self.rotation_frames = []
         self.translation_frames = []
-        self.morphing_frames = []
-
-    def duplicate(self):
-        d = ObjectPartAnimationData()
-        d.frames = self.frames
-        d.rotation_frames_input = self.rotation_frames_input.copy()
-        d.translation_frames_input = self.translation_frames_input.copy()
-        d.morphing_frames_input = self.morphing_frames_input.copy()
-        d.rotation_frames = self.rotation_frames.copy()
-        d.translation_frames = self.translation_frames.copy()
-        d.morphing_frames = self.morphing_frames.copy()
-        return d
 
 #------------------------------------------------------------------------------
 
@@ -97,6 +85,37 @@ class ObjectAnimationData(object):
 #------------------------------------------------------------------------------
 
 
+class ObjectAnimations(object):
+    """
+    Animations of the object by name. A unit plays only few of its animations,
+    so every animation is calculated the first time it is used, see ObjectData.calculate_animation().
+    """
+
+    def __init__(self, o):
+        self.o = o
+        self.calculated = {}
+
+    def __contains__(self, animation_name):
+        return animation_name in self.o.animations_loaded
+
+    def __getitem__(self, animation_name):
+        if animation_name not in self.calculated:
+            if animation_name not in self.o.animations_loaded:
+                raise KeyError(animation_name)
+            self.calculated[animation_name] = self.o.calculate_animation(animation_name)
+        return self.calculated[animation_name]
+
+    def get(self, animation_name, default=None):
+        if animation_name not in self.o.animations_loaded:
+            return default
+        return self[animation_name]
+
+    def keys(self):
+        return list(self.o.animations_loaded)
+
+#------------------------------------------------------------------------------
+
+
 class ObjectData(object):
 
     def __init__(self, name, static=True):
@@ -105,42 +124,23 @@ class ObjectData(object):
         self.template = None
         self.meshes = {}
         self.parts = []
-        # self.parts_tree = {}
         self.parts_tree_ordered = []
         self.bones = {}
-        # self.parts_parents = {}
         self.textures = {}
         self.root_part_name = None
         self.root_mesh_name = None
         self.root_mesh_center = None
-        self.animations = {}
+        self.animations = ObjectAnimations(self)
         self.animations_loaded = []
+        # the animations are calculated from the data of the model, see calculate_animation():
+        # ModelData, the ratio of the shifts of the root part, see ModelData.animations_root_scale(), and the scale
+        self.model = None
+        self.root_scale = 1.0
+        self.scale = [1.0, 1.0, 1.0]
         # heights of the lowest and of the highest point of the figure above its root part,
         # see scen.Scene.figure_height_range()
         self.ground_offset = 0.0
         self.top_offset = 0.0
-
-    # def list_parents(self, part_name):
-    #     if part_name not in self.parts_parents:
-    #         return []
-    #     parents = []
-    #     current_part = part_name
-    #     while current_part and current_part in self.parts_parents:
-    #         next_parent = self.parts_parents[current_part]
-    #         if next_parent:
-    #             parents.insert(0, next_parent)
-    #         current_part = next_parent
-    #     return parents
-
-    # def walk_parts(self, visitor_before, visitor_after=None, tree=None):
-    #     if tree is None:
-    #         tree = self.parts_tree
-    #     for part_name, other_parts in tree.items():
-    #         if part_name in self.parts:
-    #             visitor_before(self, part_name)
-    #             self.walk_parts(visitor_before, visitor_after, other_parts)
-    #             if visitor_after:
-    #                 visitor_after(self, part_name)
 
     def walk_parts_ordered(self, visitor, ordered_tree=None, parent_part_name=None):
         if ordered_tree is None:
@@ -154,69 +154,45 @@ class ObjectData(object):
             for branch in this_part_branches:
                 self.walk_parts_ordered(visitor, ordered_tree=branch, parent_part_name=this_part_name)
 
-    # def walk_parts_before_after(self, visitor_before, visitor_after, ordered_tree=None, parent_part_name=None):
-    #     if ordered_tree is None:
-    #         ordered_tree = self.parts_tree_ordered
-    #     this_part_name = ordered_tree[0]
-    #     if this_part_name not in self.parts:
-    #         return
-    #     this_part_branches = ordered_tree[1]
-    #     visitor_before(this_part_name, parent_part_name)
-    #     if this_part_branches:
-    #         for branch in this_part_branches:
-    #             self.walk_parts_before_after(visitor_before, visitor_after, ordered_tree=branch, parent_part_name=this_part_name)
-    #     visitor_after(this_part_name, parent_part_name)
-
-    def calculate_animations(self):
-        anim_part_y_shift = {}
+    def calculate_animation(self, animation_name):
+        """
+        Rotations and positions of the parts in every frame of the animation: the frames of a part are turned
+        and moved together with its parent part. A part without its own frames moves exactly as its parent.
+        """
+        a = ObjectAnimationData(self.template, animation_name)
+        model_animation = self.model.animations[animation_name]
 
         def _part_visitor(part_name, parent_part_name):
-            bone_t = [0, 0, 0]
-            if part_name in self.bones:
-                bone_t = self.bones[part_name]
-            count = 0
-            for anim_name in self.animations_loaded:
-                if anim_name not in anim_part_y_shift:
-                    anim_part_y_shift[anim_name] = 0
-                a = self.animations[anim_name]
-                if part_name not in a.parts:
-                    a.parts[part_name] = a.parts[parent_part_name].duplicate()
-                    continue
-                part_a = a.parts[part_name]
-                part_rotation_frames_input = part_a.rotation_frames_input
-                part_translation_frames_input = part_a.translation_frames_input
-                if parent_part_name:
-                    parent_part_a = a.parts[parent_part_name]
-                    part_rotation_frames_calculated = []
-                    part_translation_frames_calculated = []
-                    for i in range(part_a.frames):
-                        parent_q = parent_part_a.rotation_frames[i]
-                        parent_t = parent_part_a.translation_frames[i]                        
-                        part_q = part_rotation_frames_input[i]
-                        final_q = mth.quaternion_multiply(part_q, parent_q)
-                        final_t = mth.vec3sum(mth.quaternion_by_vector(parent_q, bone_t), parent_t)
-                        part_rotation_frames_calculated.append(final_q)
-                        part_translation_frames_calculated.append(final_t)
-                    part_a.rotation_frames = part_rotation_frames_calculated
-                    part_a.translation_frames = part_translation_frames_calculated
-                else:
-                    part_rotation_frames_calculated = []
-                    part_translation_frames_calculated = []
-                    for i in range(part_a.frames):
-                        part_q = part_rotation_frames_input[i]
-                        part_t = part_translation_frames_input[i]
-                        part_rotation_frames_calculated.append(part_q)
-                        part_translation_frames_calculated.append(mth.vec3sum(bone_t, part_t))
-                    part_a.rotation_frames = part_rotation_frames_calculated
-                    part_a.translation_frames = part_translation_frames_calculated
-                part_a.rotation_frames_input = []
-                part_a.translation_frames_input = []
-                count += 1
-
-            # if _Debug:
-            #     print(f'    calculated {count} animations for [{part_name}]')
+            if part_name not in model_animation:
+                a.parts[part_name] = a.parts[parent_part_name]
+                return
+            animation_info = model_animation[part_name]
+            bone_t = self.bones.get(part_name, [0, 0, 0])
+            part_a = ObjectPartAnimationData()
+            rotation_frames_input = [mth.ei2quad_list(quad) for quad in animation_info[1]]
+            part_a.frames = len(rotation_frames_input)
+            if parent_part_name:
+                parent_part_a = a.parts[parent_part_name]
+                for i in range(part_a.frames):
+                    parent_q = parent_part_a.rotation_frames[i]
+                    parent_t = parent_part_a.translation_frames[i]
+                    part_a.rotation_frames.append(mth.quaternion_multiply(rotation_frames_input[i], parent_q))
+                    part_a.translation_frames.append(mth.vec3sum(mth.quaternion_by_vector(parent_q, bone_t), parent_t))
+            else:
+                # the shifts of the root part were recorded for one body variant, see ModelData.animations_root_scale()
+                for i in range(part_a.frames):
+                    coord = animation_info[3][i]
+                    part_t = mth.ei2xyz_list([
+                        coord[0] * self.root_scale * self.scale[0],
+                        coord[1] * self.root_scale * self.scale[1],
+                        coord[2] * self.root_scale * self.scale[2],
+                    ])
+                    part_a.rotation_frames.append(rotation_frames_input[i])
+                    part_a.translation_frames.append(mth.vec3sum(bone_t, part_t))
+            a.parts[part_name] = part_a
 
         self.walk_parts_ordered(_part_visitor)
+        return a
 
 #------------------------------------------------------------------------------
 
