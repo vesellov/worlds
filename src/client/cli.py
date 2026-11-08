@@ -57,6 +57,10 @@ INPUT_LEAD_MARGIN = 1.0
 # the pace of the animation is not changed more than that, see GameClient.animation_rate()
 ANIMATION_RATE_RANGE = (0.3, 3.0)
 
+# seconds per frame spent to create the units shown by the server, the rest of them is created in the next frames,
+# so many new units do not freeze the screen, see create_queued()
+CREATE_TIME_BUDGET = 0.01
+
 #------------------------------------------------------------------------------
 
 # simulate slow network on localhost to check the smooth movement, milliseconds
@@ -257,7 +261,11 @@ class GameClient(object):
         # object id -> (model received from the server, hero.Hero which renders it, Prediction)
         self.objects = {}
         # object id -> (model, hero.Hero, tick) of the objects waiting until their model and textures are downloaded
+        # and then until they are created, see create_queued()
         self.loading = {}
+        # (object id, hero.Hero) of the objects ready to be created
+        self.creating = collections.deque()
+        self.creating_scheduled = False
         # move, turn, target_direction of the last sent controls
         self.controls_sent = None
         self.controls_seq = 0
@@ -300,6 +308,7 @@ class GameClient(object):
         """
         self.pending_messages = []
         self.loading.clear()
+        self.creating.clear()
         for object_id in list(self.objects.keys()):
             self.despawn(object_id)
         self.world = None
@@ -527,28 +536,57 @@ class GameClient(object):
             texture=t.texture,
             store_id=t.store_id,
         )
+        # the unit is shown when its model and textures are downloaded, updates of its state are kept meanwhile
+        self.loading[o.id] = (o, view, tick)
         files = view.required_files()
         if not files:
-            self.create_view(o, view, tick)
+            self.queue_creation(o, view)
             return
-        # the unit is shown when its model and textures are downloaded, updates of its state are kept meanwhile
         if _Debug:
             print(f'{o.kind} {o.id} waits for {len(files)} files from store {view.store_id}')
-        self.loading[o.id] = (o, view, tick)
         loader.StoreLoader(files, on_done=lambda failed, o=o, view=view: self.on_files_ready(o, view, failed)).start()
 
     def on_files_ready(self, o, view, failed):
         if self.loading.get(o.id, (None, None, None))[1] is not view:
             # despawned or spawned again while the files were downloading
             return
-        _, _, tick = self.loading.pop(o.id)
         if failed:
+            self.loading.pop(o.id)
             print(f'ERROR, {o.kind} {o.id} is not shown, files not downloaded: {failed}')
             return
-        try:
-            self.create_view(o, view, tick)
-        except:
-            traceback.print_exc()
+        self.queue_creation(o, view)
+
+    def queue_creation(self, o, view):
+        if o.id == self.hero_id:
+            # the own hero comes first, the camera follows him
+            self.creating.appendleft((o.id, view))
+        else:
+            self.creating.append((o.id, view))
+        if not self.creating_scheduled:
+            self.creating_scheduled = True
+            Clock.schedule_once(self.create_queued)
+
+    def create_queued(self, dt=None):
+        """
+        Creates the units waiting in the queue during CREATE_TIME_BUDGET and leaves the rest for the next frame.
+        """
+        self.creating_scheduled = False
+        started = time.perf_counter()
+        while self.creating:
+            object_id, view = self.creating.popleft()
+            if self.loading.get(object_id, (None, None, None))[1] is not view:
+                # despawned or spawned again while waiting
+                continue
+            o, view, tick = self.loading.pop(object_id)
+            try:
+                self.create_view(o, view, tick)
+            except:
+                traceback.print_exc()
+            if time.perf_counter() - started > CREATE_TIME_BUDGET:
+                break
+        if self.creating:
+            self.creating_scheduled = True
+            Clock.schedule_once(self.create_queued)
 
     def create_view(self, o, view, tick):
         t = o.template
