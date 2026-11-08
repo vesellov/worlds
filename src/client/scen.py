@@ -778,6 +778,7 @@ class Scene(object):
                     o.root_mesh_name = mesh.name
                     o.root_mesh_center = mesh.center
         o.model = m
+        o.coefs = coefs
         o.root_scale = root_scale
         o.scale = scale
         if static:

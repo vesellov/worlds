@@ -321,6 +321,35 @@ def quaternion_by_vector(q, v3):
     return q_rotated[1:]
 
 
+def quaternions_multiply(q1, q2):
+    """
+    The same as quaternion_multiply() for all rows of the numpy arrays N x 4 at once.
+    """
+    a = q1[:, 0] * q2[:, 0] - q1[:, 1] * q2[:, 1] - q1[:, 2] * q2[:, 2] - q1[:, 3] * q2[:, 3]
+    b = q1[:, 0] * q2[:, 1] + q1[:, 1] * q2[:, 0] + q1[:, 2] * q2[:, 3] - q1[:, 3] * q2[:, 2]
+    c = q1[:, 0] * q2[:, 2] - q1[:, 1] * q2[:, 3] + q1[:, 2] * q2[:, 0] + q1[:, 3] * q2[:, 1]
+    d = q1[:, 0] * q2[:, 3] + q1[:, 1] * q2[:, 2] - q1[:, 2] * q2[:, 1] + q1[:, 3] * q2[:, 0]
+    return np.stack([a, b, c, d], axis=1)
+
+
+def quaternions_by_vector(q, v3):
+    """
+    The same as quaternion_by_vector() for all rows of the numpy array N x 4 at once, the vector is the same for all.
+    """
+    v4 = np.empty_like(q)
+    v4[:, 0] = 0.0
+    v4[:, 1:] = v3
+    q_conj = q * np.array([1.0, -1.0, -1.0, -1.0])
+    return quaternions_multiply(quaternions_multiply(q, v4), q_conj)[:, 1:]
+
+
+def ei2quad_array(quads):
+    """
+    The same as ei2quad() for all rows of the numpy array N x 4 at once.
+    """
+    return np.stack([quads[:, 0], -quads[:, 1], quads[:, 3], quads[:, 2]], axis=1)
+
+
 def trilinear(val, coefs=[0, 0, 0]):
     # Linear interpolation by str
     t1 = val[0] + (val[1] - val[0]) * coefs[1]

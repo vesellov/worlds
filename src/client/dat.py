@@ -134,8 +134,10 @@ class ObjectData(object):
         self.animations = ObjectAnimations(self)
         self.animations_loaded = []
         # the animations are calculated from the data of the model, see calculate_animation():
-        # ModelData, the ratio of the shifts of the root part, see ModelData.animations_root_scale(), and the scale
+        # ModelData, the coefs of the body, the ratio of the shifts of the root part,
+        # see ModelData.animations_root_scale(), and the scale
         self.model = None
+        self.coefs = [0.0, 0.0, 0.0]
         self.root_scale = 1.0
         self.scale = [1.0, 1.0, 1.0]
         # heights of the lowest and of the highest point of the figure above its root part,
@@ -159,45 +161,37 @@ class ObjectData(object):
         """
         Rotations and positions of the parts in every frame of the animation: the frames of a part are turned
         and moved together with its parent part. A part without its own frames moves exactly as its parent.
+        Units of one model share the frames, see ModelData.part_rotations() and ModelData.part_animations.
         """
         a = ObjectAnimationData(self.template, animation_name)
         model_animation = self.model.animations[animation_name]
+        # the positions of the parts depend on the body of the unit, the rotations do not
+        body_key = (tuple(self.coefs), tuple(self.scale), self.root_scale)
 
         def _part_visitor(part_name, parent_part_name):
             if part_name not in model_animation:
                 a.parts[part_name] = a.parts[parent_part_name]
                 return
-            animation_info = model_animation[part_name]
-            bone_t = self.bones.get(part_name, [0, 0, 0])
-            part_a = ObjectPartAnimationData()
-            rotation_frames_input = [mth.ei2quad_list(quad) for quad in animation_info[1].tolist()]
-            part_a.frames = len(rotation_frames_input)
-            rotation_frames = []
-            translation_frames = []
-            if parent_part_name:
-                parent_part_a = a.parts[parent_part_name]
-                parent_rotation_frames = parent_part_a.rotation_frames.tolist()
-                parent_translation_frames = parent_part_a.translation_frames.tolist()
-                for i in range(part_a.frames):
-                    parent_q = parent_rotation_frames[i]
-                    parent_t = parent_translation_frames[i]
-                    rotation_frames.append(mth.quaternion_multiply(rotation_frames_input[i], parent_q))
-                    translation_frames.append(mth.vec3sum(mth.quaternion_by_vector(parent_q, bone_t), parent_t))
-            else:
-                # the shifts of the root part were recorded for one body variant, see ModelData.animations_root_scale()
-                shifts = animation_info[3].tolist()
-                for i in range(part_a.frames):
-                    coord = shifts[i]
-                    part_t = mth.ei2xyz_list([
-                        coord[0] * self.root_scale * self.scale[0],
-                        coord[1] * self.root_scale * self.scale[1],
-                        coord[2] * self.root_scale * self.scale[2],
-                    ])
-                    rotation_frames.append(rotation_frames_input[i])
-                    translation_frames.append(mth.vec3sum(bone_t, part_t))
-            # one array instead of a Python list for every frame: much less objects for the garbage collector
-            part_a.rotation_frames = np.array(rotation_frames, dtype=np.float64).reshape(-1, 4)
-            part_a.translation_frames = np.array(translation_frames, dtype=np.float64).reshape(-1, 3)
+            key = (animation_name, part_name, body_key)
+            part_a = self.model.part_animations.get(key)
+            if part_a is None:
+                part_a = ObjectPartAnimationData()
+                part_a.rotation_frames = self.model.part_rotations(self.template, animation_name, part_name)
+                part_a.frames = len(part_a.rotation_frames)
+                bone_t = self.bones.get(part_name, [0, 0, 0])
+                if parent_part_name:
+                    parent_part_a = a.parts[parent_part_name]
+                    parent_rotations = parent_part_a.rotation_frames[:part_a.frames]
+                    part_a.translation_frames = mth.quaternions_by_vector(parent_rotations, bone_t) + parent_part_a.translation_frames[:part_a.frames]
+                else:
+                    # the shifts of the root part were recorded for one body variant, see ModelData.animations_root_scale()
+                    shifts = model_animation[part_name][3][:part_a.frames]
+                    x = shifts[:, 0] * self.root_scale * self.scale[0]
+                    y = shifts[:, 1] * self.root_scale * self.scale[1]
+                    z = shifts[:, 2] * self.root_scale * self.scale[2]
+                    # see mth.ei2xyz()
+                    part_a.translation_frames = np.array(bone_t, dtype=np.float64) + np.stack([-x * mth.EI_SCALE_FACTOR, z * mth.EI_SCALE_FACTOR * 1.0, y * mth.EI_SCALE_FACTOR], axis=1)
+                self.model.part_animations[key] = part_a
             a.parts[part_name] = part_a
 
         self.walk_parts_ordered(_part_visitor)
@@ -280,6 +274,10 @@ class ModelData(object):
         self.parents = {}
         # part name -> True when the figure is the same in all 8 body variants
         self.constant_figures = {}
+        # (animation name, part name) -> rotations of the part in all frames, see part_rotations()
+        self.rotations = {}
+        # (animation name, part name, body of the unit) -> ObjectPartAnimationData, see ObjectData.calculate_animation()
+        self.part_animations = {}
 
     def part_parents(self, template):
         if template not in self.parents:
@@ -350,6 +348,26 @@ class ModelData(object):
             coefs = [float((v >> 1) & 1), float(v & 1), float(v >> 2)]
         self.animations_coefs[template] = coefs
         return coefs
+
+    def part_rotations(self, template, animation_name, part_name):
+        """
+        Rotations of the part in all frames of the animation together with the rotations of its parents,
+        numpy array frames x 4. They are the same for all units of the model whatever their body is.
+        """
+        key = (animation_name, part_name)
+        if key not in self.rotations:
+            animation = self.animations[animation_name]
+            parent_part_name = self.part_parents(template).get(part_name)
+            if part_name not in animation:
+                # a part without its own frames turns exactly as its parent
+                rotations = self.part_rotations(template, animation_name, parent_part_name)
+            else:
+                rotations = mth.ei2quad_array(animation[part_name][1])
+                if parent_part_name:
+                    parent_rotations = self.part_rotations(template, animation_name, parent_part_name)
+                    rotations = mth.quaternions_multiply(rotations, parent_rotations[:len(rotations)])
+            self.rotations[key] = rotations
+        return self.rotations[key]
 
     def first_shift(self, animation, part_name):
         """
