@@ -242,7 +242,8 @@ def template_res_path(template, store_id):
 
 
 def template_models_dir(store_id):
-    # models are unpacked into models/store<store_id>/<template>/, see dat.ModelData.unpack_figure_data()
+    # models unpacked into models/store<store_id>/<template>/ earlier, now the .res files are read right from the memory,
+    # see dat.ModelData.load_res() and dat.ModelData.unpack_figure_data()
     return res.data_path(os.path.join('models', f'store{store_id}'))
 
 

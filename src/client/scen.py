@@ -578,20 +578,22 @@ class Scene(object):
         textures_paths = {}
         if model_key not in self.models:
             m = dat.ModelData()
-            models_dir_path = loader.template_models_dir(store_id)
-            if os.path.isdir(os.path.join(models_dir_path, template)):
-                m.load_figure_data(os.path.join(models_dir_path, template), template)
+            # every model has its own .res file downloaded before the scene is rendered, see loader.StoreLoader,
+            # it is read right from the memory
+            figures_res_path = loader.template_res_path(template, store_id)
+            model_dir_path = os.path.join(loader.template_models_dir(store_id), template)
+            if not os.path.isfile(figures_res_path) and os.path.isdir(model_dir_path):
+                # the model was unpacked into files earlier, see dat.ModelData.unpack_figure_data()
+                m.load_figure_data(model_dir_path, template)
             else:
-                # every model has its own .res file downloaded before the scene is rendered, see loader.StoreLoader
-                figures_res_path = loader.template_res_path(template, store_id)
                 if not os.path.isfile(figures_res_path):
                     # models which are not in the list received from the server, for example samples shown by debug keys
                     if _Debug:
                         print(f'    WARNING, model {template} was not downloaded before, downloading now from store {store_id}')
                     loader.download_store_file(store_id, 'figures', template)
                 if _Debug:
-                    print(f'    loading template {template} from {figures_res_path} and unpacking into {models_dir_path}')
-                m.unpack_figure_data(figures_res_path, models_dir_path, template=template)
+                    print(f'    loading template {template} from {figures_res_path}')
+                m.load_res(figures_res_path, template)
             self.add_model_template(model_key, m)
         m = self.models[model_key]
         # textures are prepared for every set of them, units of one model can wear different armors

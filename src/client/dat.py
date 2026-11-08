@@ -203,6 +203,10 @@ class ObjectData(object):
 def read_animation_part(anm_file_path):
     return res.read_anm_info(anm_file_path, arrays=True)
 
+
+def parse_animation_part(data):
+    return res.parse_anm_info(data, arrays=True)
+
 #------------------------------------------------------------------------------
 
 
@@ -467,6 +471,64 @@ class ModelData(object):
             if name.endswith('.anm') and name[:-4] in self.part_names:
                 parts[name[:-4]] = entry.path
         return LazyMap(parts, read_animation_part, peek=res.read_anm_first_shift)
+
+    def load_res(self, figures_res_file_path, template):
+        """
+        Reads the model right from its .res file kept in memory, nothing is unpacked into files on the disk.
+        Only the links of the parts are read right away, figures, bones and animations are read when they are used.
+        """
+        with open(figures_res_file_path, 'rb') as figures_file:
+            data = figures_file.read()
+        elements = res.res_elements(data)
+        mod_element = elements.get(template + '.mod')
+        # figures of the parts and the links of the model
+        mod_elements = res.res_elements(mod_element) if mod_element is not None else {}
+        lnk_element = elements.get(template + '.lnk')
+        if lnk_element is None:
+            lnk_element = mod_elements.get(template)
+        if lnk_element is None:
+            return None
+        lnk_list, _, _, _ = res.parse_lnk_info(bytes(lnk_element))
+        self.links[template] = {
+            'ordered': lnk_list,
+        }
+        self.part_names = set(res.flat_tree(lnk_list))
+        figures = {}
+        bones = {}
+        for name, element in mod_elements.items():
+            if name != template and name in self.part_names:
+                figures[name] = element
+        if mod_element is None:
+            # figures and bones of the parts are kept apart: <template><part>.fig and <template><part>.bon
+            for name, element in elements.items():
+                part_name = name[len(template):-4]
+                if name.startswith(template) and part_name in self.part_names:
+                    if name.endswith('.fig'):
+                        figures[part_name] = element
+                    elif name.endswith('.bon'):
+                        bones[part_name] = element
+        bon_element = elements.get(template + '.bon')
+        if bon_element is not None:
+            # one .bon for every part
+            for name, element in res.res_elements(bon_element).items():
+                if name in self.part_names:
+                    bones[name] = element
+        anm_element = elements.get(template + '.anm')
+        # one .res for every animation with one .anm for every part
+        animations = res.res_elements(anm_element) if anm_element is not None else {}
+        self.figures = LazyMap(figures, res.parse_fig_info)
+        self.bones = LazyMap(bones, res.parse_bon_info)
+        self.animations = LazyMap(animations, self.read_animation_res)
+        if _Debug:
+            print(f'      for model {{{template}}} found {len(figures)} figures, {len(bones)} bones and {len(animations)} animations')
+
+    def read_animation_res(self, data):
+        parts = {}
+        for name, element in res.res_elements(data).items():
+            # animations keep frames of some parts which the model does not have
+            if name in self.part_names:
+                parts[name] = element
+        return LazyMap(parts, parse_animation_part, peek=res.parse_anm_first_shift)
 
     def unpack_figure_data(self, figures_res_file_path, destination_dir_path, template, save_json=False):
         """

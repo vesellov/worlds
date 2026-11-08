@@ -9,6 +9,7 @@ _Debug = True
 
 #------------------------------------------------------------------------------
 
+import io
 import os
 import time
 import re
@@ -253,15 +254,18 @@ def parse_anm_info(data, arrays=False):
 
 
 def read_anm_first_shift(file_path):
+    with open(file_path, "rb") as file:
+        return parse_anm_first_shift(file.read())
+
+
+def parse_anm_first_shift(data):
     """
     Shift of the part in the first frame of the animation without reading all frames, None when there are no shifts.
     """
-    with open(file_path, "rb") as file:
-        rotations_count = read_uint(file)
-        file.seek(4 + 16 * rotations_count)
-        if read_uint(file) == 0:
-            return None
-        return read_float(file, 3)
+    rotations_count = struct.unpack_from('<I', data, 0)[0]
+    if struct.unpack_from('<I', data, 4 + 16 * rotations_count)[0] == 0:
+        return None
+    return list(struct.unpack_from('<3f', data, 8 + 16 * rotations_count))
 
 
 def read_fig_info(file_path):
@@ -384,31 +388,39 @@ def walk_tree(tree, parent, visitor, arr=None, dct=None):
 
 
 def read_lnk_info(file_path):
+    with open(file_path, "rb") as file:
+        return read_lnk_data(file)
+
+
+def parse_lnk_info(data):
+    return read_lnk_data(io.BytesIO(data))
+
+
+def read_lnk_data(file):
     lst = []
     parents = {}
     tree = {}
     childs = {}
-    with open(file_path, "rb") as file:
-        for _ in range(read_uint(file)):
-            name_len = read_uint(file)
-            new_name = read_str(file, name_len)
-            parent_name_len = read_uint(file)
-            if parent_name_len == 0:
-                lst = [new_name, []]
-                parents[new_name] = None
-                if new_name not in childs:
-                    childs[new_name] = []
-                tree[new_name] = {}
-            else:
-                parent_name = read_str(file, parent_name_len)
-                parents[new_name] = parent_name
-                if new_name not in childs:
-                    childs[new_name] = []
-                if parent_name not in childs:
-                    childs[parent_name] = []
-                childs[parent_name].append(new_name)
-                add_child_to_list(lst, parent_name, new_name)
-                add_child_to_dict(tree, parent_name, new_name)
+    for _ in range(read_uint(file)):
+        name_len = read_uint(file)
+        new_name = read_str(file, name_len)
+        parent_name_len = read_uint(file)
+        if parent_name_len == 0:
+            lst = [new_name, []]
+            parents[new_name] = None
+            if new_name not in childs:
+                childs[new_name] = []
+            tree[new_name] = {}
+        else:
+            parent_name = read_str(file, parent_name_len)
+            parents[new_name] = parent_name
+            if new_name not in childs:
+                childs[new_name] = []
+            if parent_name not in childs:
+                childs[parent_name] = []
+            childs[parent_name].append(new_name)
+            add_child_to_list(lst, parent_name, new_name)
+            add_child_to_dict(tree, parent_name, new_name)
     return lst, tree, parents, childs
 
 
@@ -442,6 +454,27 @@ def read_res_filetree(file, return_dict=False):
     if return_dict:
         return filetree_dict
     return filetree
+
+
+def res_elements(data):
+    """
+    Elements of the .res file which is already in memory: {lower case name: memoryview of the bytes of the element}.
+    Nothing is copied, an element which is a .res file itself is read the same way.
+    """
+    data = memoryview(data)
+    if data[:4] != b'\x3C\xE2\x9C\x01':
+        raise Exception("Incorrect magic!")
+    table_size, table_offset = struct.unpack_from('<II', data, 4)
+    names_offset = table_offset + 22 * table_size
+    elements = {}
+    for i in range(table_size):
+        _, size, offset, _, name_length, name_offset = struct.unpack_from('<IIIIHI', data, table_offset + 22 * i)
+        name_start = names_offset + name_offset
+        name = bytes(data[name_start:name_start + name_length]).replace(b'\x00', b'').decode(ENCODE).replace("\\", "/").lower()
+        if name in elements:
+            raise ValueError(f'File {name} is duplicated')
+        elements[name] = data[offset:offset + size]
+    return elements
 
 
 def unpack_res(file, filetree, destination_dir_path):
