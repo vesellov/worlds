@@ -196,6 +196,17 @@ def floats_list(data, offset, shape):
     return values, offset + 4 * count
 
 
+def floats_array(data, offset, shape):
+    """
+    The same as floats_list() but the numbers are kept in one numpy array of 8b floats instead of many Python lists.
+    """
+    count = 1
+    for size in shape:
+        count *= size
+    values = np.frombuffer(data, dtype='<f4', count=count, offset=offset).astype(np.float64).reshape(shape)
+    return values, offset + 4 * count
+
+
 def ushorts_array(data, offset, shape):
     count = 1
     for size in shape:
@@ -216,24 +227,28 @@ def parse_bon_info(data):
     return floats_list(data, 0, (len(data) // 12, 3))[0]
 
 
-def read_anm_info(file_path):
+def read_anm_info(file_path, arrays=False):
     with open(file_path, "rb") as file:
-        return parse_anm_info(file.read())
+        return parse_anm_info(file.read(), arrays=arrays)
 
 
-def parse_anm_info(data):
+def parse_anm_info(data, arrays=False):
+    """
+    With arrays=True the rotations, the shifts and the morphing of the frames are numpy arrays instead of lists.
+    """
+    read_floats = floats_array if arrays else floats_list
     info = []
     rotations_count = struct.unpack_from('<I', data, 0)[0]
     info.append(rotations_count)
-    rotations, offset = floats_list(data, 4, (rotations_count, 4))
+    rotations, offset = read_floats(data, 4, (rotations_count, 4))
     info.append(rotations)
     shifts_count = struct.unpack_from('<I', data, offset)[0]
     info.append(shifts_count)
-    shifts, offset = floats_list(data, offset + 4, (shifts_count, 3))
+    shifts, offset = read_floats(data, offset + 4, (shifts_count, 3))
     info.append(shifts)
     info.extend(struct.unpack_from('<II', data, offset))
     if info[4] != 0 and info[5] != 0:
-        info.append(floats_list(data, offset + 8, (info[4], info[5], 3))[0])
+        info.append(read_floats(data, offset + 8, (info[4], info[5], 3))[0])
     return info
 
 

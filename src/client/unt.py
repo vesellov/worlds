@@ -146,8 +146,8 @@ class Unit(object):
                 continue
             if part_name not in self.meshes_transforms:
                 continue
-            r = part_animation.rotation_frames[frame]
-            t = part_animation.translation_frames[frame]
+            r = part_animation.rotation_frames[frame].tolist()
+            t = part_animation.translation_frames[frame].tolist()
             mesh_transform = self.meshes_transforms[part_name]
             translate_mat = Matrix()
             translate_mat.translate(t[0], t[1], t[2])

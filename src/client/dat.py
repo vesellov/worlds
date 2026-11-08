@@ -69,8 +69,9 @@ class ObjectPartAnimationData(object):
 
     def __init__(self):
         self.frames = 0
-        self.rotation_frames = []
-        self.translation_frames = []
+        # numpy arrays: frames x 4 (quaternions) and frames x 3
+        self.rotation_frames = None
+        self.translation_frames = None
 
 #------------------------------------------------------------------------------
 
@@ -169,30 +170,44 @@ class ObjectData(object):
             animation_info = model_animation[part_name]
             bone_t = self.bones.get(part_name, [0, 0, 0])
             part_a = ObjectPartAnimationData()
-            rotation_frames_input = [mth.ei2quad_list(quad) for quad in animation_info[1]]
+            rotation_frames_input = [mth.ei2quad_list(quad) for quad in animation_info[1].tolist()]
             part_a.frames = len(rotation_frames_input)
+            rotation_frames = []
+            translation_frames = []
             if parent_part_name:
                 parent_part_a = a.parts[parent_part_name]
+                parent_rotation_frames = parent_part_a.rotation_frames.tolist()
+                parent_translation_frames = parent_part_a.translation_frames.tolist()
                 for i in range(part_a.frames):
-                    parent_q = parent_part_a.rotation_frames[i]
-                    parent_t = parent_part_a.translation_frames[i]
-                    part_a.rotation_frames.append(mth.quaternion_multiply(rotation_frames_input[i], parent_q))
-                    part_a.translation_frames.append(mth.vec3sum(mth.quaternion_by_vector(parent_q, bone_t), parent_t))
+                    parent_q = parent_rotation_frames[i]
+                    parent_t = parent_translation_frames[i]
+                    rotation_frames.append(mth.quaternion_multiply(rotation_frames_input[i], parent_q))
+                    translation_frames.append(mth.vec3sum(mth.quaternion_by_vector(parent_q, bone_t), parent_t))
             else:
                 # the shifts of the root part were recorded for one body variant, see ModelData.animations_root_scale()
+                shifts = animation_info[3].tolist()
                 for i in range(part_a.frames):
-                    coord = animation_info[3][i]
+                    coord = shifts[i]
                     part_t = mth.ei2xyz_list([
                         coord[0] * self.root_scale * self.scale[0],
                         coord[1] * self.root_scale * self.scale[1],
                         coord[2] * self.root_scale * self.scale[2],
                     ])
-                    part_a.rotation_frames.append(rotation_frames_input[i])
-                    part_a.translation_frames.append(mth.vec3sum(bone_t, part_t))
+                    rotation_frames.append(rotation_frames_input[i])
+                    translation_frames.append(mth.vec3sum(bone_t, part_t))
+            # one array instead of a Python list for every frame: much less objects for the garbage collector
+            part_a.rotation_frames = np.array(rotation_frames, dtype=np.float64).reshape(-1, 4)
+            part_a.translation_frames = np.array(translation_frames, dtype=np.float64).reshape(-1, 3)
             a.parts[part_name] = part_a
 
         self.walk_parts_ordered(_part_visitor)
         return a
+
+#------------------------------------------------------------------------------
+
+
+def read_animation_part(anm_file_path):
+    return res.read_anm_info(anm_file_path, arrays=True)
 
 #------------------------------------------------------------------------------
 
@@ -343,7 +358,7 @@ class ModelData(object):
         """
         if part_name in animation.loaded:
             anm_info = animation[part_name]
-            return anm_info[3][0] if anm_info[3] else None
+            return anm_info[3][0] if len(anm_info[3]) else None
         return animation.peek(animation.sources[part_name])
 
     def root_height(self, template, part_names, coefs):
@@ -433,7 +448,7 @@ class ModelData(object):
             # animations keep frames of some parts which the model does not have
             if name.endswith('.anm') and name[:-4] in self.part_names:
                 parts[name[:-4]] = entry.path
-        return LazyMap(parts, res.read_anm_info, peek=res.read_anm_first_shift)
+        return LazyMap(parts, read_animation_part, peek=res.read_anm_first_shift)
 
     def unpack_figure_data(self, figures_res_file_path, destination_dir_path, template, save_json=False):
         """
@@ -495,7 +510,7 @@ class ModelData(object):
                 'links': self.links,
                 'animations': {name: dict(animation.items()) for name, animation in self.animations.items()},
                 'bones': dict(self.bones.items()),
-            }, indent=2))
+            }, indent=2, default=lambda value: value.tolist()))
             if _Debug:
                 print(f'      for model {{{template}}} saved to {dest_json_file_path}')
 

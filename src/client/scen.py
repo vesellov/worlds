@@ -14,6 +14,7 @@ import json
 import time
 import math
 import random
+import gc
 import hashlib
 import traceback
 
@@ -51,6 +52,22 @@ _NextObjectID = 0
 _NextMeshID = 0
 
 _SegmentQuadIndices = np.array([0, 1, 2, 1, 3, 2], dtype=np.int64)
+
+
+def gc_paused(func):
+    """
+    The garbage collector does not run while the object is created: thousands of new lists of a model
+    start it again and again, and every time it walks all objects of the scene.
+    """
+    def wrapper(*args, **kwargs):
+        enabled = gc.isenabled()
+        gc.disable()
+        try:
+            return func(*args, **kwargs)
+        finally:
+            if enabled:
+                gc.enable()
+    return wrapper
 
 
 def build_segments_batch(positions, tex_coords, angles_x, angles_z):
@@ -332,11 +349,11 @@ class Scene(object):
         for part_name in o.meshes.keys():
             fig_data = m.figures.get(part_name)
             part_animation = animation.parts.get(part_name)
-            if not fig_data or not part_animation or not part_animation.rotation_frames:
+            if not fig_data or not part_animation or not len(part_animation.rotation_frames):
                 continue
             part_coefs = mth.quantize_coefs(m.part_coefs(o.template, part_name, coefs))
-            r = part_animation.rotation_frames[0]
-            t = part_animation.translation_frames[0]
+            r = part_animation.rotation_frames[0].tolist()
+            t = part_animation.translation_frames[0].tolist()
             rotate_mat = Matrix()
             rotate_mat.set(array=mth.quaternion_to_matrix(r[0], r[1], r[2], r[3]))
             rotate_mat = rotate_mat.inverse()
@@ -533,6 +550,7 @@ class Scene(object):
             # center:{mesh.center} min:{mesh.min} max:{mesh.max} radius:{mesh.radius} 
         return mesh
 
+    @gc_paused
     def create_object_data_from_model_data(
         self,
         template,
