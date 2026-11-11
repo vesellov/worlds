@@ -1,0 +1,413 @@
+<title>Летопись аллодов</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=PT+Sans:ital,wght@0,400;0,700;1,400&family=PT+Mono&display=swap">
+<style>
+/* Layout: one reading column for the story, a wide grid for the cast; a game switch on top changes all sections. */
+:root {
+  --bg: #eceee8;
+  --panel: #f7f8f4;
+  --ink: #1c2420;
+  --muted: #5b675f;
+  --line: #cfd5cc;
+  --accent: #2c6a5d;
+  --accent-soft: #d6e6e0;
+  --bronze: #8a5a22;
+  --bronze-soft: #efe2cf;
+  --target: #8c3b3b;
+  --target-soft: #f1dcdc;
+  --portrait-bg: #d9dfd6;
+  --display: "Alegreya SC", "Georgia", serif;
+  --body: "PT Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "PT Mono", ui-monospace, "Consolas", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131917; --panel: #1b2320; --ink: #dfe6e1; --muted: #93a39a; --line: #2e3a35;
+    --accent: #6cb8a5; --accent-soft: #23372f; --bronze: #d7a35e; --bronze-soft: #3a2e1f;
+    --target: #e08a8a; --target-soft: #3d2424; --portrait-bg: #232d29; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131917; --panel: #1b2320; --ink: #dfe6e1; --muted: #93a39a; --line: #2e3a35;
+  --accent: #6cb8a5; --accent-soft: #23372f; --bronze: #d7a35e; --bronze-soft: #3a2e1f;
+  --target: #e08a8a; --target-soft: #3d2424; --portrait-bg: #232d29; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.05; }
+h2 { font-size: 26px; }
+h3 { font-size: 19px; }
+p { margin: 0; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+header.top { display: flex; flex-wrap: wrap; gap: 18px 32px; align-items: end; justify-content: space-between; }
+.switch { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--panel); }
+.switch button { font: inherit; border: 0; background: transparent; color: var(--muted); padding: 8px 16px; border-radius: 999px; cursor: pointer; }
+.switch button[aria-pressed="true"] { background: var(--accent); color: var(--bg); font-weight: 700; }
+.switch button:focus-visible, nav a:focus-visible, .card:focus-visible, input:focus-visible { outline: 2px solid var(--bronze); outline-offset: 2px; }
+.game-head { margin-top: 26px; display: grid; gap: 12px; max-width: 72ch; }
+.game-head .sub { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.figures { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 18px; font-variant-numeric: tabular-nums; }
+.figures div { display: grid; }
+.figures b { font-family: var(--display); font-size: 28px; line-height: 1.1; color: var(--accent); }
+.figures span { font-size: 12px; color: var(--muted); }
+nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); margin-top: 26px;
+  border-bottom: 1px solid var(--line); display: flex; gap: 4px 20px; flex-wrap: wrap; padding-block: 10px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+nav a { color: var(--ink); text-decoration: none; font-weight: 700; font-size: 14px; padding: 2px 0; border-bottom: 2px solid transparent; }
+nav a:hover { border-bottom-color: var(--accent); }
+section { margin-top: 44px; display: grid; gap: 18px; scroll-margin-top: 64px; }
+.lead { max-width: 72ch; font-size: 16px; }
+.chapter { display: grid; gap: 14px; padding-top: 22px; border-top: 1px solid var(--line); }
+.chapter > p { max-width: 72ch; }
+.quests { display: grid; gap: 0; }
+.quest { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 4px 14px; padding: 10px 0; border-bottom: 1px dashed var(--line); align-items: start; }
+.quest .n { font-family: var(--mono); font-size: 12px; color: var(--muted); padding-top: 3px; font-variant-numeric: tabular-nums; }
+.quest .t { font-weight: 700; }
+.quest.side .t { font-weight: 400; color: var(--muted); }
+.quest .z { font-size: 13px; color: var(--muted); }
+.quest details { grid-column: 2 / 4; font-size: 14px; color: var(--muted); }
+.quest summary { cursor: pointer; font-size: 13px; color: var(--accent); width: fit-content; }
+.quest details[open] summary { margin-bottom: 4px; }
+.quest ol { margin: 6px 0 0; padding-left: 20px; }
+.who { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 2px 10px 2px 2px; font-size: 13px;
+  background: var(--accent-soft); color: var(--ink); border: 0; font-family: inherit; cursor: pointer; white-space: nowrap; }
+.chip.t { background: var(--target-soft); }
+.chip img, .chip i { width: 22px; height: 22px; border-radius: 50%; background: var(--portrait-bg); object-fit: cover; display: inline-block; }
+.chip.noimg { padding-left: 10px; }
+.tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; padding: 1px 7px; border-radius: 4px; }
+.tag.side { background: var(--bronze-soft); color: var(--bronze); }
+.tools { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.tools input { font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); width: min(320px, 100%); }
+.tools label { font-size: 14px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }
+.card { display: grid; gap: 6px; text-align: left; font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; padding: 0 0 12px; cursor: pointer; overflow: hidden; }
+.card:hover { border-color: var(--accent); }
+.card .pic { aspect-ratio: 1; background: var(--portrait-bg); display: grid; place-items: center; max-width: 100%; }
+.card .pic img { width: 100%; height: 100%; object-fit: contain; }
+.card .pic .none { font-family: var(--display); font-size: 40px; color: var(--muted); }
+.card .nm { font-weight: 700; padding: 0 12px; line-height: 1.25; }
+.card .meta { font-size: 12px; color: var(--muted); padding: 0 12px; font-variant-numeric: tabular-nums; }
+.card.target { border-style: dashed; }
+.detail { background: var(--panel); border: 1px solid var(--accent); border-radius: 12px; padding: 18px; display: grid;
+  grid-template-columns: 220px minmax(0, 1fr); gap: 20px; }
+.detail .full { background: var(--portrait-bg); border-radius: 8px; aspect-ratio: 1; max-width: 100%; }
+.detail .full img { width: 100%; height: 100%; object-fit: contain; }
+.detail .body { display: grid; gap: 12px; min-width: 0; }
+.detail .row { display: flex; justify-content: space-between; gap: 12px; align-items: start; flex-wrap: wrap; }
+.close { font: inherit; border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 8px; padding: 4px 12px; cursor: pointer; }
+.stats { display: flex; flex-wrap: wrap; gap: 6px 18px; font-variant-numeric: tabular-nums; }
+.stats div { display: grid; }
+.stats b { font-family: var(--mono); font-size: 16px; }
+.stats span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.kv { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 4px 12px; font-size: 14px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+.list { font-size: 14px; display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.list span { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 0 7px; }
+.mono { font-family: var(--mono); font-size: 12px; }
+.graph-box { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.graph-box svg { display: block; margin: 0 auto; }
+.graph-note { font-size: 14px; color: var(--muted); max-width: 72ch; }
+svg .edge { stroke: var(--accent); fill: none; }
+svg .node circle { fill: var(--portrait-bg); stroke: var(--line); stroke-width: 1.5; }
+svg .node.t circle { stroke: var(--target); stroke-dasharray: 3 2; }
+svg .node text { fill: var(--ink); font-family: var(--body); font-size: 11px; }
+svg .node { cursor: pointer; }
+svg.focus .edge { opacity: 0.05 !important; }
+svg.focus .edge.on { opacity: 0.9 !important; stroke: var(--bronze); }
+svg.focus .node { opacity: 0.25; }
+svg.focus .node.on { opacity: 1; }
+.table-box { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 400; position: sticky; top: 0; background: var(--panel); }
+td.num { font-variant-numeric: tabular-nums; text-align: right; }
+.role { font-size: 12px; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.role.hero { background: var(--bronze-soft); color: var(--bronze); }
+.role.npc { background: var(--accent-soft); color: var(--accent); }
+.role.target { background: var(--target-soft); color: var(--target); }
+.method { display: grid; gap: 10px; max-width: 80ch; font-size: 14px; }
+.method code { font-family: var(--mono); font-size: 12.5px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; overflow-wrap: anywhere; }
+.method pre { font-family: var(--mono); font-size: 12.5px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow-x: auto; margin: 0; }
+.method ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+@media (max-width: 640px) {
+  .quest { grid-template-columns: 40px minmax(0, 1fr); }
+  .quest .who { grid-column: 2; justify-content: flex-start; }
+  .quest details { grid-column: 1 / 3; }
+  .detail { grid-template-columns: minmax(0, 1fr); }
+  .detail .full { max-width: 220px; }
+  .kv { grid-template-columns: 100px minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">quests.qdb · texts.res · *.mob · units.udb</div>
+      <h1>Летопись аллодов</h1>
+    </div>
+    <div class="switch" role="group" aria-label="Игра">
+      <button type="button" id="g-ei1" data-game="ei1" aria-pressed="true">Проклятые Земли</button>
+      <button type="button" id="g-ei2" data-game="ei2" aria-pressed="false">Затерянные в Астрале</button>
+    </div>
+  </header>
+
+  <div class="game-head">
+    <h2 id="game-title"></h2>
+    <div class="sub" id="game-sub"></div>
+    <p class="lead" id="game-intro"></p>
+  </div>
+  <div class="figures" id="figures"></div>
+
+  <nav aria-label="Разделы">
+    <a href="#story">Сюжет</a>
+    <a href="#cast">Персонажи</a>
+    <a href="#links">Связи</a>
+    <a href="#roster">Участники квестов</a>
+    <a href="#method">Как собрано</a>
+  </nav>
+
+  <section id="story" aria-labelledby="story-h">
+    <h2 id="story-h">Сюжет прохождения</h2>
+    <p class="graph-note">Квесты идут в порядке их номеров в quests.qdb: разработчики нумеровали их по ходу игры. Справа — кто дает квест (владелец брифинга) и цели (именованные юниты в условиях скриптов). Побочные квесты и тайники показаны серым.</p>
+    <div id="chapters"></div>
+  </section>
+
+  <section id="cast" aria-labelledby="cast-h">
+    <h2 id="cast-h">Персонажи</h2>
+    <div class="tools">
+      <input id="cast-filter" type="search" placeholder="Имя, прототип, модель…" aria-label="Фильтр персонажей">
+      <label><input type="checkbox" id="cast-targets"> показать цели квестов</label>
+    </div>
+    <div id="cast-detail" hidden></div>
+    <div class="grid" id="cast-grid"></div>
+  </section>
+
+  <section id="links" aria-labelledby="links-h">
+    <h2 id="links-h">Связи между персонажами</h2>
+    <p class="graph-note">Связь появляется, если персонажи вместе участвуют в брифинге, если один называет другого по имени в своих репликах или если один дает квест, а другой — его цель. Толщина линии — сила связи. Герой не показан: он связан со всеми. Нажмите на персонажа, чтобы выделить его связи.</p>
+    <div class="graph-box"><svg id="graph" role="img" aria-label="Граф связей персонажей"></svg></div>
+  </section>
+
+  <section id="roster" aria-labelledby="roster-h">
+    <h2 id="roster-h">Все участники квестов</h2>
+    <div class="table-box">
+      <table>
+        <thead><tr><th>Персонаж</th><th>Роль</th><th>Прототип</th><th>Где</th><th>Брифинги</th><th>Реплики</th><th>Квесты</th></tr></thead>
+        <tbody id="roster-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="method" aria-labelledby="method-h">
+    <h2 id="method-h">Как собрано</h2>
+    <div class="method">
+      <p>Все данные прочитаны из файлов игр утилитами репозитория (<code>remake/src/eilib</code>) и двумя новыми инструментами: <code>tools.scenario</code> и <code>tools.portraits</code>.</p>
+      <ul>
+        <li><b>quests.qdb</b> (в database.res): раздел 1 — квесты (опыт, комментарий редактора, порядковый номер), раздел 2 — брифинги: деньги, предметы, квестовые предметы, открываемые и закрываемые квесты и зоны.</li>
+        <li><b>Владелец брифинга</b> найден по глобальным переменным скриптов <code>"b.&lt;персонаж&gt;.&lt;брифинг&gt;"</code> (1 — доступен, 2 — прослушан). Если владелец — имя зоны (<code>bz1g</code>), брифинг запускается при входе.</li>
+        <li><b>Условия</b>: скрипты всех .mob разобраны в ветки <code>if (…) then (…)</code>; условия вызывающих скриптов протянуты в вызываемые. Так находятся переходы «квест выполнен → открылся брифинг» и цели квестов (<code>IsDead(WhiteWolf)</code>).</li>
+        <li><b>Тексты</b>: <code>briefing</code>, <code>quest</code>, <code>pers</code>, <code>zone</code>, <code>UNIT</code> из texts.res; для первой игры — русский texts.res из RUS-версии, данные — из ./EvilIslands1.</li>
+        <li><b>Портреты</b> нарисованы программно по модели юнита, его броне, оружию и текстурам (как одевает клиент remake), первый кадр позы брифинга или ожидания.</li>
+        <li><b>Юниты персонажей</b>: игра ищет юнит по имени не через OBJNAME, а через NID — это хэш имени заглавными буквами (<code>h = h·5 + c</code>, затем <code>h mod 10⁹ + 10⁹</code>, функция FUN_00431580 в game.exe). Так юнит «Baron» в bz31j имеет NID = hash("BARON"), а OBJNAME у него — любой текст редактора. По этому правилу найдены 44 персонажа второй игры и 34 первой.</li>
+        <li><b>Приближения</b>: Кир и Кель-в-маске (Hero2) нарисованы по прототипу — на картах их нет; цели квестов без имени показаны по названию прототипа. Текст сюжета — пересказ по квестам и брифингам.</li>
+      </ul>
+<pre>cd remake
+PYTHONPATH=src venv/bin/python -m tools.scenario ../EvilIslands1/game_info/data -o ei1.json --texts &lt;RUS&gt;/Res/texts.res
+EI_DATA_PATH=../EvilIslands1/game_info/data PYTHONPATH=src venv/bin/python -m tools.portraits ei1.json -o portraits1/
+PYTHONPATH=src venv/bin/python -m tools.scenario ../EvilIslands2/game_info/data -o ei2.json
+EI_DATA_PATH=../EvilIslands2/game_info/data PYTHONPATH=src venv/bin/python -m tools.portraits ei2.json -o portraits2/</pre>
+    </div>
+  </section>
+</div>
+
+<script>
+const DATA = /*DATA*/null;
+let game = 'ei1';
+let selected = null;
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const G = () => DATA[game];
+const charById = id => G().characters.find(c => c.id === id);
+const KIND = {hero: 'герой', npc: 'персонаж', target: 'цель квеста'};
+
+function chip(id, isTarget) {
+  const c = charById(id);
+  if (!c) return '';
+  const pic = c.img ? `<img src="${c.img}" alt="">` : '';
+  return `<button type="button" class="chip${isTarget ? ' t' : ''}${pic ? '' : ' noimg'}" data-char="${esc(id)}">${pic}${esc(c.name)}</button>`;
+}
+
+function renderHead() {
+  const g = G();
+  document.getElementById('game-title').textContent = g.title;
+  document.getElementById('game-sub').textContent = g.subtitle;
+  document.getElementById('game-intro').textContent = g.intro;
+  const s = g.stats;
+  document.getElementById('figures').innerHTML = [
+    [s.quests, 'квестов в quests.qdb'], [s.briefings, 'брифингов'], [s.characters, 'персонажей'],
+    [s.targets, 'целей квестов'], [s.zones, 'игровых зон'], [s.portraits, 'портретов']
+  ].map(([v, t]) => `<div><b>${v}</b><span>${t}</span></div>`).join('');
+}
+
+function renderStory() {
+  const g = G();
+  document.getElementById('chapters').innerHTML = g.chapters.map((ch, i) => {
+    const qs = g.quests.filter(q => q.ch === i).sort((a, b) => a.n - b.n);
+    const rows = qs.map(q => {
+      const who = q.by.map(id => chip(id, false)).join('') + q.targets.slice(0, 3).map(id => chip(id, true)).join('');
+      const steps = q.steps.filter(Boolean);
+      const more = (q.text || steps.length) ? `<details><summary>подробнее</summary><p>${esc(q.text)}</p>${steps.length ? '<ol>' + steps.map(s => `<li>${esc(s)}</li>`).join('') + '</ol>' : ''}${q.briefs.length ? `<p class="mono">брифинг: ${q.briefs.map(b => esc(b.id + ' «' + b.title + '»')).join(', ')}</p>` : ''}</details>` : '';
+      return `<div class="quest${q.side ? ' side' : ''}"><span class="n">${esc(q.id)}</span><div><div class="t">${esc(q.title)} ${q.side ? '<span class="tag side">побочный</span>' : ''}</div><div class="z">${esc(q.zone)} · ${q.exp.toLocaleString('ru-RU')} опыта</div></div><div class="who">${who}</div>${more}</div>`;
+    }).join('');
+    return `<div class="chapter"><h3>${esc(ch.title)}</h3><p>${esc(ch.text)}</p><div class="quests">${rows}</div></div>`;
+  }).join('');
+}
+
+function castList() {
+  const q = document.getElementById('cast-filter').value.trim().toLowerCase();
+  const withTargets = document.getElementById('cast-targets').checked;
+  return G().characters.filter(c => (withTargets || c.kind !== 'target') &&
+    (!q || [c.name, c.id, c.proto, c.protoName, c.model].join(' ').toLowerCase().includes(q)));
+}
+
+function renderCast() {
+  document.getElementById('cast-grid').innerHTML = castList().map(c => {
+    const pic = c.img ? `<img src="${c.img}" alt="Портрет: ${esc(c.name)}" loading="lazy">` : `<span class="none">${esc(c.name.slice(0, 1))}</span>`;
+    const meta = c.kind === 'target' ? `цель: ${c.target.map(t => t.title).join(', ')}` :
+      c.kind === 'hero' ? `${c.lines} реплик` : `${c.owns} брифингов · ${c.lines} реплик · ${c.given.length} квестов`;
+    return `<button type="button" class="card${c.kind === 'target' ? ' target' : ''}" data-char="${esc(c.id)}"><div class="pic">${pic}</div><div class="nm">${esc(c.name)}</div><div class="meta">${esc(meta)}</div></button>`;
+  }).join('');
+  renderDetail();
+}
+
+function renderDetail() {
+  const box = document.getElementById('cast-detail');
+  const c = selected && charById(selected);
+  if (!c) { box.hidden = true; box.innerHTML = ''; return; }
+  const st = c.stats || {};
+  const stats = [['health', 'здоровье'], ['mana', 'мана'], ['attack', 'атака'], ['parry', 'защита'], ['damage', 'урон'], ['armor', 'броня']]
+    .filter(([k]) => st[k] != null).map(([k, t]) => `<div><b>${esc(st[k])}</b><span>${t}</span></div>`).join('');
+  const list = arr => arr.length ? `<div class="list">${arr.map(x => `<span>${esc(x)}</span>`).join('')}</div>` : '—';
+  const rel = c.rel.length ? c.rel.map(r => chip(r.id, (charById(r.id) || {}).kind === 'target')).join(' ') : '—';
+  const pic = c.full || c.img;
+  box.innerHTML = `<div class="detail">
+    <div class="full">${pic ? `<img src="${pic}" alt="Фигура: ${esc(c.name)}">` : ''}</div>
+    <div class="body">
+      <div class="row"><div><div class="eyebrow">${KIND[c.kind]} · ${esc(c.id)}</div><h3>${esc(c.name)}</h3></div><button type="button" class="close" id="detail-close">Закрыть</button></div>
+      ${stats ? `<div class="stats">${stats}</div>` : ''}
+      <dl class="kv">
+        <dt>Прототип</dt><dd>${esc(c.proto || '—')}${c.protoName ? ' («' + esc(c.protoName) + '»)' : ''}</dd>
+        <dt>Модель</dt><dd class="mono">${esc(c.model || '—')}${c.found === 'prototype' ? ' · найден по прототипу' : c.found === 'prototype only' ? ' · только прототип' : ''}</dd>
+        <dt>Где стоит</dt><dd>${esc(c.zones.join(', ') || c.maps.join(', ') || '—')}</dd>
+        <dt>Броня</dt><dd>${list(c.armors)}</dd>
+        <dt>Оружие</dt><dd>${list(c.weapons)}</dd>
+        ${c.spells.length ? `<dt>Заклинания</dt><dd>${list(c.spells)}</dd>` : ''}
+        <dt>Дает квесты</dt><dd>${c.given.length ? c.given.map(q => esc(q.title)).join('; ') : '—'}</dd>
+        ${c.target.length ? `<dt>Цель квестов</dt><dd>${c.target.map(q => esc(q.title)).join('; ')}</dd>` : ''}
+        <dt>Брифинги</dt><dd>${c.briefs.length ? c.briefs.map(b => esc(b.title || b.id)).join('; ') : '—'}</dd>
+        ${c.money ? `<dt>Деньги</dt><dd>${c.money > 0 ? 'платит герою' : 'берет с героя'} ${Math.abs(c.money).toLocaleString('ru-RU')}</dd>` : ''}
+        <dt>Связи</dt><dd>${rel}</dd>
+      </dl>
+    </div></div>`;
+  box.hidden = false;
+}
+
+function renderGraph() {
+  const g = G();
+  const svg = document.getElementById('graph');
+  const weight = {};
+  g.links.forEach(l => { weight[l.a] = (weight[l.a] || 0) + l.w; weight[l.b] = (weight[l.b] || 0) + l.w; });
+  const nodes = g.characters.filter(c => c.kind !== 'hero' && weight[c.id]);
+  // order around the circle by the first quest of the character, so the allods form arcs
+  const firstQuest = {};
+  g.quests.forEach(q => q.by.concat(q.targets).forEach(id => { if (firstQuest[id] == null || q.n < firstQuest[id]) firstQuest[id] = q.n; }));
+  nodes.sort((a, b) => (firstQuest[a.id] ?? 999) - (firstQuest[b.id] ?? 999));
+  const n = nodes.length, size = Math.max(640, Math.min(980, 300 + n * 11)), cx = size / 2, cy = size / 2, r = size / 2 - 120;
+  const pos = {};
+  nodes.forEach((c, i) => { const a = (i / n) * Math.PI * 2 - Math.PI / 2; pos[c.id] = [cx + r * Math.cos(a), cy + r * Math.sin(a), a]; });
+  const maxW = Math.max(1, ...g.links.map(l => l.w));
+  const edges = g.links.filter(l => pos[l.a] && pos[l.b]).map(l => {
+    const [x1, y1] = pos[l.a], [x2, y2] = pos[l.b];
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, qx = cx + (mx - cx) * 0.35, qy = cy + (my - cy) * 0.35;
+    return `<path class="edge" data-a="${esc(l.a)}" data-b="${esc(l.b)}" d="M${x1.toFixed(1)},${y1.toFixed(1)} Q${qx.toFixed(1)},${qy.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}" stroke-width="${(0.6 + 4 * l.w / maxW).toFixed(2)}" opacity="${(0.18 + 0.6 * l.w / maxW).toFixed(2)}"/>`;
+  }).join('');
+  const nodeSvg = nodes.map(c => {
+    const [x, y, a] = pos[c.id];
+    const out = Math.cos(a) >= 0;
+    const tx = x + (out ? 20 : -20), anchor = out ? 'start' : 'end';
+    const deg = a * 180 / Math.PI + (out ? 0 : 180);
+    const img = c.img ? `<image href="${c.img}" x="${x - 15}" y="${y - 15}" width="30" height="30" clip-path="circle(15px at 15px 15px)"/>` : '';
+    return `<g class="node${c.kind === 'target' ? ' t' : ''}" data-id="${esc(c.id)}" tabindex="0"><title>${esc(c.name)}</title><circle cx="${x}" cy="${y}" r="16"/>${img}<text x="${tx}" y="${y}" dy="0.35em" text-anchor="${anchor}" transform="rotate(${deg.toFixed(1)} ${x} ${y})">${esc(c.name)}</text></g>`;
+  }).join('');
+  svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+  svg.setAttribute('width', size);
+  svg.setAttribute('height', size);
+  svg.innerHTML = `<g>${edges}</g><g>${nodeSvg}</g>`;
+  svg.classList.remove('focus');
+}
+
+function focusNode(id) {
+  const svg = document.getElementById('graph');
+  if (!id || svg.dataset.focus === id) { svg.classList.remove('focus'); svg.dataset.focus = ''; return; }
+  svg.dataset.focus = id;
+  svg.classList.add('focus');
+  const near = new Set([id]);
+  svg.querySelectorAll('.edge').forEach(e => {
+    const on = e.dataset.a === id || e.dataset.b === id;
+    e.classList.toggle('on', on);
+    if (on) { near.add(e.dataset.a); near.add(e.dataset.b); }
+  });
+  svg.querySelectorAll('.node').forEach(nd => nd.classList.toggle('on', near.has(nd.dataset.id)));
+}
+
+function renderRoster() {
+  const rows = G().characters.slice().sort((a, b) => (a.kind === 'target') - (b.kind === 'target') || a.name.localeCompare(b.name, 'ru'));
+  document.getElementById('roster-body').innerHTML = rows.map(c => {
+    const quests = c.given.map(q => q.title).concat(c.target.map(q => '⚔ ' + q.title));
+    return `<tr><td>${chip(c.id, c.kind === 'target')}</td><td><span class="role ${c.kind}">${KIND[c.kind]}</span></td><td class="mono">${esc(c.proto)}</td><td>${esc((c.zones.length ? c.zones : c.maps).slice(0, 2).join(', '))}</td><td class="num">${c.owns || ''}</td><td class="num">${c.lines || ''}</td><td>${esc(quests.join('; '))}</td></tr>`;
+  }).join('');
+}
+
+function render() {
+  document.querySelectorAll('.switch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.game === game)));
+  renderHead(); renderStory(); renderCast(); renderGraph(); renderRoster();
+}
+
+function openCharacter(id) {
+  const c = charById(id);
+  if (!c) return;
+  if (c.kind === 'target') document.getElementById('cast-targets').checked = true;
+  selected = id;
+  renderCast();
+  document.getElementById('cast').scrollIntoView();
+}
+
+document.querySelectorAll('.switch button').forEach(b => b.addEventListener('click', () => {
+  game = b.dataset.game; selected = null;
+  try { localStorage.setItem('allods-game', game); } catch (e) {}
+  render();
+}));
+document.getElementById('cast-filter').addEventListener('input', renderCast);
+document.getElementById('cast-targets').addEventListener('change', renderCast);
+document.addEventListener('click', e => {
+  if (e.target.closest('#detail-close')) { selected = null; renderDetail(); return; }
+  const node = e.target.closest('#graph .node');
+  if (node) { focusNode(node.dataset.id); return; }
+  const el = e.target.closest('[data-char]');
+  if (el) openCharacter(el.dataset.char);
+});
+document.getElementById('graph').addEventListener('keydown', e => {
+  const node = e.target.closest('.node');
+  if (node && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); focusNode(node.dataset.id); }
+});
+try { const saved = localStorage.getItem('allods-game'); if (saved && DATA[saved]) game = saved; } catch (e) {}
+render();
+</script>

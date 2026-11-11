@@ -1,0 +1,100 @@
+# План 2: главное меню -> Options -> Gamma на максимум -> OK -> сцена; Options -> Gamma на минимум -> OK ->
+# сцена; Options -> Gamma обратно на середину -> OK -> выход из игры.
+# Строки sync держат обе игры вместе: каждая ждёт другую перед следующим шагом.
+#
+# Оригинал: Gamma - ползунок в разделе Graphics на y 455, ручка в середине x 605, в максимуме 654,
+# в минимуме 556; по краям дорожки кнопки-стрелки, поэтому ручку тянут мышью за её середину.
+# Enter в окне Options не шлём никому: у оригинала он переключает выбранный пункт,
+# у демо подтверждает окно.
+# Демо: Gamma - первая строка раздела Graphics (числом 0..100), её меняют стрелки, 1 за нажатие.
+# Настройки сохраняются между прогонами: у оригинала в реестре Wine, у демо в ~/.cache/ei-remake.
+# OK - кнопка с галочкой (250, 550), X - отмена (540, 550), у обоих одинаково.
+# В конце Gamma возвращается на середину, чтобы следующие прогоны начинались с обычной картинки.
+# Отчёт и найденные различия: plan2_options_gamma.md
+
+# потолок времени на весь прогон; при его превышении игры останавливаются, прогон неудачен
+timeout 180000
+
+# настройки обеих игр сбрасываются к встроенным умолчаниям перед прогоном (копия в run/settings_backup)
+reset_settings
+
+# главное меню: ждём, пока камень NEW GAME станет светлым (загрузка тёмная)
+waitpixel 430 200 128,123,92 70 30000
+wait 1000
+sync
+shot 01_menu
+
+# Options
+sync
+click 425 325
+wait 1500
+sync
+shot 02_options
+
+# Gamma на максимум
+sync
+original: drag 605 455 720 455 left 12
+demo: click 300 178
+demo: wait 300
+# 105 нажатий доводят до 100 из любого значения: прошлый прогон мог оставить другое
+demo: repeat 105 key right
+wait 800
+sync
+shot 03_gamma_max
+
+# OK: настройка применяется, видна сцена главного меню
+sync
+click 250 550
+wait 2500
+sync
+shot 04_scene_gamma_max
+expect_changed 01_menu 0.3
+
+# снова Options: значение сохранилось
+sync
+click 425 325
+wait 1500
+sync
+shot 05_options_reopen
+
+# Gamma на минимум
+sync
+original: drag 654 455 480 455 left 12
+demo: click 300 178
+demo: wait 300
+demo: repeat 105 key left
+wait 800
+sync
+shot 06_gamma_min
+
+# OK и сцена при минимальной гамме
+sync
+click 250 550
+wait 2500
+sync
+shot 07_scene_gamma_min
+expect_changed 04_scene_gamma_max 0.3
+
+# Gamma обратно на середину и OK
+sync
+click 425 325
+wait 1500
+original: drag 556 455 605 455 left 12
+demo: click 300 178
+demo: wait 300
+demo: repeat 50 key right
+wait 800
+sync
+shot 08_gamma_restored
+click 250 550
+wait 2500
+sync
+shot 09_menu
+
+# выход из игры: EXIT главного меню
+sync
+click 425 410
+wait 2000
+
+# игра закрывается сама
+expect_closed 10000

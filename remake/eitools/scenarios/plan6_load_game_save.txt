@@ -1,0 +1,43 @@
+# План 6: сохранение оригинальной игры загружается в демо.
+# Запуск: eidrive.py demo restart, затем eidrive.py demo run scenarios/plan6_load_game_save.txt --out DIR
+# (только демо: строки помечены "demo:", в compare оригинал их пропускает).
+#
+# put_save кладёт копию сохранения game.exe (eitools/fixtures/saves/zone1_start: autosave savea
+# при входе в zone1, герой у старта на 54, 138) в слот data/saves/00game. В слоте только файлы игры
+# (info.sav, scenario.sav, mission.sav, shot.sav), без remake.json, поэтому демо читает именно их:
+# зону и карту из mission.sav, час из info.sav, отряд из scenario.sav, место героя из mission.sav.
+# Имя 00game ставит слот первым в списке (слоты идут по имени), он выбран при открытии окна.
+#
+# Главное меню демо: Load game - камень (364, 225)-(484, 260) из menus.reg; окно загрузки:
+# строки с y 160 по 24 пикселя (x 180..620), OK (250, 550), отмена (540, 550).
+
+timeout 120000
+
+demo: put_save zone1_start 00game
+
+# главное меню: камень NEW GAME становится светлым
+demo: waitpixel 430 200 128,123,92 70 60000
+demo: wait 1000
+demo: shot 01_menu
+
+# Load game: окно со списком слотов
+demo: click 424 242
+demo: wait 1500
+demo: shot 02_load_window
+demo: expect_changed 01_menu 0.3
+
+# первая строка - слот 00game; OK загружает
+demo: click 400 172
+demo: wait 500
+demo: shot 03_slot_selected
+demo: click 250 550
+
+# карта zone1 строится, герой стоит на своём месте из mission.sav
+demo: waitstable 2000 60000
+demo: shot 04_loaded
+demo: expect_changed 02_load_window 0.3
+
+# герой на месте: камера следит за ним, колесом крупнее
+demo: wheel up 3
+demo: wait 1500
+demo: shot 05_hero_close

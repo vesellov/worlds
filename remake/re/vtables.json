@@ -1,0 +1,1010 @@
+{
+ "CAnimationNode": [
+  {
+   "getname": "50b190",
+   "vtbl": "73da0c",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "50af40",
+    "50b1d0"
+   ]
+  }
+ ],
+ "CAnimationSystem2": [
+  {
+   "getname": "50c6f0",
+   "vtbl": "73da4c",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "50c5f0",
+    "50c730"
+   ]
+  }
+ ],
+ "CAnimationTrack": [
+  {
+   "getname": "50a6e0",
+   "vtbl": "73d9d8",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "50a5d0",
+    "50a720"
+   ]
+  }
+ ],
+ "CBridgeManager": [
+  {
+   "getname": "561870",
+   "vtbl": "73f4fc",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "5612f0"
+   ]
+  }
+ ],
+ "CBuilding": [
+  {
+   "getname": "529810",
+   "vtbl": "73e26c",
+   "slot": 11,
+   "nvirt": 61,
+   "refs": [
+    "5297c0",
+    "529850"
+   ]
+  }
+ ],
+ "CCamera": [
+  {
+   "getname": "40cdf0",
+   "vtbl": "73b9e0",
+   "slot": 11,
+   "nvirt": 18,
+   "refs": [
+    "40c8b0",
+    "40ce60"
+   ]
+  }
+ ],
+ "CClientSpecificManager": [
+  {
+   "getname": "42d6b0",
+   "vtbl": "73becc",
+   "slot": 11,
+   "nvirt": 25,
+   "refs": [
+    "42d690",
+    "42d6f0"
+   ]
+  }
+ ],
+ "CEffectAmbientSound": [
+  {
+   "getname": "677660",
+   "vtbl": "74350c",
+   "slot": 11,
+   "nvirt": 24,
+   "refs": [
+    "677541",
+    "6776a0"
+   ]
+  }
+ ],
+ "CEffectArrow": [
+  {
+   "getname": "67b140",
+   "vtbl": "7436f0",
+   "slot": 11,
+   "nvirt": 18,
+   "refs": [
+    "67adf0",
+    "67b180"
+   ]
+  }
+ ],
+ "CEffectArrowFigure": [
+  {
+   "getname": "67bc50",
+   "vtbl": "7437b8",
+   "slot": 11,
+   "nvirt": 25,
+   "refs": [
+    "67bb50",
+    "67bc90"
+   ]
+  }
+ ],
+ "CEffectLightning": [
+  {
+   "getname": "67a030",
+   "vtbl": "743690",
+   "slot": 11,
+   "nvirt": 18,
+   "refs": [
+    "679f80",
+    "67a070"
+   ]
+  }
+ ],
+ "CEffectManager": [
+  {
+   "getname": "55f360",
+   "vtbl": "73f2c4",
+   "slot": 11,
+   "nvirt": 25,
+   "refs": [
+    "55ee40",
+    "55f3a0"
+   ]
+  }
+ ],
+ "CEffectMoshka": [
+  {
+   "getname": "67ca70",
+   "vtbl": "74387c",
+   "slot": 11,
+   "nvirt": 24,
+   "refs": [
+    "67c910",
+    "67cab0"
+   ]
+  }
+ ],
+ "CEffectParticle": [
+  {
+   "getname": "678910",
+   "vtbl": "7435d0",
+   "slot": 11,
+   "nvirt": 18,
+   "refs": [
+    "678770",
+    "678950",
+    "6797a0",
+    "6799a0",
+    "67adf0",
+    "67b180"
+   ]
+  }
+ ],
+ "CEffectPointLight": [
+  {
+   "getname": "677f40",
+   "vtbl": "74356c",
+   "slot": 11,
+   "nvirt": 18,
+   "refs": [
+    "677cf0",
+    "677f80",
+    "67adf0",
+    "67b180"
+   ]
+  }
+ ],
+ "CEffectShowVisibility": [
+  {
+   "getname": "67c410",
+   "vtbl": "74381c",
+   "slot": 11,
+   "nvirt": 24,
+   "refs": [
+    "67c300",
+    "67c450"
+   ]
+  }
+ ],
+ "CEffectSound": [
+  {
+   "getname": "676020",
+   "vtbl": "7433ec",
+   "slot": 11,
+   "nvirt": 24,
+   "refs": [
+    "675d90",
+    "676060",
+    "67adf0",
+    "67b180"
+   ]
+  }
+ ],
+ "CEffectSoundSeq": [
+  {
+   "getname": "676900",
+   "vtbl": "74344c",
+   "slot": 11,
+   "nvirt": 24,
+   "refs": [
+    "676720",
+    "676940"
+   ]
+  }
+ ],
+ "CEffectTornado": [
+  {
+   "getname": "67d780",
+   "vtbl": "7438f8",
+   "slot": 11,
+   "nvirt": 24,
+   "refs": [
+    "67d630",
+    "67d7c0"
+   ]
+  }
+ ],
+ "CEffectWall": [
+  {
+   "getname": "679960",
+   "vtbl": "743630",
+   "slot": 11,
+   "nvirt": 18,
+   "refs": [
+    "6797a0",
+    "6799a0"
+   ]
+  }
+ ],
+ "CFakeFigure": [
+  {
+   "getname": "4547f0",
+   "vtbl": "73c274",
+   "slot": 11,
+   "nvirt": 18,
+   "refs": [
+    "4545c0"
+   ]
+  }
+ ],
+ "CFakeUnit": [
+  {
+   "getname": "4468d0",
+   "vtbl": "73bfe8",
+   "slot": 11,
+   "nvirt": 63,
+   "refs": [
+    "4466d0",
+    "446910"
+   ]
+  }
+ ],
+ "CFigure": [
+  {
+   "getname": "453450",
+   "vtbl": "73c1c4",
+   "slot": 11,
+   "nvirt": 24,
+   "refs": [
+    "453240",
+    "5aa8e0"
+   ]
+  },
+  {
+   "getname": "453450",
+   "vtbl": "73c224",
+   "slot": 11,
+   "nvirt": 20,
+   "refs": [
+    "453240",
+    "476fb0",
+    "4a0350",
+    "4d9110",
+    "59f030",
+    "5aabc0"
+   ]
+  },
+  {
+   "getname": "453450",
+   "vtbl": "73fbf0",
+   "slot": 11,
+   "nvirt": 22,
+   "refs": [
+    "5aa8e0"
+   ]
+  }
+ ],
+ "CFigureClientSpecific": [
+  {
+   "getname": "5a7040",
+   "vtbl": "73fb10",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "5a7010"
+   ]
+  }
+ ],
+ "CFigureManager": [
+  {
+   "getname": "5aa180",
+   "vtbl": "73fb88",
+   "slot": 11,
+   "nvirt": 26,
+   "refs": [
+    "5aa070",
+    "5aa1c0"
+   ]
+  }
+ ],
+ "CHoover": [
+  {
+   "getname": "461c40",
+   "vtbl": "73c434",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "461c10",
+    "461c80"
+   ]
+  }
+ ],
+ "CI3DFigure": [
+  {
+   "getname": "5aacc0",
+   "vtbl": "73fc48",
+   "slot": 11,
+   "nvirt": 24,
+   "refs": [
+    "5aa8e0",
+    "5aad00"
+   ]
+  }
+ ],
+ "CInventory": [
+  {
+   "getname": "4623e0",
+   "vtbl": "73c474",
+   "slot": 11,
+   "nvirt": 22,
+   "refs": [
+    "462230",
+    "462420"
+   ]
+  }
+ ],
+ "CItemArmor": [
+  {
+   "getname": "6a2f40",
+   "vtbl": "743e54",
+   "slot": 11,
+   "nvirt": 22,
+   "refs": [
+    "6a2ee0"
+   ]
+  }
+ ],
+ "CItemConstructor": [
+  {
+   "getname": "6a5aa0",
+   "vtbl": "744020",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "6a5a70",
+    "6a5ae0"
+   ]
+  }
+ ],
+ "CItemLoot": [
+  {
+   "getname": "6a4980",
+   "vtbl": "743f5c",
+   "slot": 11,
+   "nvirt": 22,
+   "refs": [
+    "6a4960"
+   ]
+  }
+ ],
+ "CItemManager": [
+  {
+   "getname": "55f3c0",
+   "vtbl": "73f25c",
+   "slot": 11,
+   "nvirt": 26,
+   "refs": [
+    "55ee40",
+    "55f400",
+    "6614b0"
+   ]
+  }
+ ],
+ "CItemQuest": [
+  {
+   "getname": "6a43a0",
+   "vtbl": "743f04",
+   "slot": 11,
+   "nvirt": 22,
+   "refs": [
+    "6a4360"
+   ]
+  }
+ ],
+ "CItemQuick": [
+  {
+   "getname": "6a3ab0",
+   "vtbl": "743eac",
+   "slot": 11,
+   "nvirt": 22,
+   "refs": [
+    "6a3a90"
+   ]
+  }
+ ],
+ "CItemSpell": [
+  {
+   "getname": "6a56c0",
+   "vtbl": "743fb4",
+   "slot": 11,
+   "nvirt": 22,
+   "refs": [
+    "6a56a0"
+   ]
+  }
+ ],
+ "CItemWeapon": [
+  {
+   "getname": "6a0530",
+   "vtbl": "743dfc",
+   "slot": 11,
+   "nvirt": 22,
+   "refs": [
+    "6a0500"
+   ]
+  }
+ ],
+ "CLeverObject": [
+  {
+   "getname": "52b2e0",
+   "vtbl": "73e740",
+   "slot": 11,
+   "nvirt": 61,
+   "refs": [
+    "52b1f0",
+    "52b320"
+   ]
+  }
+ ],
+ "CLight": [
+  {
+   "getname": "68cf60",
+   "vtbl": "743afc",
+   "slot": 11,
+   "nvirt": 18,
+   "refs": [
+    "68ce90"
+   ]
+  }
+ ],
+ "CLightManager": [
+  {
+   "getname": "68d910",
+   "vtbl": "743b50",
+   "slot": 11,
+   "nvirt": 25,
+   "refs": [
+    "68d810",
+    "68d950"
+   ]
+  }
+ ],
+ "CLightning": [
+  {
+   "getname": "4687d0",
+   "vtbl": "73c550",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "468680",
+    "468810"
+   ]
+  }
+ ],
+ "CLightningManager": [
+  {
+   "getname": "562d80",
+   "vtbl": "73f5b8",
+   "slot": 11,
+   "nvirt": 25,
+   "refs": [
+    "561e50"
+   ]
+  }
+ ],
+ "CMagicTrapObject": [
+  {
+   "getname": "529f50",
+   "vtbl": "73e63c",
+   "slot": 11,
+   "nvirt": 61,
+   "refs": [
+    "529dd0",
+    "529f90"
+   ]
+  }
+ ],
+ "CMapObjectClientSpecific": [
+  {
+   "getname": "510520",
+   "vtbl": "73dbec",
+   "slot": 11,
+   "nvirt": 20,
+   "refs": [
+    "510450",
+    "510560"
+   ]
+  }
+ ],
+ "CMapObjectManager": [
+  {
+   "getname": "512610",
+   "vtbl": "73dcd8",
+   "slot": 11,
+   "nvirt": 26,
+   "refs": [
+    "5125e0",
+    "512650"
+   ]
+  }
+ ],
+ "CMapObjectServer": [
+  {
+   "getname": "5156e0",
+   "vtbl": "73dd6c",
+   "slot": 11,
+   "nvirt": 21,
+   "refs": [
+    "515610",
+    "515720"
+   ]
+  }
+ ],
+ "CMaterial": [
+  {
+   "getname": "68dcc0",
+   "vtbl": "743bb4",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "68db80",
+    "68ddf0"
+   ]
+  }
+ ],
+ "CMaterialManager": [
+  {
+   "getname": "68e4c0",
+   "vtbl": "743c38",
+   "slot": 11,
+   "nvirt": 26,
+   "refs": [
+    "68e3b0",
+    "68e500",
+    "68e600"
+   ]
+  }
+ ],
+ "CMusicSystem": [
+  {
+   "getname": "6b4430",
+   "vtbl": "744098",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "6b4310",
+    "6b4470"
+   ]
+  }
+ ],
+ "CObject3DClientSpecific": [
+  {
+   "getname": "51ad50",
+   "vtbl": "73de90",
+   "slot": 11,
+   "nvirt": 27,
+   "refs": [
+    "51ab00",
+    "51ad90"
+   ]
+  }
+ ],
+ "CObject3DServer": [
+  {
+   "getname": "51f2c0",
+   "vtbl": "73dfbc",
+   "slot": 11,
+   "nvirt": 27,
+   "refs": [
+    "51f240"
+   ]
+  }
+ ],
+ "CParticle": [
+  {
+   "getname": "4982d0",
+   "vtbl": "73cfd0",
+   "slot": 11,
+   "nvirt": 18,
+   "refs": [
+    "4981b0",
+    "498310"
+   ]
+  }
+ ],
+ "CParticleManager": [
+  {
+   "getname": "562780",
+   "vtbl": "73f644",
+   "slot": 11,
+   "nvirt": 25,
+   "refs": [
+    "561e50",
+    "5627c0"
+   ]
+  }
+ ],
+ "CParty": [
+  {
+   "getname": "65f520",
+   "vtbl": "743000",
+   "slot": 11,
+   "nvirt": 27,
+   "refs": [
+    "65f180",
+    "661010",
+    "661190",
+    "661380",
+    "662f70",
+    "6632f0"
+   ]
+  }
+ ],
+ "CPlayer": [
+  {
+   "getname": "664da0",
+   "vtbl": "743104",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "664bb0",
+    "664de0"
+   ]
+  }
+ ],
+ "CPlayerClient": [
+  {
+   "getname": "666f50",
+   "vtbl": "743180",
+   "slot": 11,
+   "nvirt": 24,
+   "refs": [
+    "666cd0",
+    "666f90"
+   ]
+  }
+ ],
+ "CPlayerManager": [
+  {
+   "getname": "55f310",
+   "vtbl": "73f328",
+   "slot": 11,
+   "nvirt": 25,
+   "refs": [
+    "55ee40",
+    "55f350"
+   ]
+  }
+ ],
+ "CServerSpecificManager": [
+  {
+   "getname": "4d6920",
+   "vtbl": "73d4f4",
+   "slot": 11,
+   "nvirt": 25,
+   "refs": [
+    "4d6900",
+    "4d6960"
+   ]
+  }
+ ],
+ "CSkyObject": [
+  {
+   "getname": "4d9270",
+   "vtbl": "73d5b8",
+   "slot": 11,
+   "nvirt": 24,
+   "refs": [
+    "4d9110"
+   ]
+  }
+ ],
+ "CSoundManager": [
+  {
+   "getname": "6b6250",
+   "vtbl": "7440f0",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "6b6000",
+    "6b6590"
+   ]
+  }
+ ],
+ "CSpell": [
+  {
+   "getname": "68b240",
+   "vtbl": "743aa8",
+   "slot": 6,
+   "nvirt": 8,
+   "refs": [
+    "68b280",
+    "68bc10"
+   ]
+  }
+ ],
+ "CSpellConstructor": [
+  {
+   "getname": "684020",
+   "vtbl": "7439c8",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "683fb0",
+    "684060"
+   ]
+  }
+ ],
+ "CSpellContainer": [
+  {
+   "getname": "68bbd0",
+   "vtbl": "743adc",
+   "slot": 6,
+   "nvirt": 8,
+   "refs": [
+    "68bc10"
+   ]
+  }
+ ],
+ "CSpellManager": [
+  {
+   "getname": "688910",
+   "vtbl": "743a14",
+   "slot": 11,
+   "nvirt": 26,
+   "refs": [
+    "688800",
+    "688950"
+   ]
+  }
+ ],
+ "CStone": [
+  {
+   "getname": "5298f0",
+   "vtbl": "73e360",
+   "slot": 11,
+   "nvirt": 61,
+   "refs": [
+    "5298a0",
+    "529930"
+   ]
+  }
+ ],
+ "CStuffObject": [
+  {
+   "getname": "5299d0",
+   "vtbl": "73e454",
+   "slot": 11,
+   "nvirt": 61,
+   "refs": [
+    "529980",
+    "529a10"
+   ]
+  }
+ ],
+ "CTerrain": [
+  {
+   "getname": "562b40",
+   "vtbl": "73f6a8",
+   "slot": 11,
+   "nvirt": 18,
+   "refs": [
+    "561e50",
+    "562b80"
+   ]
+  }
+ ],
+ "CTextManager": [
+  {
+   "getname": "562970",
+   "vtbl": "73f6f0",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "561e50",
+    "5629b0"
+   ]
+  }
+ ],
+ "CTexture": [
+  {
+   "getname": "6918d0",
+   "vtbl": "743d24",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "6917d0",
+    "691910"
+   ]
+  }
+ ],
+ "CTextureManager": [
+  {
+   "getname": "6911d0",
+   "vtbl": "743cb0",
+   "slot": 11,
+   "nvirt": 26,
+   "refs": [
+    "691100",
+    "691210"
+   ]
+  }
+ ],
+ "CTorchObject": [
+  {
+   "getname": "52bf20",
+   "vtbl": "73e834",
+   "slot": 11,
+   "nvirt": 61,
+   "refs": [
+    "52bee0",
+    "52bf60"
+   ]
+  }
+ ],
+ "CTorchObjectClientSpecific": [
+  {
+   "getname": "52d190",
+   "vtbl": "73e954",
+   "slot": 11,
+   "nvirt": 14,
+   "refs": [
+    "52d0d0",
+    "52d1d0"
+   ]
+  }
+ ],
+ "CTorchObjectSpecific": [
+  {
+   "getname": "4d6b60",
+   "vtbl": "73d558",
+   "slot": 11,
+   "nvirt": 19,
+   "refs": [
+    "4d6970",
+    "4d6ba0",
+    "52d0d0",
+    "52d1d0"
+   ]
+  }
+ ],
+ "CTrapObject": [
+  {
+   "getname": "529b00",
+   "vtbl": "73e548",
+   "slot": 11,
+   "nvirt": 61,
+   "refs": [
+    "529a80"
+   ]
+  }
+ ],
+ "CTree": [
+  {
+   "getname": "529730",
+   "vtbl": "73e178",
+   "slot": 11,
+   "nvirt": 61,
+   "refs": [
+    "5296e0",
+    "529770"
+   ]
+  }
+ ],
+ "CUnit": [
+  {
+   "getname": "52e280",
+   "vtbl": "73eaa0",
+   "slot": 6,
+   "nvirt": 57,
+   "refs": [
+    "52e310"
+   ]
+  }
+ ],
+ "CUnitClientSpecific": [
+  {
+   "getname": "533e00",
+   "vtbl": "73ecd8",
+   "slot": 11,
+   "nvirt": 54,
+   "refs": [
+    "533ad0",
+    "533ea0"
+   ]
+  }
+ ],
+ "CUnitServer": [
+  {
+   "getname": "5460c0",
+   "vtbl": "73ef38",
+   "slot": 11,
+   "nvirt": 54,
+   "refs": [
+    "545580",
+    "546230"
+   ]
+  }
+ ],
+ "CVisFogManager": [
+  {
+   "getname": "562db0",
+   "vtbl": "73f554",
+   "slot": 11,
+   "nvirt": 25,
+   "refs": [
+    "561e50",
+    "562df0"
+   ]
+  }
+ ],
+ "CVisibilityFog": [
+  {
+   "getname": "4e24a0",
+   "vtbl": "73d6b4",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "4e2290",
+    "4e24e0"
+   ]
+  }
+ ],
+ "CWeather": [
+  {
+   "getname": "5617c0",
+   "vtbl": "73f4c8",
+   "slot": 11,
+   "nvirt": 13,
+   "refs": [
+    "5612f0",
+    "5616c0",
+    "561b00"
+   ]
+  }
+ ],
+ "CWorldClient": [
+  {
+   "getname": "5619e0",
+   "vtbl": "73f41c",
+   "slot": 11,
+   "nvirt": 43,
+   "refs": [
+    "5612f0",
+    "561b00"
+   ]
+  }
+ ],
+ "CWorldServer": [
+  {
+   "getname": "58a410",
+   "vtbl": "73f928",
+   "slot": 11,
+   "nvirt": 42,
+   "refs": [
+    "589ed0",
+    "58aad0"
+   ]
+  }
+ ]
+}

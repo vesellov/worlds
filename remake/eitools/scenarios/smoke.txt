@@ -1,0 +1,60 @@
+# Дымовой прогон: меню, новая игра, сложность, ролик, обучение, зона1,
+# ходьба по клику, камера, пауза, оружие, Esc-меню, второй вид камеры, обучение по H.
+# Общая часть до зоны1 лежит в common_intro.txt.
+
+# потолок времени на весь прогон; при его превышении игры останавливаются, прогон неудачен
+timeout 180000
+
+include common_intro.txt
+
+# клик по земле: герой идёт, камера следует за ним
+click 440 420
+wait 4000
+shot 05_walk
+expect_changed 04_zone 0.3
+
+# панорама камеры стрелками
+key Left
+wait 600
+key Left
+wait 800
+shot 06_camera
+
+# пауза и её снятие
+key space
+wait 800
+shot 07_paused
+key space
+wait 500
+
+# смена оружия: Q — первый набор, R — четвёртый
+key q
+wait 800
+shot 08_weapon_q
+key r
+wait 800
+shot 09_weapon_r
+
+# Esc-меню: открыть и закрыть
+key Escape
+wait 1000
+shot 10_esc_menu
+key Escape
+wait 800
+
+# второй вид камеры по F10
+key F10
+wait 1000
+shot 11_camera2
+
+# обучение по H: показать, пролистать и закрыть
+key h
+wait 1500
+shot 12_tutorial_h
+key Return
+wait 500
+key Return
+wait 500
+key Return
+wait 1000
+shot 13_end

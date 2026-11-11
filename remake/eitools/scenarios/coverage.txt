@@ -1,0 +1,158 @@
+# Покрытие функций game.exe: прогон оригинала под трассировщиком remake/re/eitrace.
+# Каждая строка phase начинает новую фазу: трассировщик заново ставит int3 на все функции,
+# и в eitrace_out.txt видно, какие функции работали в какой фазе и сколько окон по 2 с.
+# Запуск: remake/eitools/coverage.sh (он же запускает игру под trace.sh и собирает результат).
+# Только для оригинала; демо этот сценарий не нужен.
+
+# потолок времени на весь прогон
+timeout 600000
+
+reset_settings
+
+# S0: главное меню, наведение, опции, окно загрузки
+phase menu
+waitpixel 430 200 128,123,92 70 90000
+wait 3000
+move 425 195
+wait 500
+move 425 240
+wait 500
+move 425 285
+wait 500
+move 425 375
+wait 500
+phase menu_options
+click 425 325
+wait 2000
+shot 01_options
+click 250 550
+wait 2000
+phase menu_load
+click 425 240
+wait 2000
+shot 02_load
+key Escape
+wait 2000
+phase menu_idle
+wait 6000
+
+# S1: новая игра, сложность, ролик, загрузка зоны1, обучение
+phase newgame
+click 425 195
+wait 1200
+click 297 482
+wait 3000
+key Space
+wait 2000
+key Space
+wait 1000
+waitregion 250 150 300 250 36,31,18 12 0.5 90000
+phase tutorial
+shot 03_tutorial
+wait 2000
+key Return
+wait 1500
+key Return
+wait 1500
+key Return
+wait 2000
+shot 04_zone
+
+# S2: зона без ввода — только тик мира
+phase zone_idle
+wait 20000
+
+# S2: ходьба, бег, камера
+phase zone_walk
+click 500 420
+wait 4000
+key z
+click 650 450
+wait 4000
+key x
+click 300 450
+wait 4000
+drag 400 300 520 300 right 10
+wait 1500
+key F10
+wait 1500
+key F9
+wait 1500
+key Next
+wait 1000
+key Prior
+wait 1000
+key Left
+wait 1000
+key Right
+wait 1000
+key n
+wait 1000
+key Tab
+wait 1000
+key Tab
+wait 1000
+shot 05_walk
+
+# окна зоны: карта, информация, тексты
+phase zone_windows
+key m
+wait 1500
+shot 06_minimap
+key m
+wait 1000
+key comma
+wait 1500
+shot 07_info1
+key Escape
+wait 1000
+key period
+wait 1500
+key Escape
+wait 1000
+key slash
+wait 1500
+key Escape
+wait 1000
+key l
+wait 1500
+key Escape
+wait 1000
+
+# оружие и пауза
+phase zone_actions
+key q
+wait 800
+key e
+wait 800
+key 1
+wait 800
+key 1
+wait 400
+key space
+wait 2000
+key space
+wait 1000
+
+# S6: быстрое сохранение и загрузка
+phase quicksave
+key F5
+wait 4000
+phase quickload
+key F8
+wait 8000
+shot 08_loaded
+
+# S8: Esc-меню, выход в главное меню, выход из игры
+phase escmenu
+key Escape
+wait 1500
+shot 09_esc
+click 400 405
+wait 1500
+click 300 375
+waitpixel 430 200 128,123,92 70 60000
+phase menu_back
+wait 3000
+click 425 410
+expect_closed 15000

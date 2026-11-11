@@ -1,0 +1,5 @@
+kivy[base]==2.3.1
+numpy
+pillow
+# the video provider of Kivy with the Bink demuxer and the decoders binkvideo and binkaudio_rdft
+ffpyplayer==4.5.4

@@ -1,0 +1,16 @@
+{
+ "675d10": {"decision": "builtin", "note": "setter of a few fields of an effect"},
+ "6792a0": {"decision": "builtin", "note": "setter of a few fields of an effect"},
+ "6792d0": {"decision": "builtin", "note": "setter of a few fields of an effect"},
+ "67ac30": {"decision": "builtin", "note": "setter of a few fields of an effect"},
+ "67c600": {"decision": "builtin", "note": "setter of a few fields of an effect"},
+ "683a70": {"decision": "builtin", "note": "ref-counted pointer of an effect: a Python reference"},
+ "6884f0": {"decision": "builtin", "note": "ref-counted pointer of an effect: a Python reference"},
+ "68c9d0": {"decision": "builtin", "note": "std::sort of the bytes of the modifiers (introsort, insertion, heap): sorted()"},
+ "68caf0": {"decision": "builtin", "note": "std::sort of the bytes of the modifiers (introsort, insertion, heap): sorted()"},
+ "68cb50": {"decision": "builtin", "note": "std::sort of the bytes of the modifiers (introsort, insertion, heap): sorted()"},
+ "68cca0": {"decision": "builtin", "note": "std::sort of the bytes of the modifiers (introsort, insertion, heap): sorted()"},
+ "68ccf0": {"decision": "builtin", "note": "std::sort of the bytes of the modifiers (introsort, insertion, heap): sorted()"},
+ "68cd10": {"decision": "builtin", "note": "std::sort of the bytes of the modifiers (introsort, insertion, heap): sorted()"},
+ "68cdc0": {"decision": "builtin", "note": "std::sort of the bytes of the modifiers (introsort, insertion, heap): sorted()"}
+}
